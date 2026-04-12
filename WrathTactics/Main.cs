@@ -20,6 +20,8 @@ namespace WrathTactics {
             harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
 
+            UI.TacticsPanel.Install();
+
             Log("Wrath Tactics loaded.");
             return true;
         }
@@ -35,6 +37,7 @@ namespace WrathTactics {
         }
 
         static bool OnUnload(UnityModManager.ModEntry modEntry) {
+            UI.TacticsPanel.Uninstall();
             harmony.UnpatchAll(modEntry.Info.Id);
             return true;
         }
