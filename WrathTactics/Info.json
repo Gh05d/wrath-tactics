@@ -1,0 +1,12 @@
+{
+  "Id": "WrathTactics",
+  "DisplayName": "Wrath Tactics",
+  "Author": "Gh05d",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.23.0",
+  "GameVersion": "1.4.0",
+  "EntryMethod": "WrathTactics.Main.Load",
+  "AssemblyName": "WrathTactics.dll",
+  "Requirements": [],
+  "HomePage": ""
+}

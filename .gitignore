@@ -1,0 +1,7 @@
+bin/
+obj/
+GameInstall
+GamePath.props
+*.user
+*.suo
+.vs/
