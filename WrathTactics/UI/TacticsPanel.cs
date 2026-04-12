@@ -13,6 +13,7 @@ namespace WrathTactics.UI {
         GameObject panelRoot;
         bool isVisible;
         string selectedUnitId; // null = Global, "presets" = Presets
+        string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
         Text toggleLabel;
 
@@ -121,6 +122,8 @@ namespace WrathTactics.UI {
         }
 
         void SelectTab(string unitId) {
+            if (selectedUnitId != "presets")
+                lastNonPresetUnitId = selectedUnitId;
             selectedUnitId = unitId;
             RefreshRuleList();
         }
@@ -194,10 +197,13 @@ namespace WrathTactics.UI {
                 Destroy(ruleListContent.GetChild(i).gameObject);
 
             if (selectedUnitId == "presets") {
-                // Preset panel coming in Task 13
-                var (msg, _) = UIHelpers.Create("PresetsPlaceholder", ruleListContent);
-                UIHelpers.AddLabel(msg, "Presets kommen in Task 13.", 14, TextAnchor.MiddleCenter, Color.gray);
-                msg.AddComponent<LayoutElement>().preferredHeight = 60;
+                var (presetObj, _) = UIHelpers.Create("PresetPanel", ruleListContent);
+                var presetPanel = presetObj.AddComponent<PresetPanel>();
+                presetPanel.Init(lastNonPresetUnitId, ruleListContent, () => {
+                    // After loading a preset, switch back to the character tab
+                    selectedUnitId = lastNonPresetUnitId;
+                    RefreshRuleList();
+                });
                 UpdateToggleLabel();
                 return;
             }
