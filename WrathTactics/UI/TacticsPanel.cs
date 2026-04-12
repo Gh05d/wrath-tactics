@@ -213,7 +213,7 @@ namespace WrathTactics.UI {
                 var (card, _) = UIHelpers.Create($"Rule_{i}", ruleListContent);
                 var widget = card.AddComponent<RuleEditorWidget>();
                 var capturedRules = rules;
-                widget.Init(rules[i], i, capturedRules, () => RefreshRuleList());
+                widget.Init(rules[i], i, capturedRules, () => RefreshRuleList(), selectedUnitId);
             }
         }
 
