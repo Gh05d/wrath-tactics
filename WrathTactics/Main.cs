@@ -1,5 +1,6 @@
 using System;
 using HarmonyLib;
+using Kingmaker;
 using UnityModManagerNet;
 
 namespace WrathTactics {
@@ -14,12 +15,23 @@ namespace WrathTactics {
             ModEntry = modEntry;
             ModPath = modEntry.Path;
             modEntry.OnUnload = OnUnload;
+            modEntry.OnUpdate = OnUpdate;
 
             harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
 
             Log("Wrath Tactics loaded.");
             return true;
+        }
+
+        static void OnUpdate(UnityModManager.ModEntry modEntry, float delta) {
+            try {
+                if (Game.Instance?.Player == null) return;
+                float gameTime = (float)Game.Instance.Player.GameTime.TotalSeconds;
+                Engine.TacticsEvaluator.Tick(gameTime);
+            } catch (Exception ex) {
+                Error(ex, "[Tactics] Tick error");
+            }
         }
 
         static bool OnUnload(UnityModManager.ModEntry modEntry) {
