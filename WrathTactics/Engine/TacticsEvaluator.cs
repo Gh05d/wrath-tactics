@@ -48,12 +48,9 @@ namespace WrathTactics.Engine {
         }
 
         static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec) {
-            // Skip only if currently casting a spell/ability — auto-attacks don't block us
-            if (unit.Commands.UnitUseAbility != null) {
-                if (config.DebugLogging)
-                    Main.Log($"[Tactics] {unit.CharacterName}: SKIPPED (casting ability)");
-                return;
-            }
+            // No command check — let the game's command system handle conflicts.
+            // Our cooldown system (1 round = 6s) prevents spam.
+            // BubbleBuffs also queues commands without checking.
 
             var debugLog = config.DebugLogging;
 
