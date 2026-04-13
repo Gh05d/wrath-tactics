@@ -60,7 +60,7 @@ namespace WrathTactics.UI {
 
             // Value input
             var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                0.56, 0.85, condition.Value ?? "", 12f);
+                0.56, 0.85, condition.Value ?? "", 14f);
             valueInput.onEndEdit.AddListener(v => {
                 condition.Value = v;
                 ConfigManager.Save();
@@ -71,7 +71,7 @@ namespace WrathTactics.UI {
             delRect.SetAnchor(0.9, 1, 0, 1);
             delRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f, 1f));
-            UIHelpers.AddLabel(delBtn, "X", 12f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(delBtn, "X", 14f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => onDelete?.Invoke());
         }
 
