@@ -180,6 +180,7 @@ namespace WrathTactics.Engine {
         static bool MatchesPropertyThreshold(Condition condition, UnitEntityData unit) {
             switch (condition.Property) {
                 case ConditionProperty.HpPercent:
+                    if (unit.HPLeft <= 0) return false; // Don't count dead as "low HP"
                     float hpPct = (float)unit.HPLeft / Math.Max(1, unit.Stats.HitPoints.ModifiedValue) * 100f;
                     float threshold;
                     if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,

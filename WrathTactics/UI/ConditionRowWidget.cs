@@ -27,9 +27,9 @@ namespace WrathTactics.UI {
 
             root.AddComponent<LayoutElement>().preferredHeight = 30;
 
-            // Subject popup selector
+            // Subject popup selector — narrow enough to leave room for count layout
             var subjectNames = Enum.GetNames(typeof(ConditionSubject)).ToList();
-            PopupSelector.Create(root, "Subject", 0f, 0.2f, subjectNames,
+            PopupSelector.Create(root, "Subject", 0f, 0.15f, subjectNames,
                 (int)condition.Subject, v => {
                     condition.Subject = (ConditionSubject)v;
                     RefreshPropertySelector();
@@ -37,12 +37,12 @@ namespace WrathTactics.UI {
                     onChanged?.Invoke();
                 });
 
-            // Property popup selector
+            // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
             var props = GetPropertiesForSubject(condition.Subject);
             var propNames = props.Select(p => p.ToString()).ToList();
             int propIdx = props.IndexOf(condition.Property);
             if (propIdx < 0) propIdx = 0;
-            propertySelector = PopupSelector.Create(root, "Property", 0.21f, 0.42f,
+            propertySelector = PopupSelector.Create(root, "Property", 0.16f, 0.37f,
                 propNames, propIdx, v => {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
                     if (v < currentProps.Count) condition.Property = currentProps[v];
@@ -56,21 +56,45 @@ namespace WrathTactics.UI {
             bool isHasDebuff = condition.Property == ConditionProperty.HasDebuff;
 
             if (isCountSubject) {
-                // For count subjects: hide Operator dropdown, hardcode "<" for threshold
-                // Layout: [Subject] with [Property] below [threshold]  count >= [count]  [X]
+                // Layout: [Subject 0→0.15] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
+                //         [Property 0.38→0.58] ["<" 0.59→0.63] [value 0.64→0.78] [X 0.9→1.0]
+                // Reads: "AllyCount >= 2 with HpPercent < 60"
+
+                // ">=" label
+                var (gteLbl, gteLblRect) = UIHelpers.Create("GteLabel", root.transform);
+                gteLblRect.SetAnchor(0.16, 0.20, 0, 1);
+                gteLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(gteLbl, ">=", 14f, TextAlignmentOptions.Midline,
+                    new Color(0.7f, 0.7f, 0.7f));
+
+                // Value2 = count threshold
+                var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
+                    0.21, 0.30, condition.Value2 ?? "1", 16f,
+                    TMP_InputField.ContentType.IntegerNumber);
+                countInput.onEndEdit.AddListener(v => {
+                    condition.Value2 = v;
+                    ConfigManager.Save();
+                });
 
                 // "with" label
                 var (withLbl, withLblRect) = UIHelpers.Create("WithLabel", root.transform);
-                withLblRect.SetAnchor(0.43, 0.49, 0, 1);
+                withLblRect.SetAnchor(0.31, 0.37, 0, 1);
                 withLblRect.sizeDelta = Vector2.zero;
                 UIHelpers.AddLabel(withLbl, "with", 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
-                // "below" label
-                var (belowLbl, belowLblRect) = UIHelpers.Create("BelowLabel", root.transform);
-                belowLblRect.SetAnchor(0.50, 0.57, 0, 1);
-                belowLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(belowLbl, "below", 14f, TextAlignmentOptions.Midline,
+                // Property selector already placed at 0.21→0.42 above — move it to 0.38→0.58
+                // (propertySelector was created before this block, so we reposition it)
+                if (propertySelector != null) {
+                    var psRect = propertySelector.GetComponent<RectTransform>();
+                    if (psRect != null) psRect.SetAnchor(0.38, 0.58, 0, 1);
+                }
+
+                // "<" label
+                var (ltLbl, ltLblRect) = UIHelpers.Create("LtLabel", root.transform);
+                ltLblRect.SetAnchor(0.59, 0.63, 0, 1);
+                ltLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(ltLbl, "<", 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
                 // Ensure operator is LessThan for count subjects
@@ -78,31 +102,15 @@ namespace WrathTactics.UI {
 
                 // Value = property threshold (HP %)
                 var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                    0.58, 0.68, condition.Value ?? "", 16f);
+                    0.64, 0.78, condition.Value ?? "", 16f);
                 valueInput.onEndEdit.AddListener(v => {
                     condition.Value = v;
-                    ConfigManager.Save();
-                });
-
-                // "count >=" label
-                var (countLbl, countLblRect) = UIHelpers.Create("CountLabel", root.transform);
-                countLblRect.SetAnchor(0.69, 0.80, 0, 1);
-                countLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(countLbl, "count >=", 14f, TextAlignmentOptions.Midline,
-                    new Color(0.7f, 0.7f, 0.7f));
-
-                // Value2 = count threshold
-                var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
-                    0.81, 0.89, condition.Value2 ?? "1", 16f,
-                    TMP_InputField.ContentType.IntegerNumber);
-                countInput.onEndEdit.AddListener(v => {
-                    condition.Value2 = v;
                     ConfigManager.Save();
                 });
             } else {
                 // Operator popup selector (only for non-count subjects)
                 var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
-                PopupSelector.Create(root, "Operator", 0.43f, 0.55f, opNames,
+                PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames,
                     (int)condition.Operator, v => {
                         condition.Operator = (ConditionOperator)v;
                         ConfigManager.Save();
@@ -117,7 +125,7 @@ namespace WrathTactics.UI {
                     };
                     int condIdx = condNames.IndexOf(condition.Value);
                     if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
-                    PopupSelector.Create(root, "CondValue", 0.56f, 0.88f, condNames, condIdx, v => {
+                    PopupSelector.Create(root, "CondValue", 0.51f, 0.88f, condNames, condIdx, v => {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
@@ -158,14 +166,14 @@ namespace WrathTactics.UI {
                     };
                     int debuffIdx = debuffNames.IndexOf(condition.Value);
                     if (debuffIdx < 0) { debuffIdx = 0; condition.Value = debuffNames[0]; }
-                    PopupSelector.Create(root, "DebuffValue", 0.56f, 0.88f, displayNames, debuffIdx, v => {
+                    PopupSelector.Create(root, "DebuffValue", 0.51f, 0.88f, displayNames, debuffIdx, v => {
                         condition.Value = debuffNames[v];
                         ConfigManager.Save();
                     });
                 } else {
                     // Normal single value input
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                        0.56, 0.85, condition.Value ?? "", 16f);
+                        0.51, 0.88, condition.Value ?? "", 16f);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
                         ConfigManager.Save();

@@ -43,15 +43,17 @@ namespace WrathTactics.Engine {
             foreach (var unit in Game.Instance.Player.Party) {
                 if (!unit.IsInGame || unit.HPLeft <= 0) continue;
                 if (!config.IsEnabled(unit.UniqueId)) continue;
-
                 EvaluateUnit(unit, config, gameTimeSec);
             }
         }
 
         static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec) {
-            // Unit already has a pending command — skip
-            if (unit.Commands.IsRunning())
+            // Skip only if currently casting a spell/ability — auto-attacks don't block us
+            if (unit.Commands.UnitUseAbility != null) {
+                if (config.DebugLogging)
+                    Main.Log($"[Tactics] {unit.CharacterName}: SKIPPED (casting ability)");
                 return;
+            }
 
             var debugLog = config.DebugLogging;
 

@@ -419,24 +419,32 @@ namespace WrathTactics.UI {
             var owlBtns = btn.GetComponentsInChildren<OwlcatButton>(true);
             foreach (var ob in owlBtns) DestroyImmediate(ob);
 
-            // Add simple Unity Button that definitely catches clicks
-            var img = btn.GetComponentInChildren<Image>();
-            if (img != null) {
+            // Ensure all existing Images have raycastTarget=true
+            foreach (var img in btn.GetComponentsInChildren<Image>(true))
                 img.raycastTarget = true;
-                var unityBtn = img.gameObject.AddComponent<Button>();
-                unityBtn.targetGraphic = img;
-                unityBtn.onClick.AddListener(() => Toggle());
-            }
 
-            // Try to get a game icon sprite (character button icon or similar)
+            // Add a nearly-invisible root Image as guaranteed click surface
+            var rootImg = btn.GetComponent<Image>();
+            if (rootImg == null) rootImg = btn.AddComponent<Image>();
+            rootImg.raycastTarget = true;
+            rootImg.color = new Color(0, 0, 0, 0.01f); // nearly invisible but catches raycasts
+
+            // Add Unity Button on root with the overlay image as target graphic
+            var clickBtn = btn.GetComponent<Button>();
+            if (clickBtn == null) clickBtn = btn.AddComponent<Button>();
+            clickBtn.targetGraphic = rootImg;
+            clickBtn.onClick.AddListener(() => Toggle());
+
+            // Try to get a game icon sprite and apply it to the first child Image
             try {
                 // Use a recognizable game sprite — the "Settings" gear icon
                 var settingsIcon = Game.Instance.UI.Canvas.transform
                     .Find("NestedCanvas1/IngameMenuView/ButtonsPart/Container")
                     ?.GetChild(0)?.GetComponentInChildren<Image>()?.sprite;
-                if (settingsIcon != null && img != null) {
-                    img.sprite = settingsIcon;
-                    img.color = new Color(0.8f, 0.65f, 0.3f, 1f); // golden tint
+                var iconImg = btn.GetComponentInChildren<Image>();
+                if (settingsIcon != null && iconImg != null) {
+                    iconImg.sprite = settingsIcon;
+                    iconImg.color = new Color(0.8f, 0.65f, 0.3f, 1f); // golden tint
                 }
             } catch { }
 
