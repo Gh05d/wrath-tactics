@@ -49,6 +49,7 @@ namespace WrathTactics.Models {
         EnemyLowestHp,
         EnemyHighestAC,
         EnemyHighestThreat,
-        EnemyCreatureType
+        EnemyCreatureType,
+        ConditionTarget    // the enemy/ally that matched the triggering condition
     }
 }

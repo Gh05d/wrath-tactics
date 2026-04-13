@@ -17,6 +17,7 @@ namespace WrathTactics.Engine {
                 case TargetType.EnemyHighestAC:     return GetEnemyHighestAC(owner);
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
+                case TargetType.ConditionTarget:    return GetConditionTarget(owner);
                 default:                            return null;
             }
         }
@@ -68,6 +69,15 @@ namespace WrathTactics.Engine {
         static UnitEntityData GetEnemyByCreatureType(UnitEntityData owner, string creatureType) {
             return GetVisibleEnemies(owner)
                 .FirstOrDefault(e => e.Blueprint.Type?.ToString() == creatureType);
+        }
+
+        static UnitEntityData GetConditionTarget(UnitEntityData owner) {
+            // Prefer enemy match, then ally match
+            if (ConditionEvaluator.LastMatchedEnemy != null)
+                return ConditionEvaluator.LastMatchedEnemy;
+            if (ConditionEvaluator.LastMatchedAlly != null)
+                return ConditionEvaluator.LastMatchedAlly;
+            return null;
         }
 
         static IEnumerable<UnitEntityData> GetAllies(UnitEntityData owner) {

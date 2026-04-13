@@ -81,6 +81,9 @@ namespace WrathTactics.Engine {
                     }
                 }
 
+                // Clear matched entities before evaluating conditions
+                ConditionEvaluator.ClearMatchedEntities();
+
                 // Evaluate conditions
                 bool match = ConditionEvaluator.Evaluate(rule, unit);
                 if (!match) {

@@ -1,4 +1,5 @@
 using System.Linq;
+using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.ActivatableAbilities;
@@ -77,8 +78,23 @@ namespace WrathTactics.Engine {
             }
 
             foreach (var ability in owner.Abilities.RawFacts) {
-                if (ability.Blueprint.AssetGuid.ToString() == abilityGuid && ability.Data.SourceItem == null)
+                if (ability.Data.SourceItem != null) continue;
+
+                // Direct match
+                if (ability.Blueprint.AssetGuid.ToString() == abilityGuid)
                     return ability.Data;
+
+                // Check variants (e.g. Evil Eye - AC, Evil Eye - Attack Rolls, etc.)
+                var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
+                if (variants != null && variants.m_Variants != null) {
+                    foreach (var variant in variants.Variants) {
+                        if (variant != null && variant.AssetGuid.ToString() == abilityGuid) {
+                            // Create a proper Ability object so CreateCastCommand accepts it
+                            var variantAbility = new Kingmaker.UnitLogic.Abilities.Ability(variant, owner.Descriptor);
+                            return variantAbility.Data;
+                        }
+                    }
+                }
             }
 
             return null;
@@ -88,6 +104,14 @@ namespace WrathTactics.Engine {
             foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Blueprint.AssetGuid.ToString() == abilityGuid && ability.Data.SourceItem != null)
                     return ability.Data;
+            }
+            return null;
+        }
+
+        static T GetBlueprintComponent<T>(BlueprintScriptableObject bp) where T : BlueprintComponent {
+            if (bp?.ComponentsArray == null) return null;
+            foreach (var c in bp.ComponentsArray) {
+                if (c is T typed) return typed;
             }
             return null;
         }

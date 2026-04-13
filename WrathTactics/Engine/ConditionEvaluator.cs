@@ -9,6 +9,15 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class ConditionEvaluator {
+        // Set during evaluation — the last entity that matched an Enemy/Ally condition
+        public static UnitEntityData LastMatchedEnemy { get; private set; }
+        public static UnitEntityData LastMatchedAlly { get; private set; }
+
+        public static void ClearMatchedEntities() {
+            LastMatchedEnemy = null;
+            LastMatchedAlly = null;
+        }
+
         public static bool Evaluate(TacticsRule rule, UnitEntityData owner) {
             if (rule.ConditionGroups == null || rule.ConditionGroups.Count == 0)
                 return true;
@@ -51,8 +60,10 @@ namespace WrathTactics.Engine {
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
             foreach (var ally in GetAllPartyMembers(owner)) {
                 if (ally == owner) continue;
-                if (EvaluateUnitProperty(condition, ally))
+                if (EvaluateUnitProperty(condition, ally)) {
+                    LastMatchedAlly = ally;
                     return true;
+                }
             }
             return false;
         }
@@ -76,8 +87,10 @@ namespace WrathTactics.Engine {
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
             foreach (var enemy in GetVisibleEnemies(owner)) {
-                if (EvaluateUnitProperty(condition, enemy))
+                if (EvaluateUnitProperty(condition, enemy)) {
+                    LastMatchedEnemy = enemy;
                     return true;
+                }
             }
             return false;
         }
