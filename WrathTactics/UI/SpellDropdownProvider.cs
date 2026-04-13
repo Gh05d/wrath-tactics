@@ -1,13 +1,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker.EntitySystem.Entities;
+using UnityEngine;
 
 namespace WrathTactics.UI {
     public static class SpellDropdownProvider {
         public struct SpellEntry {
             public string Name;
             public string Guid;
-            public SpellEntry(string name, string guid) { Name = name; Guid = guid; }
+            public Sprite Icon;
+            public SpellEntry(string name, string guid, Sprite icon = null) {
+                Name = name; Guid = guid; Icon = icon;
+            }
         }
 
         public static List<SpellEntry> GetSpells(UnitEntityData unit) {
@@ -20,7 +24,7 @@ namespace WrathTactics.UI {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         var guid = spell.Blueprint.AssetGuid.ToString();
                         if (seen.Add(guid))
-                            result.Add(new SpellEntry($"[L{level}] {spell.Name}", guid));
+                            result.Add(new SpellEntry($"[L{level}] {spell.Name}", guid, spell.Blueprint.Icon));
                     }
                 }
             }
@@ -30,7 +34,7 @@ namespace WrathTactics.UI {
                 if (ability.Data.SourceItem != null) continue;
                 var guid = ability.Blueprint.AssetGuid.ToString();
                 if (seen.Add(guid))
-                    result.Add(new SpellEntry($"[Ability] {ability.Name}", guid));
+                    result.Add(new SpellEntry($"[Ability] {ability.Name}", guid, ability.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();
@@ -43,7 +47,7 @@ namespace WrathTactics.UI {
             foreach (var activatable in unit.ActivatableAbilities.RawFacts) {
                 var guid = activatable.Blueprint.AssetGuid.ToString();
                 if (seen.Add(guid))
-                    result.Add(new SpellEntry(activatable.Blueprint.Name, guid));
+                    result.Add(new SpellEntry(activatable.Blueprint.Name, guid, activatable.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();
@@ -57,7 +61,7 @@ namespace WrathTactics.UI {
                 if (ability.Data.SourceItem == null) continue;
                 var guid = ability.Blueprint.AssetGuid.ToString();
                 if (seen.Add(guid))
-                    result.Add(new SpellEntry($"[Item] {ability.Name}", guid));
+                    result.Add(new SpellEntry($"[Item] {ability.Name}", guid, ability.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();

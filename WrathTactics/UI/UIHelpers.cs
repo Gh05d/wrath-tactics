@@ -133,6 +133,7 @@ namespace WrathTactics.UI {
     /// </summary>
     public class PopupSelector : MonoBehaviour {
         List<string> options = new List<string>();
+        List<Sprite> icons; // parallel to options, may contain nulls
         int selectedIndex;
         Action<int> onSelected;
         TextMeshProUGUI buttonLabel;
@@ -145,6 +146,12 @@ namespace WrathTactics.UI {
         public static PopupSelector Create(GameObject parent, string name,
             float xMin, float xMax, List<string> options, int initialIndex,
             Action<int> onSelected) {
+            return CreateWithIcons(parent, name, xMin, xMax, options, null, initialIndex, onSelected);
+        }
+
+        public static PopupSelector CreateWithIcons(GameObject parent, string name,
+            float xMin, float xMax, List<string> options, List<Sprite> icons,
+            int initialIndex, Action<int> onSelected) {
 
             var (obj, rect) = UIHelpers.Create(name, parent.transform);
             rect.SetAnchor(xMin, xMax, 0, 1);
@@ -153,6 +160,7 @@ namespace WrathTactics.UI {
 
             var selector = obj.AddComponent<PopupSelector>();
             selector.options = options ?? new List<string>();
+            selector.icons = icons;
             selector.selectedIndex = Mathf.Clamp(initialIndex, 0,
                 Mathf.Max(0, (options?.Count ?? 1) - 1));
             selector.onSelected = onSelected;
@@ -176,8 +184,9 @@ namespace WrathTactics.UI {
             return selector;
         }
 
-        public void SetOptions(List<string> newOptions, int newIndex) {
+        public void SetOptions(List<string> newOptions, int newIndex, List<Sprite> newIcons = null) {
             options = newOptions ?? new List<string>();
+            icons = newIcons;
             selectedIndex = Mathf.Clamp(newIndex, 0, Mathf.Max(0, options.Count - 1));
             UpdateLabel();
             ClosePopup();
@@ -268,7 +277,22 @@ namespace WrathTactics.UI {
                 UIHelpers.AddBackground(itemObj, bgColor);
                 var label = UIHelpers.AddLabel(itemObj, options[i], 16f,
                     TextAlignmentOptions.MidlineLeft);
-                label.margin = new Vector4(4, 0, 4, 0);
+
+                // Add icon if available for this index
+                if (icons != null && i < icons.Count && icons[i] != null) {
+                    var (iconObj, iconRect) = UIHelpers.Create("Icon", itemObj.transform);
+                    iconRect.SetAnchor(0, 0, 0, 0);
+                    iconRect.pivot = new Vector2(0, 0.5f);
+                    iconRect.anchoredPosition = new Vector2(4, 0);
+                    iconRect.sizeDelta = new Vector2(28, 28);
+                    var iconImg = iconObj.AddComponent<Image>();
+                    iconImg.sprite = icons[i];
+                    iconImg.preserveAspect = true;
+                    iconImg.raycastTarget = false;
+                    label.margin = new Vector4(36, 0, 4, 0);
+                } else {
+                    label.margin = new Vector4(4, 0, 4, 0);
+                }
 
                 itemObj.AddComponent<Button>().onClick.AddListener(() => {
                     SelectOption(capturedIndex);

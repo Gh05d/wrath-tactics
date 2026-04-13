@@ -254,14 +254,15 @@ namespace WrathTactics.UI {
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
+            var icons = entries.Select(e => e.Icon).ToList();
             int initialIndex = 0;
             if (!string.IsNullOrEmpty(rule.Action.AbilityId)) {
                 int idx = entries.FindIndex(e => e.Guid == rule.Action.AbilityId);
                 if (idx >= 0) initialIndex = idx;
             }
 
-            spellSelector = PopupSelector.Create(row, "SpellPick", 0.39f, 1.0f, options,
-                initialIndex, idx => {
+            spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.39f, 1.0f,
+                options, icons, initialIndex, idx => {
                     if (idx < currentSpellEntries.Count)
                         rule.Action.AbilityId = currentSpellEntries[idx].Guid;
                     ConfigManager.Save();
@@ -285,7 +286,8 @@ namespace WrathTactics.UI {
             var entries = GetSpellEntries(actionType);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
-            spellSelector.SetOptions(options, 0);
+            var icons = entries.Select(e => e.Icon).ToList();
+            spellSelector.SetOptions(options, 0, icons);
         }
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
