@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Linq;
 using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
+using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.Utility;
 using WrathTactics.Models;
@@ -23,6 +25,8 @@ namespace WrathTactics.Engine {
                     return CanToggleActivatable(action.AbilityId, owner);
                 case ActionType.AttackTarget:
                     return target != null && target.HPLeft > 0;
+                case ActionType.Heal:
+                    return FindBestHeal(owner, action.HealMode) != null;
                 case ActionType.DoNothing:
                     return true;
                 default:
@@ -120,6 +124,51 @@ namespace WrathTactics.Engine {
             if (string.IsNullOrEmpty(abilityGuid)) return null;
             return owner.ActivatableAbilities.RawFacts
                 .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid);
+        }
+
+        public static AbilityData FindBestHeal(UnitEntityData owner, HealMode mode = HealMode.Any) {
+            var heals = new List<(AbilityData ability, int priority)>();
+
+            // Search spellbooks for cure/heal spells
+            foreach (var book in owner.Spellbooks) {
+                for (int level = 0; level <= 9; level++) {
+                    foreach (var spell in book.GetKnownSpells(level)) {
+                        if (IsHealingSpell(spell.Blueprint)) {
+                            // Check if spell can still be cast
+                            if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)
+                                heals.Add((spell, level * 10));
+                        }
+                    }
+                }
+            }
+
+            // Search abilities (class heals like Lay on Hands)
+            foreach (var ability in owner.Abilities.RawFacts) {
+                if (ability.Data.SourceItem == null && IsHealingSpell(ability.Blueprint)) {
+                    heals.Add((ability.Data, 50)); // medium priority
+                }
+            }
+
+            if (heals.Count == 0) return null;
+
+            switch (mode) {
+                case HealMode.Strongest:
+                    return heals.OrderByDescending(h => h.priority).First().ability;
+                case HealMode.Weakest:
+                    return heals.OrderBy(h => h.priority).First().ability;
+                case HealMode.Any:
+                default:
+                    return heals.First().ability;
+            }
+        }
+
+        static bool IsHealingSpell(BlueprintAbility blueprint) {
+            if (blueprint == null) return false;
+            string name = (blueprint.Name ?? "").ToLowerInvariant();
+            // Match common healing spell names
+            return name.Contains("cure") || name.Contains("heal")
+                || name.Contains("restoration") || name.Contains("lay on hands")
+                || name.Contains("channel positive");
         }
     }
 }

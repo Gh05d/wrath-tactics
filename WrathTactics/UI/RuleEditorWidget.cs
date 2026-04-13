@@ -38,75 +38,16 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-
-            // Card background
             UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
-
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 
-            // --- Header row ---
-            var (header, headerRect) = UIHelpers.Create("Header", root.transform);
-            headerRect.anchorMin = new Vector2(0.01f, 1f);
-            headerRect.anchorMax = new Vector2(0.99f, 1f);
-            headerRect.pivot = new Vector2(0.5f, 1f);
-            headerRect.sizeDelta = new Vector2(0, 50);
-
-            UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
-
-            // Name input field (editable rule name)
-            var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
-                0, 0.65, $"{index + 1}. {rule.Name}", 18f);
-            nameInput.onEndEdit.AddListener(v => {
-                string prefix = $"{index + 1}. ";
-                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
-                ConfigManager.Save();
-            });
-
-            // Enable toggle button
-            var (enableBtn, enableRect) = UIHelpers.Create("EnableBtn", header.transform);
-            enableRect.SetAnchor(0.65, 0.73, 0.08, 0.92);
-            enableRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(enableBtn, new Color(0.25f, 0.25f, 0.25f, 1f));
-            enabledLabel = UIHelpers.AddLabel(enableBtn, rule.Enabled ? "[ON]" : "[OFF]", 16f,
-                TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
-            enableBtn.AddComponent<Button>().onClick.AddListener(() => {
-                rule.Enabled = !rule.Enabled;
-                enabledLabel.text = rule.Enabled ? "[ON]" : "[OFF]";
-                enabledLabel.color = rule.Enabled ? Color.green : Color.gray;
-                ConfigManager.Save();
-            });
-
-            // Move up button
-            var (upBtn, upRect) = UIHelpers.Create("UpBtn", header.transform);
-            upRect.SetAnchor(0.74, 0.82, 0.08, 0.92);
-            upRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(upBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(upBtn, "^", 18f, TextAlignmentOptions.Midline);
-            upBtn.AddComponent<Button>().onClick.AddListener(() => MoveRule(-1));
-
-            // Move down button
-            var (downBtn, downRect) = UIHelpers.Create("DownBtn", header.transform);
-            downRect.SetAnchor(0.83, 0.91, 0.08, 0.92);
-            downRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(downBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(downBtn, "v", 18f, TextAlignmentOptions.Midline);
-            downBtn.AddComponent<Button>().onClick.AddListener(() => MoveRule(1));
-
-            // Delete button
-            var (delBtn, delRect) = UIHelpers.Create("DeleteBtn", header.transform);
-            delRect.SetAnchor(0.92, 1, 0.08, 0.92);
-            delRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(delBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
-            UIHelpers.AddLabel(delBtn, "X", 18f, TextAlignmentOptions.Midline);
-            delBtn.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
-
-            // --- Body: vertical layout below header ---
+            // Body container fills entire card — header is INSIDE the VLG
             var (body, bodyRt) = UIHelpers.Create("Body", root.transform);
             bodyContainer = body;
-            bodyRt.SetAnchor(0, 1, 0, 1);
+            bodyRt.FillParent();
             bodyRt.offsetMin = new Vector2(4, 4);
-            bodyRt.offsetMax = new Vector2(-4, -52);
+            bodyRt.offsetMax = new Vector2(-4, -4);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 4;
@@ -128,6 +69,9 @@ namespace WrathTactics.UI {
             // Clear existing body children
             for (int i = bodyContainer.transform.childCount - 1; i >= 0; i--)
                 Destroy(bodyContainer.transform.GetChild(i).gameObject);
+
+            // Header row — inside VLG as first child
+            CreateHeader(bodyContainer.transform);
 
             // IF: label row
             AddSectionLabel(bodyContainer.transform, "IF:");
@@ -212,6 +156,72 @@ namespace WrathTactics.UI {
             UpdateHeight();
         }
 
+        void CreateHeader(Transform parent) {
+            var (header, _) = UIHelpers.Create("Header", parent);
+            header.AddComponent<LayoutElement>().preferredHeight = 44;
+            UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
+
+            // Use a HorizontalLayoutGroup for header children
+            var hlg = header.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 4;
+            hlg.childForceExpandHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childControlHeight = true;
+            hlg.childControlWidth = false;
+            hlg.padding = new RectOffset(4, 4, 4, 4);
+
+            // Name input — flexible width
+            var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
+                0, 1, $"{index + 1}. {rule.Name}", 18f);
+            var nameLE = nameInput.gameObject.GetComponent<LayoutElement>();
+            if (nameLE == null) nameLE = nameInput.gameObject.AddComponent<LayoutElement>();
+            nameLE.flexibleWidth = 1;
+            // Reset anchors since we're in an HLG now
+            var nameRect = nameInput.GetComponent<RectTransform>();
+            nameRect.anchorMin = Vector2.zero;
+            nameRect.anchorMax = Vector2.one;
+
+            nameInput.onEndEdit.AddListener(v => {
+                string prefix = $"{index + 1}. ";
+                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
+                ConfigManager.Save();
+            });
+
+            // ON/OFF button
+            var (enableBtnObj, _2) = UIHelpers.Create("EnableBtn", header.transform);
+            enableBtnObj.AddComponent<LayoutElement>().preferredWidth = 50;
+            UIHelpers.AddBackground(enableBtnObj, new Color(0.25f, 0.25f, 0.25f, 1f));
+            enabledLabel = UIHelpers.AddLabel(enableBtnObj, rule.Enabled ? "ON" : "OFF", 16f,
+                TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
+            enableBtnObj.AddComponent<Button>().onClick.AddListener(() => {
+                rule.Enabled = !rule.Enabled;
+                enabledLabel.text = rule.Enabled ? "ON" : "OFF";
+                enabledLabel.color = rule.Enabled ? Color.green : Color.gray;
+                ConfigManager.Save();
+            });
+
+            // Move up
+            var (upObj, _3) = UIHelpers.Create("Up", header.transform);
+            upObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            UIHelpers.AddBackground(upObj, new Color(0.3f, 0.3f, 0.3f, 1f));
+            UIHelpers.AddLabel(upObj, "^", 18f, TextAlignmentOptions.Midline);
+            upObj.AddComponent<Button>().onClick.AddListener(() => MoveRule(-1));
+
+            // Move down
+            var (downObj, _4) = UIHelpers.Create("Down", header.transform);
+            downObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            UIHelpers.AddBackground(downObj, new Color(0.3f, 0.3f, 0.3f, 1f));
+            UIHelpers.AddLabel(downObj, "v", 18f, TextAlignmentOptions.Midline);
+            downObj.AddComponent<Button>().onClick.AddListener(() => MoveRule(1));
+
+            // Delete
+            var (delObj, _5) = UIHelpers.Create("Del", header.transform);
+            delObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            UIHelpers.AddBackground(delObj, new Color(0.6f, 0.2f, 0.2f, 1f));
+            UIHelpers.AddLabel(delObj, "X", 18f, TextAlignmentOptions.Midline);
+            delObj.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
+        }
+
         void AddSectionLabel(Transform parent, string text) {
             var (labelObj, _) = UIHelpers.Create("SectionLabel_" + text, parent);
             labelObj.AddComponent<LayoutElement>().preferredHeight = 20;
@@ -252,6 +262,17 @@ namespace WrathTactics.UI {
         }
 
         void SetupSpellSelector(GameObject row) {
+            // For Heal action, show HealMode selector instead of spell picker
+            if (rule.Action.Type == ActionType.Heal) {
+                var healModeNames = Enum.GetNames(typeof(HealMode)).ToList();
+                PopupSelector.Create(row, "HealMode", 0.39f, 0.7f, healModeNames,
+                    (int)rule.Action.HealMode, idx => {
+                        rule.Action.HealMode = (HealMode)idx;
+                        ConfigManager.Save();
+                    });
+                return;
+            }
+
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
@@ -276,6 +297,12 @@ namespace WrathTactics.UI {
         }
 
         void RefreshSpellSelector(ActionType actionType) {
+            // For Heal, rebuild body to show HealMode selector instead
+            if (actionType == ActionType.Heal) {
+                RebuildBody();
+                return;
+            }
+
             if (spellSelector == null) return;
 
             bool showSpell = actionType != ActionType.AttackTarget &&
@@ -292,7 +319,8 @@ namespace WrathTactics.UI {
         }
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
-            if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing)
+            if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing
+                || actionType == ActionType.Heal)
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);
@@ -448,7 +476,7 @@ namespace WrathTactics.UI {
             if (layoutElement == null) return;
             int condCount = rule.ConditionGroups.Sum(g => g.Conditions.Count);
             int groupCount = rule.ConditionGroups.Count;
-            float height = 50f  // header
+            float height = 44f  // header (inside VLG)
                 + 20f           // IF: label
                 + condCount * 34f
                 + groupCount * 26f   // add-cond buttons
@@ -458,7 +486,7 @@ namespace WrathTactics.UI {
                 + 28f           // action row
                 + 28f           // target row
                 + 28f           // cooldown row
-                + 12f;          // padding
+                + 20f;          // padding + VLG spacing
             layoutElement.preferredHeight = Mathf.Max(160f, height);
         }
 

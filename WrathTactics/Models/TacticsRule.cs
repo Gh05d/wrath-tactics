@@ -28,6 +28,7 @@ namespace WrathTactics.Models {
     public class ActionDef {
         [JsonProperty] public ActionType Type { get; set; }
         [JsonProperty] public string AbilityId { get; set; } = "";
+        [JsonProperty] public HealMode HealMode { get; set; } = HealMode.Any;
     }
 
     public class TargetDef {

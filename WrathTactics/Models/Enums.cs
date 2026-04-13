@@ -38,7 +38,14 @@ namespace WrathTactics.Models {
         UseItem,
         ToggleActivatable,
         AttackTarget,
+        Heal,           // automatically use best available heal
         DoNothing
+    }
+
+    public enum HealMode {
+        Any,            // Use any available heal (spell > scroll > potion)
+        Strongest,      // Use the highest-level heal available
+        Weakest         // Use the lowest-level heal (conserve resources)
     }
 
     public enum TargetType {

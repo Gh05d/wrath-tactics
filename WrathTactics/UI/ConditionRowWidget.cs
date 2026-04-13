@@ -50,105 +50,127 @@ namespace WrathTactics.UI {
                     onChanged?.Invoke();
                 });
 
-            // Operator popup selector
-            var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
-            PopupSelector.Create(root, "Operator", 0.43f, 0.55f, opNames,
-                (int)condition.Operator, v => {
-                    condition.Operator = (ConditionOperator)v;
-                    ConfigManager.Save();
-                });
-
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
             bool isHasDebuff = condition.Property == ConditionProperty.HasDebuff;
 
-            if (isHasCondition) {
-                // Dropdown for known condition names
-                var condNames = new List<string> {
-                    "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
-                    "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
-                    "Shaken", "Sickened", "Sleeping", "Petrified"
-                };
-                int condIdx = condNames.IndexOf(condition.Value);
-                if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
-                PopupSelector.Create(root, "CondValue", 0.56f, 0.88f, condNames, condIdx, v => {
-                    condition.Value = condNames[v];
-                    ConfigManager.Save();
-                });
-            } else if (isHasDebuff) {
-                var debuffNames = new List<string> {
-                    "EvilEyeACBuff",
-                    "EvilEyeAttackBuff",
-                    "EvilEyeSavesBuff",
-                    "MisfortuneBuff",
-                    "VulnerabilityCurseBuff",
-                    "Shaken",
-                    "Sickened",
-                    "Frightened",
-                    "Dazzled",
-                    "Fatigued",
-                    "Exhausted",
-                    "Staggered",
-                    "DirgeOfDoom",
-                    "ProtectiveLuck",
-                    "FortuneHex"
-                };
-                var displayNames = new List<string> {
-                    "Evil Eye - AC",
-                    "Evil Eye - Attack",
-                    "Evil Eye - Saves",
-                    "Misfortune",
-                    "Vulnerability Curse",
-                    "Shaken",
-                    "Sickened",
-                    "Frightened",
-                    "Dazzled",
-                    "Fatigued",
-                    "Exhausted",
-                    "Staggered",
-                    "Dirge of Doom",
-                    "Protective Luck",
-                    "Fortune Hex"
-                };
-                int debuffIdx = debuffNames.IndexOf(condition.Value);
-                if (debuffIdx < 0) { debuffIdx = 0; condition.Value = debuffNames[0]; }
-                PopupSelector.Create(root, "DebuffValue", 0.56f, 0.88f, displayNames, debuffIdx, v => {
-                    condition.Value = debuffNames[v];
-                    ConfigManager.Save();
-                });
-            } else if (isCountSubject) {
+            if (isCountSubject) {
+                // For count subjects: hide Operator dropdown, hardcode "<" for threshold
+                // Layout: [Subject] with [Property] below [threshold]  count >= [count]  [X]
+
+                // "with" label
+                var (withLbl, withLblRect) = UIHelpers.Create("WithLabel", root.transform);
+                withLblRect.SetAnchor(0.43, 0.49, 0, 1);
+                withLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(withLbl, "with", 14f, TextAlignmentOptions.Midline,
+                    new Color(0.7f, 0.7f, 0.7f));
+
+                // "below" label
+                var (belowLbl, belowLblRect) = UIHelpers.Create("BelowLabel", root.transform);
+                belowLblRect.SetAnchor(0.50, 0.57, 0, 1);
+                belowLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(belowLbl, "below", 14f, TextAlignmentOptions.Midline,
+                    new Color(0.7f, 0.7f, 0.7f));
+
+                // Ensure operator is LessThan for count subjects
+                condition.Operator = ConditionOperator.LessThan;
+
                 // Value = property threshold (HP %)
                 var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                    0.56, 0.70, condition.Value ?? "", 16f);
+                    0.58, 0.68, condition.Value ?? "", 16f);
                 valueInput.onEndEdit.AddListener(v => {
                     condition.Value = v;
                     ConfigManager.Save();
                 });
 
-                // "Count:" label
+                // "count >=" label
                 var (countLbl, countLblRect) = UIHelpers.Create("CountLabel", root.transform);
-                countLblRect.SetAnchor(0.71, 0.78, 0, 1);
+                countLblRect.SetAnchor(0.69, 0.80, 0, 1);
                 countLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(countLbl, "Cnt:", 14f, TextAlignmentOptions.MidlineLeft,
+                UIHelpers.AddLabel(countLbl, "count >=", 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
                 // Value2 = count threshold
                 var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
-                    0.79, 0.89, condition.Value2 ?? "1", 16f,
+                    0.81, 0.89, condition.Value2 ?? "1", 16f,
                     TMP_InputField.ContentType.IntegerNumber);
                 countInput.onEndEdit.AddListener(v => {
                     condition.Value2 = v;
                     ConfigManager.Save();
                 });
             } else {
-                // Normal single value input
-                var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                    0.56, 0.85, condition.Value ?? "", 16f);
-                valueInput.onEndEdit.AddListener(v => {
-                    condition.Value = v;
-                    ConfigManager.Save();
-                });
+                // Operator popup selector (only for non-count subjects)
+                var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                PopupSelector.Create(root, "Operator", 0.43f, 0.55f, opNames,
+                    (int)condition.Operator, v => {
+                        condition.Operator = (ConditionOperator)v;
+                        ConfigManager.Save();
+                    });
+
+                if (isHasCondition) {
+                    // Dropdown for known condition names
+                    var condNames = new List<string> {
+                        "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
+                        "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
+                        "Shaken", "Sickened", "Sleeping", "Petrified"
+                    };
+                    int condIdx = condNames.IndexOf(condition.Value);
+                    if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
+                    PopupSelector.Create(root, "CondValue", 0.56f, 0.88f, condNames, condIdx, v => {
+                        condition.Value = condNames[v];
+                        ConfigManager.Save();
+                    });
+                } else if (isHasDebuff) {
+                    var debuffNames = new List<string> {
+                        "EvilEyeACBuff",
+                        "EvilEyeAttackBuff",
+                        "EvilEyeSavesBuff",
+                        "MisfortuneBuff",
+                        "VulnerabilityCurseBuff",
+                        "Shaken",
+                        "Sickened",
+                        "Frightened",
+                        "Dazzled",
+                        "Fatigued",
+                        "Exhausted",
+                        "Staggered",
+                        "DirgeOfDoom",
+                        "ProtectiveLuck",
+                        "FortuneHex"
+                    };
+                    var displayNames = new List<string> {
+                        "Evil Eye - AC",
+                        "Evil Eye - Attack",
+                        "Evil Eye - Saves",
+                        "Misfortune",
+                        "Vulnerability Curse",
+                        "Shaken",
+                        "Sickened",
+                        "Frightened",
+                        "Dazzled",
+                        "Fatigued",
+                        "Exhausted",
+                        "Staggered",
+                        "Dirge of Doom",
+                        "Protective Luck",
+                        "Fortune Hex"
+                    };
+                    int debuffIdx = debuffNames.IndexOf(condition.Value);
+                    if (debuffIdx < 0) { debuffIdx = 0; condition.Value = debuffNames[0]; }
+                    PopupSelector.Create(root, "DebuffValue", 0.56f, 0.88f, displayNames, debuffIdx, v => {
+                        condition.Value = debuffNames[v];
+                        ConfigManager.Save();
+                    });
+                } else {
+                    // Normal single value input
+                    var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                        0.56, 0.85, condition.Value ?? "", 16f);
+                    valueInput.onEndEdit.AddListener(v => {
+                        condition.Value = v;
+                        ConfigManager.Save();
+                    });
+                }
             }
 
             // Delete button

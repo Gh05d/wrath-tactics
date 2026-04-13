@@ -21,6 +21,8 @@ namespace WrathTactics.Engine {
                         return ExecuteToggleActivatable(action.AbilityId, owner);
                     case ActionType.AttackTarget:
                         return ExecuteAttack(owner, target);
+                    case ActionType.Heal:
+                        return ExecuteHeal(action, owner, target);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -91,6 +93,22 @@ namespace WrathTactics.Engine {
                 activatable.TryStart();
 
             Main.DebugLog($"[Executor] Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
+            return true;
+        }
+
+        static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
+            var ability = ActionValidator.FindBestHeal(owner, action.HealMode);
+            if (ability == null) return false;
+
+            var targetWrapper = target != null
+                ? new TargetWrapper(target)
+                : new TargetWrapper(owner);
+
+            var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
+            if (command == null) return false;
+
+            owner.Commands.Run(command);
+            Main.DebugLog($"[Executor] Heal: {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
             return true;
         }
 

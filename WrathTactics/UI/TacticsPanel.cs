@@ -415,31 +415,30 @@ namespace WrathTactics.UI {
             btn.name = "TacticsBtn";
             btn.SetActive(true);
 
-            // Wire click
-            var owlBtn = btn.GetComponentInChildren<OwlcatButton>();
-            if (owlBtn != null) {
-                owlBtn.Interactable = true;
-                owlBtn.m_Interactable = true;
-                owlBtn.OnLeftClick.RemoveAllListeners();
-                owlBtn.OnLeftClick.AddListener(() => Toggle());
+            // Remove the OwlcatButton — it doesn't work after cloning
+            var owlBtns = btn.GetComponentsInChildren<OwlcatButton>(true);
+            foreach (var ob in owlBtns) DestroyImmediate(ob);
+
+            // Add simple Unity Button that definitely catches clicks
+            var img = btn.GetComponentInChildren<Image>();
+            if (img != null) {
+                img.raycastTarget = true;
+                var unityBtn = img.gameObject.AddComponent<Button>();
+                unityBtn.targetGraphic = img;
+                unityBtn.onClick.AddListener(() => Toggle());
             }
 
-            // Fallback: transparent Unity Button as click receptor
-            // Ensures clicks work even if OwlcatButton is in a bad state
-            var unityBtn = btn.AddComponent<UnityEngine.UI.Button>();
-            unityBtn.onClick.AddListener(Toggle);
-
-            // Set icon — brown/golden color
-            var images = btn.GetComponentsInChildren<Image>(true);
-            if (images.Length > 0) {
-                var tex = new Texture2D(64, 64);
-                var colors = new Color[64 * 64];
-                for (int j = 0; j < colors.Length; j++)
-                    colors[j] = new Color(0.6f, 0.45f, 0.2f, 1f);
-                tex.SetPixels(colors);
-                tex.Apply();
-                images[0].sprite = Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
-            }
+            // Try to get a game icon sprite (character button icon or similar)
+            try {
+                // Use a recognizable game sprite — the "Settings" gear icon
+                var settingsIcon = Game.Instance.UI.Canvas.transform
+                    .Find("NestedCanvas1/IngameMenuView/ButtonsPart/Container")
+                    ?.GetChild(0)?.GetComponentInChildren<Image>()?.sprite;
+                if (settingsIcon != null && img != null) {
+                    img.sprite = settingsIcon;
+                    img.color = new Color(0.8f, 0.65f, 0.3f, 1f); // golden tint
+                }
+            } catch { }
 
             // Add visibility sync with original NestedCanvas1
             ingameMenu.gameObject.AddComponent<TacticsHudSync>();
