@@ -19,7 +19,7 @@ namespace WrathTactics.UI {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
 
-            // Spellbook spells (max level 9)
+            // Spellbook spells only (max level 9)
             foreach (var book in unit.Spellbooks) {
                 for (int level = 0; level <= 9; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
@@ -30,12 +30,19 @@ namespace WrathTactics.UI {
                 }
             }
 
-            // Class abilities (non-item)
+            return result.OrderBy(e => e.Name).ToList();
+        }
+
+        public static List<SpellEntry> GetAbilities(UnitEntityData unit) {
+            var result = new List<SpellEntry>();
+            var seen = new HashSet<string>();
+
+            // Class abilities (non-item, non-spellbook)
             foreach (var ability in unit.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
                 var guid = ability.Blueprint.AssetGuid.ToString();
                 if (seen.Add(guid))
-                    result.Add(new SpellEntry($"[Ability] {ability.Name}", guid, ability.Blueprint.Icon));
+                    result.Add(new SpellEntry(ability.Name, guid, ability.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();

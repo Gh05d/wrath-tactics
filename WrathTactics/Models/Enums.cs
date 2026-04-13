@@ -33,6 +33,7 @@ namespace WrathTactics.Models {
 
     public enum ActionType {
         CastSpell,
+        CastAbility,    // class abilities (non-spell, non-item)
         UseItem,
         ToggleActivatable,
         AttackTarget,

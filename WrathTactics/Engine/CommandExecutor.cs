@@ -13,6 +13,8 @@ namespace WrathTactics.Engine {
                 switch (action.Type) {
                     case ActionType.CastSpell:
                         return ExecuteCastSpell(action.AbilityId, owner, target);
+                    case ActionType.CastAbility:
+                        return ExecuteCastSpell(action.AbilityId, owner, target);
                     case ActionType.UseItem:
                         return ExecuteUseItem(action.AbilityId, owner, target);
                     case ActionType.ToggleActivatable:

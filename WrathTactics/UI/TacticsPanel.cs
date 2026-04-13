@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
+using Object = UnityEngine.Object;
 
 namespace WrathTactics.UI {
     public class TacticsPanel : MonoBehaviour, IPartyCombatHandler {
@@ -16,6 +17,8 @@ namespace WrathTactics.UI {
         GameObject hudButton;
         bool isVisible;
         bool hudButtonCreated;
+        float hudButtonSearchTime;
+        const float HUD_BUTTON_SEARCH_TIMEOUT = 60f;
         string selectedUnitId; // null = Global, "presets" = Presets
         string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
@@ -303,76 +306,23 @@ namespace WrathTactics.UI {
             return unitId;
         }
 
-        void CreateHudButton() {
-            if (hudButton != null) return;
-
-            var staticRoot = Game.Instance.UI.Canvas.transform;
-
-            // Path 1: BubbleBuffs is installed — add button to its container
-            var bubbleRoot = staticRoot.Find("BUBBLEMODS_ROOT");
-            if (bubbleRoot != null) {
-                var container = bubbleRoot.Find("IngameMenuView/ButtonsPart/Container");
-                if (container != null) {
-                    // Widen container to fit one more button
-                    var containerRect = container as RectTransform;
-                    containerRect.sizeDelta = new Vector2(
-                        containerRect.sizeDelta.x + 47.7f,
-                        containerRect.sizeDelta.y);
-                    CreateButtonInContainer(container);
-                    Main.Log("[UI] HUD button added to BubbleBuffs container");
-                    return;
-                }
-            }
-
-            // Path 2: Standalone floating button
-            var (btnObj, btnRect) = UIHelpers.Create("WRATHTACTICS_ROOT", staticRoot);
-            btnRect.anchorMin = new Vector2(0, 0);
-            btnRect.anchorMax = new Vector2(0, 0);
-            btnRect.pivot = new Vector2(0, 0);
-            btnRect.anchoredPosition = new Vector2(10, 80);
-            btnRect.sizeDelta = new Vector2(110, 36);
-            UIHelpers.AddBackground(btnObj, new Color(0.25f, 0.18f, 0.1f, 0.92f));
-            UIHelpers.AddLabel(btnObj, "Tactics", 18f, TextAlignmentOptions.Midline);
-            btnObj.AddComponent<Button>().onClick.AddListener(Toggle);
-            hudButton = btnObj;
-            Main.Log("[UI] HUD button created as standalone floating button");
-        }
-
-        void CreateButtonInContainer(Transform container) {
-            if (container.childCount == 0) return;
-
-            // Use child[0] as prefab template; clone is added at the end (after last active button)
-            var prefab = container.GetChild(0).gameObject;
-            hudButton = GameObject.Instantiate(prefab, container);
-            hudButton.name = "TacticsBtn";
-            hudButton.SetActive(true);
-            hudButton.transform.SetAsLastSibling();
-
-            // Wire click handler via OwlcatButton
-            var owlBtn = hudButton.GetComponentInChildren<OwlcatButton>();
-            if (owlBtn != null) {
-                owlBtn.OnLeftClick.RemoveAllListeners();
-                owlBtn.OnLeftClick.AddListener(() => Toggle());
-            }
-
-            // Set icon — create a simple colored sprite
-            var images = hudButton.GetComponentsInChildren<UnityEngine.UI.Image>(true);
-            if (images.Length > 0) {
-                var tex = new Texture2D(64, 64);
-                var colors = new Color[64 * 64];
-                for (int i = 0; i < colors.Length; i++)
-                    colors[i] = new Color(0.5f, 0.35f, 0.15f, 1f);
-                tex.SetPixels(colors);
-                tex.Apply();
-                images[0].sprite = Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
-            }
-        }
-
         void Update() {
-            // Create HUD button once the game UI is ready
+            // Keep trying to find BUBBLEMODS_ROOT for up to 60 seconds
             if (!hudButtonCreated && Game.Instance?.UI?.Canvas != null) {
-                CreateHudButton();
-                hudButtonCreated = true;
+                hudButtonSearchTime += Time.deltaTime;
+
+                var staticRoot = Game.Instance.UI.Canvas.transform;
+                var bubbleRoot = staticRoot.Find("BUBBLEMODS_ROOT");
+
+                if (bubbleRoot != null) {
+                    // Found BubbleBuffs! Place our button above its container
+                    CreateHudButtonAboveBB(bubbleRoot);
+                    hudButtonCreated = true;
+                } else if (hudButtonSearchTime > HUD_BUTTON_SEARCH_TIMEOUT) {
+                    // Timeout — create standalone button
+                    CreateStandaloneHudButton(staticRoot);
+                    hudButtonCreated = true;
+                }
             }
 
             // Keyboard shortcut: Ctrl+T
@@ -382,6 +332,127 @@ namespace WrathTactics.UI {
             }
         }
 
+        void CreateHudButtonAboveBB(Transform bubbleRoot) {
+            if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
+
+            var staticRoot = Game.Instance.UI.Canvas.transform;
+            var nestedCanvas = staticRoot.Find("NestedCanvas1/");
+            if (nestedCanvas == null) {
+                Main.Log("[UI] NestedCanvas1 not found, falling back to standalone");
+                CreateStandaloneHudButton(staticRoot);
+                return;
+            }
+
+            // Clone NestedCanvas1 — same approach as BubbleBuffs
+            var clone = Instantiate(nestedCanvas.gameObject, nestedCanvas.parent);
+            hudButton = clone; // track for cleanup
+            clone.name = "WRATHTACTICS_ROOT";
+
+            var cloneRect = clone.transform as RectTransform;
+            // Position ABOVE BubbleBuffs (which is at Y=96)
+            cloneRect.anchoredPosition = new Vector2(0, 144);
+            cloneRect.SetSiblingIndex(nestedCanvas.GetSiblingIndex() + 1);
+
+            // Remove interfering MonoBehaviour components
+            foreach (var comp in clone.GetComponents<MonoBehaviour>()) {
+                var typeName = comp.GetType().Name;
+                if (typeName != "RectTransform" && typeName != "Canvas" && typeName != "CanvasScaler"
+                    && typeName != "GraphicRaycaster" && typeName != "CanvasGroup") {
+                    DestroyImmediate(comp);
+                }
+            }
+
+            // Destroy all children except IngameMenuView
+            var toDestroy = new List<GameObject>();
+            for (int i = 0; i < clone.transform.childCount; i++) {
+                if (clone.transform.GetChild(i).name != "IngameMenuView")
+                    toDestroy.Add(clone.transform.GetChild(i).gameObject);
+            }
+            foreach (var obj in toDestroy) Destroy(obj);
+
+            var ingameMenu = clone.transform.Find("IngameMenuView");
+            if (ingameMenu == null) { Destroy(clone); CreateStandaloneHudButton(staticRoot); return; }
+
+            // Remove IngameMenuPCView and other MonoBehaviours
+            foreach (var comp in ingameMenu.GetComponents<MonoBehaviour>()) {
+                DestroyImmediate(comp);
+            }
+
+            // Destroy CompassPart
+            var compass = ingameMenu.Find("CompassPart");
+            if (compass != null) Destroy(compass.gameObject);
+
+            var buttonsPart = ingameMenu.Find("ButtonsPart");
+            if (buttonsPart == null) { Destroy(clone); CreateStandaloneHudButton(staticRoot); return; }
+
+            // Destroy TBMMultiButton, InventoryButton, Background
+            foreach (var name in new[] { "TBMMultiButton", "InventoryButton", "Background" }) {
+                var child = buttonsPart.Find(name);
+                if (child != null) Destroy(child.gameObject);
+            }
+
+            var container = buttonsPart.Find("Container");
+            if (container == null || container.childCount == 0) {
+                Destroy(clone); CreateStandaloneHudButton(staticRoot); return;
+            }
+
+            var containerRect = container as RectTransform;
+            containerRect.anchoredPosition = Vector2.zero;
+            containerRect.sizeDelta = new Vector2(47.7f, containerRect.sizeDelta.y); // Width for 1 button
+
+            var grid = container.GetComponent<GridLayoutGroup>();
+            if (grid != null) grid.startCorner = GridLayoutGroup.Corner.LowerLeft;
+
+            // Keep child[0] as prefab, destroy rest
+            var prefab = container.GetChild(0).gameObject;
+            prefab.SetActive(false);
+            int childCount = container.childCount;
+            for (int i = 1; i < childCount; i++)
+                DestroyImmediate(container.GetChild(1).gameObject);
+
+            // Create our button from the prefab
+            var btn = Instantiate(prefab, container);
+            btn.name = "TacticsBtn";
+            btn.SetActive(true);
+
+            // Wire click
+            var owlBtn = btn.GetComponentInChildren<OwlcatButton>();
+            if (owlBtn != null) {
+                owlBtn.OnLeftClick.RemoveAllListeners();
+                owlBtn.OnLeftClick.AddListener(() => Toggle());
+            }
+
+            // Set icon — brown/golden color
+            var images = btn.GetComponentsInChildren<Image>(true);
+            if (images.Length > 0) {
+                var tex = new Texture2D(64, 64);
+                var colors = new Color[64 * 64];
+                for (int j = 0; j < colors.Length; j++)
+                    colors[j] = new Color(0.6f, 0.45f, 0.2f, 1f);
+                tex.SetPixels(colors);
+                tex.Apply();
+                images[0].sprite = Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
+            }
+
+            // Add visibility sync with original NestedCanvas1
+            ingameMenu.gameObject.AddComponent<TacticsHudSync>();
+
+            Main.Log("[UI] HUD button created above BubbleBuffs row");
+        }
+
+        void CreateStandaloneHudButton(Transform canvas) {
+            var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
+            hudButton = btn;
+            btnRect.SetAnchor(0, 0, 0, 0);
+            btnRect.pivot = new Vector2(0, 0);
+            btnRect.anchoredPosition = new Vector2(15, 200);
+            btnRect.sizeDelta = new Vector2(110, 36);
+            UIHelpers.AddBackground(btn, new Color(0.3f, 0.22f, 0.12f, 0.95f));
+            UIHelpers.AddLabel(btn, "Tactics", 20f, TMPro.TextAlignmentOptions.Center);
+            btn.AddComponent<Button>().onClick.AddListener(Toggle);
+            Main.Log("[UI] Standalone HUD button created");
+        }
+
         public void HandlePartyCombatStateChanged(bool inCombat) {
             // Could auto-close panel when combat starts
         }
@@ -389,6 +460,21 @@ namespace WrathTactics.UI {
         void OnDestroy() {
             if (panelRoot != null) Destroy(panelRoot);
             if (hudButton != null) Destroy(hudButton);
+        }
+    }
+
+    class TacticsHudSync : MonoBehaviour {
+        CanvasGroup src;
+        Transform tacticsRoot;
+
+        void Start() {
+            src = GetComponent<CanvasGroup>();
+            tacticsRoot = transform.root.Find("WRATHTACTICS_ROOT") ?? transform.parent;
+        }
+
+        void Update() {
+            if (src == null || tacticsRoot == null) return;
+            tacticsRoot.gameObject.SetActive(src.alpha > 0.5f);
         }
     }
 

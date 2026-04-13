@@ -306,6 +306,9 @@ namespace WrathTactics.UI {
                     case ActionType.CastSpell:
                         entries = SpellDropdownProvider.GetSpells(unit);
                         break;
+                    case ActionType.CastAbility:
+                        entries = SpellDropdownProvider.GetAbilities(unit);
+                        break;
                     case ActionType.UseItem:
                         entries = SpellDropdownProvider.GetItemAbilities(unit);
                         break;
@@ -336,6 +339,9 @@ namespace WrathTactics.UI {
                 switch (actionType) {
                     case ActionType.CastSpell:
                         unitEntries = SpellDropdownProvider.GetSpells(unit);
+                        break;
+                    case ActionType.CastAbility:
+                        unitEntries = SpellDropdownProvider.GetAbilities(unit);
                         break;
                     case ActionType.UseItem:
                         unitEntries = SpellDropdownProvider.GetItemAbilities(unit);
