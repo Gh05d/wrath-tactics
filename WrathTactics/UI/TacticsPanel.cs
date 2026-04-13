@@ -421,25 +421,30 @@ namespace WrathTactics.UI {
             btn.name = "TacticsBtn";
             btn.SetActive(true);
 
-            // Remove OwlcatButton — it doesn't work after cloning
-            foreach (var ob in btn.GetComponentsInChildren<OwlcatButton>(true))
-                DestroyImmediate(ob);
-
-            // Don't change any colors or sprites — the cloned prefab already looks correct
-            // Just make sure Images catch raycasts
-            foreach (var img in btn.GetComponentsInChildren<Image>(true))
-                img.raycastTarget = true;
-
-            // Add Unity Button on the first Image that has a visible sprite
-            Image targetImg = null;
-            foreach (var img in btn.GetComponentsInChildren<Image>(true)) {
-                if (img.sprite != null) { targetImg = img; break; }
+            // COMPLETELY strip the cloned button — remove ALL MonoBehaviours except Transform
+            foreach (var comp in btn.GetComponentsInChildren<MonoBehaviour>(true)) {
+                DestroyImmediate(comp);
             }
-            if (targetImg == null) targetImg = btn.GetComponentInChildren<Image>(true);
 
-            if (targetImg != null) {
-                var clickBtn = targetImg.gameObject.AddComponent<Button>();
-                clickBtn.targetGraphic = targetImg;
+            // Add click handling on EVERY Image in the hierarchy
+            bool buttonAdded = false;
+            foreach (var img in btn.GetComponentsInChildren<Image>(true)) {
+                img.raycastTarget = true;
+                if (!buttonAdded) {
+                    var clickBtn = img.gameObject.AddComponent<Button>();
+                    clickBtn.targetGraphic = img;
+                    clickBtn.onClick.AddListener(() => Toggle());
+                    buttonAdded = true;
+                }
+            }
+
+            // Fallback: if no Image found, add one on root
+            if (!buttonAdded) {
+                var rootImg = btn.AddComponent<Image>();
+                rootImg.raycastTarget = true;
+                rootImg.color = new Color(0.4f, 0.3f, 0.15f, 1f);
+                var clickBtn = btn.AddComponent<Button>();
+                clickBtn.targetGraphic = rootImg;
                 clickBtn.onClick.AddListener(() => Toggle());
             }
 

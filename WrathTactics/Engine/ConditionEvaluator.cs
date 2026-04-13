@@ -82,7 +82,8 @@ namespace WrathTactics.Engine {
                 if (MatchesPropertyThreshold(condition, ally))
                     count++;
             }
-            return CompareFloat(count, condition.Operator, countThreshold);
+            // Count comparison is ALWAYS >= (hardcoded, UI shows "count >=")
+            return count >= countThreshold;
         }
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
@@ -103,7 +104,8 @@ namespace WrathTactics.Engine {
                 countThreshold = 1; // default: at least 1
 
             int count = GetVisibleEnemies(owner).Count();
-            return CompareFloat(count, condition.Operator, countThreshold);
+            // Count comparison is ALWAYS >= (hardcoded)
+            return count >= countThreshold;
         }
 
         static bool EvaluateCombat(Condition condition) {
