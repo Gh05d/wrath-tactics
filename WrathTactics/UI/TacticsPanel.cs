@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Kingmaker;
 using Kingmaker.PubSubSystem;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Models;
@@ -17,7 +18,8 @@ namespace WrathTactics.UI {
         string selectedUnitId; // null = Global, "presets" = Presets
         string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
-        Text toggleLabel;
+        TextMeshProUGUI toggleLabel;
+        Transform tabBarTransform; // reference to rebuild tabs
 
         public static TacticsPanel Instance => instance;
 
@@ -46,19 +48,21 @@ namespace WrathTactics.UI {
             if (panelRoot == null) CreatePanel();
             isVisible = !isVisible;
             panelRoot.SetActive(isVisible);
-            if (isVisible) RefreshRuleList();
+            if (isVisible) {
+                RebuildTabs();
+                RefreshRuleList();
+            }
         }
 
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Main panel container
+            // Main panel container — percentage-based: 70% wide, 80% tall
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
 
-            // Position: center of screen, 800x600
-            rootRect.SetAnchor(0.5, 0.5, 0.5, 0.5);
-            rootRect.sizeDelta = new Vector2(800, 600);
+            rootRect.SetAnchor(0.15, 0.85, 0.1, 0.9);
+            rootRect.sizeDelta = Vector2.zero;
 
             // Dark background
             UIHelpers.AddBackground(root, new Color(0.1f, 0.1f, 0.1f, 0.95f));
@@ -68,18 +72,28 @@ namespace WrathTactics.UI {
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
-            UIHelpers.AddLabel(titleBar, "Wrath Tactics", 18, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(titleBar, "Wrath Tactics", 18f, TextAlignmentOptions.Midline);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
             closeRect.SetAnchor(0.95, 1, 0, 1);
             closeRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(closeBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
-            UIHelpers.AddLabel(closeBtn, "X", 16, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(closeBtn, "X", 16f, TextAlignmentOptions.Midline);
             closeBtn.AddComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
-            CreateTabs(root.transform);
+            var (tabBar, tabRect) = UIHelpers.Create("TabBar", root.transform);
+            tabRect.SetAnchor(0, 1, 0.84, 0.91);
+            tabRect.sizeDelta = Vector2.zero;
+            tabBarTransform = tabBar.transform;
+
+            var hlg = tabBar.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 4;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+
+            RebuildTabs();
 
             // Toggle + Add rule row
             CreateControlRow(root.transform);
@@ -91,36 +105,33 @@ namespace WrathTactics.UI {
             Main.Log("[UI] Panel created");
         }
 
-        void CreateTabs(Transform parent) {
-            var (tabBar, tabRect) = UIHelpers.Create("TabBar", parent);
-            tabRect.SetAnchor(0, 1, 0.84, 0.91);
-            tabRect.sizeDelta = Vector2.zero;
+        void RebuildTabs() {
+            if (tabBarTransform == null) return;
 
-            var hlg = tabBar.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 4;
-            hlg.childForceExpandWidth = true;
-            hlg.childForceExpandHeight = true;
+            // Clear existing tabs
+            for (int i = tabBarTransform.childCount - 1; i >= 0; i--)
+                Destroy(tabBarTransform.GetChild(i).gameObject);
 
             // Global tab
-            AddTab(tabBar, "Global", () => SelectTab(null));
+            AddTab(tabBarTransform.gameObject, "Global", () => SelectTab(null));
 
             // Party member tabs
             if (Game.Instance?.Player?.Party != null) {
                 foreach (var unit in Game.Instance.Player.Party) {
                     if (!unit.IsInGame) continue;
                     var uid = unit.UniqueId;
-                    AddTab(tabBar, unit.CharacterName, () => SelectTab(uid));
+                    AddTab(tabBarTransform.gameObject, unit.CharacterName, () => SelectTab(uid));
                 }
             }
 
             // Presets tab
-            AddTab(tabBar, "Presets", () => SelectTab("presets"));
+            AddTab(tabBarTransform.gameObject, "Presets", () => SelectTab("presets"));
         }
 
         void AddTab(GameObject parent, string label, UnityEngine.Events.UnityAction onClick) {
             var (btn, _) = UIHelpers.Create($"Tab_{label}", parent.transform);
             UIHelpers.AddBackground(btn, new Color(0.25f, 0.2f, 0.15f, 1f));
-            UIHelpers.AddLabel(btn, label, 12, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(btn, label, 12f, TextAlignmentOptions.Midline);
             btn.AddComponent<Button>().onClick.AddListener(onClick);
         }
 
@@ -140,7 +151,8 @@ namespace WrathTactics.UI {
             var (toggleBtn, toggleRect) = UIHelpers.Create("ToggleBtn", row.transform);
             toggleRect.SetAnchor(0, 0.5, 0, 1);
             toggleRect.sizeDelta = Vector2.zero;
-            toggleLabel = UIHelpers.AddLabel(toggleBtn, "Globale Regeln", 13, TextAnchor.MiddleLeft, Color.white);
+            toggleLabel = UIHelpers.AddLabel(toggleBtn, "Global Rules", 13f,
+                TextAlignmentOptions.MidlineLeft, Color.white);
             toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
 
             // Add Rule button
@@ -148,7 +160,7 @@ namespace WrathTactics.UI {
             addRect.SetAnchor(0.75, 1, 0, 1);
             addRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-            UIHelpers.AddLabel(addBtn, "+ Neue Regel", 13, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(addBtn, "+ New Rule", 13f, TextAlignmentOptions.Midline);
             addBtn.AddComponent<Button>().onClick.AddListener(AddNewRule);
         }
 
@@ -158,11 +170,10 @@ namespace WrathTactics.UI {
             scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.76);
             scrollRect.sizeDelta = Vector2.zero;
 
-            // Viewport
+            // Viewport with RectMask2D instead of Mask
             var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
             viewportRect.FillParent();
-            UIHelpers.AddBackground(viewport, new Color(0, 0, 0, 0.01f));
-            viewport.AddComponent<Mask>().showMaskGraphic = false;
+            viewport.AddComponent<RectMask2D>();
 
             // Content container with vertical layout
             var (content, contentRect) = UIHelpers.Create("Content", viewport.transform);
@@ -230,7 +241,7 @@ namespace WrathTactics.UI {
             if (toggleLabel == null) return;
 
             if (selectedUnitId == null) {
-                toggleLabel.text = "Globale Regeln";
+                toggleLabel.text = "Global Rules";
                 toggleLabel.color = Color.white;
             } else if (selectedUnitId == "presets") {
                 toggleLabel.text = "Presets";
@@ -239,7 +250,7 @@ namespace WrathTactics.UI {
                 var config = ConfigManager.Current;
                 bool enabled = config.IsEnabled(selectedUnitId);
                 var charName = GetCharacterName(selectedUnitId);
-                toggleLabel.text = $"Tactics {(enabled ? "aktiv" : "inaktiv")} fuer {charName}";
+                toggleLabel.text = $"Tactics {(enabled ? "enabled" : "disabled")} for {charName}";
                 toggleLabel.color = enabled ? Color.green : Color.gray;
             }
         }
@@ -261,7 +272,7 @@ namespace WrathTactics.UI {
                 : GetOrCreateCharacterRules(selectedUnitId);
 
             rules.Add(new TacticsRule {
-                Name = "Neue Regel",
+                Name = "New Rule",
                 Priority = rules.Count,
                 Enabled = true
             });
@@ -291,19 +302,47 @@ namespace WrathTactics.UI {
 
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
-            hudButton = btn;
+            // Try to find the game's HUD container and clone a button
+            var hudContainer = canvas.Find("NestedCanvas1/IngameMenuView/ButtonsPart/Container");
+            if (hudContainer != null) {
+                // Try to clone an existing button for consistent styling
+                var existingButton = hudContainer.childCount > 0
+                    ? hudContainer.GetChild(0).gameObject : null;
+                if (existingButton != null) {
+                    var cloned = Instantiate(existingButton, hudContainer);
+                    cloned.name = "WrathTacticsHudBtn";
+                    hudButton = cloned;
 
-            btnRect.SetAnchor(0, 0, 0, 0);  // anchor bottom-left
+                    // Clear existing click listeners and set ours
+                    var btn = cloned.GetComponent<Button>();
+                    if (btn != null) {
+                        btn.onClick.RemoveAllListeners();
+                        btn.onClick.AddListener(Toggle);
+                    }
+
+                    // Update label text
+                    var label = cloned.GetComponentInChildren<TextMeshProUGUI>();
+                    if (label != null) label.text = "Tactics";
+
+                    Main.Log("[UI] HUD button created (cloned from game UI)");
+                    return;
+                }
+            }
+
+            // Fallback: floating button
+            var (btn2, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
+            hudButton = btn2;
+
+            btnRect.SetAnchor(0, 0, 0, 0);
             btnRect.pivot = new Vector2(0, 0);
-            btnRect.anchoredPosition = new Vector2(10, 80);  // 10px from left, 80px from bottom
+            btnRect.anchoredPosition = new Vector2(10, 80);
             btnRect.sizeDelta = new Vector2(100, 30);
 
-            UIHelpers.AddBackground(btn, new Color(0.2f, 0.15f, 0.1f, 0.9f));
-            UIHelpers.AddLabel(btn, "Tactics", 13, TextAnchor.MiddleCenter);
-            btn.AddComponent<UnityEngine.UI.Button>().onClick.AddListener(Toggle);
+            UIHelpers.AddBackground(btn2, new Color(0.2f, 0.15f, 0.1f, 0.9f));
+            UIHelpers.AddLabel(btn2, "Tactics", 13f, TextAlignmentOptions.Midline);
+            btn2.AddComponent<Button>().onClick.AddListener(Toggle);
 
-            Main.Log("[UI] HUD button created");
+            Main.Log("[UI] HUD button created (floating fallback)");
         }
 
         void Update() {

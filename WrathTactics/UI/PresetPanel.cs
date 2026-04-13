@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Models;
@@ -25,8 +26,9 @@ namespace WrathTactics.UI {
             var (titleObj, titleRect) = UIHelpers.Create("PresetTitle", root.transform);
             titleRect.SetAnchor(0, 1, 0.9, 1);
             titleRect.sizeDelta = Vector2.zero;
-            string context = lastCharacterId == null ? "Globale Regeln" : "Character-Regeln";
-            UIHelpers.AddLabel(titleObj, $"Presets (anwenden auf: {context})", 14, TextAnchor.MiddleLeft, Color.white);
+            string context = lastCharacterId == null ? "Global Rules" : "Character Rules";
+            UIHelpers.AddLabel(titleObj, $"Presets (apply to: {context})", 14f,
+                TextAlignmentOptions.MidlineLeft, Color.white);
             titleObj.AddComponent<LayoutElement>().preferredHeight = 30;
 
             // Preset list
@@ -37,7 +39,8 @@ namespace WrathTactics.UI {
 
             if (presets.Count == 0) {
                 var (emptyObj, _) = UIHelpers.Create("NoPresets", root.transform);
-                UIHelpers.AddLabel(emptyObj, "Keine Presets vorhanden.", 13, TextAnchor.MiddleLeft, Color.gray);
+                UIHelpers.AddLabel(emptyObj, "No presets saved.", 13f,
+                    TextAlignmentOptions.MidlineLeft, Color.gray);
                 emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
             }
 
@@ -49,25 +52,32 @@ namespace WrathTactics.UI {
             var (saveRow, saveRect) = UIHelpers.Create("SaveRow", root.transform);
             saveRow.AddComponent<LayoutElement>().preferredHeight = 35;
 
-            var (nameObj, nameRect) = UIHelpers.Create("NameInput", saveRow.transform);
+            // Name input using TMP_InputField
+            var nameInput = UIHelpers.CreateTMPInputField(saveRow, "NameInput",
+                0.02, 0.6, "", 12f);
+            // Adjust vertical anchors
+            var nameRect = nameInput.GetComponent<RectTransform>();
             nameRect.SetAnchor(0.02, 0.6, 0.1, 0.9);
-            nameRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(nameObj, new Color(0.15f, 0.15f, 0.15f, 1f));
-            var nameInput = nameObj.AddComponent<InputField>();
-            var nameText = UIHelpers.AddLabel(nameObj, "", 12);
-            nameInput.textComponent = nameText;
-            nameInput.text = "";
 
-            // Placeholder text
-            var placeholderText = UIHelpers.AddLabel(nameObj, "Preset-Name eingeben...", 12, TextAnchor.MiddleLeft,
-                new Color(0.5f, 0.5f, 0.5f));
-            nameInput.placeholder = placeholderText;
+            // Placeholder
+            var (phObj, phRect) = UIHelpers.Create("Placeholder", nameInput.textViewport);
+            phRect.FillParent();
+            var phText = phObj.AddComponent<TextMeshProUGUI>();
+            phText.text = "Enter preset name...";
+            phText.fontSize = 12f;
+            phText.alignment = TextAlignmentOptions.MidlineLeft;
+            phText.color = new Color(0.5f, 0.5f, 0.5f);
+            phText.enableWordWrapping = false;
+            phText.overflowMode = TextOverflowModes.Ellipsis;
+            phText.raycastTarget = false;
+            nameInput.placeholder = phText;
 
+            // Save button
             var (saveBtn, saveBtnRect) = UIHelpers.Create("SaveBtn", saveRow.transform);
             saveBtnRect.SetAnchor(0.65, 0.98, 0.1, 0.9);
             saveBtnRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(saveBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-            UIHelpers.AddLabel(saveBtn, "Speichern", 13, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(saveBtn, "Save", 13f, TextAlignmentOptions.Midline);
             saveBtn.AddComponent<Button>().onClick.AddListener(() => {
                 var name = nameInput.text?.Trim();
                 if (string.IsNullOrEmpty(name)) return;
@@ -92,14 +102,14 @@ namespace WrathTactics.UI {
             var (nameObj, nameRect) = UIHelpers.Create("Name", row.transform);
             nameRect.SetAnchor(0.02, 0.5, 0, 1);
             nameRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(nameObj, presetName, 13, TextAnchor.MiddleLeft);
+            UIHelpers.AddLabel(nameObj, presetName, 13f, TextAlignmentOptions.MidlineLeft);
 
             // Load button
             var (loadBtn, loadRect) = UIHelpers.Create("LoadBtn", row.transform);
             loadRect.SetAnchor(0.55, 0.75, 0.1, 0.9);
             loadRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(loadBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
-            UIHelpers.AddLabel(loadBtn, "Laden", 12, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(loadBtn, "Load", 12f, TextAlignmentOptions.Midline);
             loadBtn.AddComponent<Button>().onClick.AddListener(() => LoadPreset(presetName));
 
             // Delete button
@@ -107,7 +117,7 @@ namespace WrathTactics.UI {
             delRect.SetAnchor(0.8, 0.98, 0.1, 0.9);
             delRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f, 1f));
-            UIHelpers.AddLabel(delBtn, "Loeschen", 12, TextAnchor.MiddleCenter);
+            UIHelpers.AddLabel(delBtn, "Delete", 12f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => {
                 PresetManager.DeletePreset(presetName);
                 Rebuild();
@@ -120,11 +130,9 @@ namespace WrathTactics.UI {
 
             var config = ConfigManager.Current;
             if (lastCharacterId == null) {
-                // Load into global rules — replace completely
                 config.GlobalRules.Clear();
                 config.GlobalRules.AddRange(rules);
             } else {
-                // Load into character rules — replace completely
                 config.CharacterRules[lastCharacterId] = new List<TacticsRule>(rules);
             }
 
@@ -140,7 +148,6 @@ namespace WrathTactics.UI {
         }
 
         void Rebuild() {
-            // Destroy all children and rebuild
             for (int i = transform.childCount - 1; i >= 0; i--)
                 Destroy(transform.GetChild(i).gameObject);
             BuildUI();

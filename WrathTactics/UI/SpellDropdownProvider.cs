@@ -14,9 +14,9 @@ namespace WrathTactics.UI {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
 
-            // Spellbook spells
+            // Spellbook spells (max level 9)
             foreach (var book in unit.Spellbooks) {
-                for (int level = 0; level <= 10; level++) {
+                for (int level = 0; level <= 9; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         var guid = spell.Blueprint.AssetGuid.ToString();
                         if (seen.Add(guid))
