@@ -117,24 +117,29 @@ namespace WrathTactics.UI {
                 Destroy(tabBarTransform.GetChild(i).gameObject);
 
             // Global tab
-            AddTab(tabBarTransform.gameObject, "Global", () => SelectTab(null));
+            AddTab(tabBarTransform.gameObject, "Global", null, () => SelectTab(null));
 
             // Party member tabs
             if (Game.Instance?.Player?.Party != null) {
                 foreach (var unit in Game.Instance.Player.Party) {
                     if (!unit.IsInGame) continue;
                     var uid = unit.UniqueId;
-                    AddTab(tabBarTransform.gameObject, unit.CharacterName, () => SelectTab(uid));
+                    AddTab(tabBarTransform.gameObject, unit.CharacterName, uid, () => SelectTab(uid));
                 }
             }
 
             // Presets tab
-            AddTab(tabBarTransform.gameObject, "Presets", () => SelectTab("presets"));
+            AddTab(tabBarTransform.gameObject, "Presets", "presets", () => SelectTab("presets"));
         }
 
-        void AddTab(GameObject parent, string label, UnityEngine.Events.UnityAction onClick) {
+        static readonly Color TabNormal = new Color(0.25f, 0.2f, 0.15f, 1f);
+        static readonly Color TabSelected = new Color(0.4f, 0.3f, 0.15f, 1f);
+
+        void AddTab(GameObject parent, string label, string tabId, UnityEngine.Events.UnityAction onClick) {
             var (btn, _) = UIHelpers.Create($"Tab_{label}", parent.transform);
-            UIHelpers.AddBackground(btn, new Color(0.25f, 0.2f, 0.15f, 1f));
+            bool isSelected = (tabId == null && selectedUnitId == null)
+                || (tabId != null && tabId == selectedUnitId);
+            UIHelpers.AddBackground(btn, isSelected ? TabSelected : TabNormal);
             UIHelpers.AddLabel(btn, label, 16f, TextAlignmentOptions.Midline);
             btn.AddComponent<Button>().onClick.AddListener(onClick);
         }
@@ -143,6 +148,7 @@ namespace WrathTactics.UI {
             if (selectedUnitId != "presets")
                 lastNonPresetUnitId = selectedUnitId;
             selectedUnitId = unitId;
+            RebuildTabs();
             RefreshRuleList();
         }
 
@@ -415,38 +421,27 @@ namespace WrathTactics.UI {
             btn.name = "TacticsBtn";
             btn.SetActive(true);
 
-            // Remove the OwlcatButton — it doesn't work after cloning
-            var owlBtns = btn.GetComponentsInChildren<OwlcatButton>(true);
-            foreach (var ob in owlBtns) DestroyImmediate(ob);
+            // Remove OwlcatButton — it doesn't work after cloning
+            foreach (var ob in btn.GetComponentsInChildren<OwlcatButton>(true))
+                DestroyImmediate(ob);
 
-            // Ensure all existing Images have raycastTarget=true
+            // Don't change any colors or sprites — the cloned prefab already looks correct
+            // Just make sure Images catch raycasts
             foreach (var img in btn.GetComponentsInChildren<Image>(true))
                 img.raycastTarget = true;
 
-            // Add a nearly-invisible root Image as guaranteed click surface
-            var rootImg = btn.GetComponent<Image>();
-            if (rootImg == null) rootImg = btn.AddComponent<Image>();
-            rootImg.raycastTarget = true;
-            rootImg.color = new Color(0, 0, 0, 0.01f); // nearly invisible but catches raycasts
+            // Add Unity Button on the first Image that has a visible sprite
+            Image targetImg = null;
+            foreach (var img in btn.GetComponentsInChildren<Image>(true)) {
+                if (img.sprite != null) { targetImg = img; break; }
+            }
+            if (targetImg == null) targetImg = btn.GetComponentInChildren<Image>(true);
 
-            // Add Unity Button on root with the overlay image as target graphic
-            var clickBtn = btn.GetComponent<Button>();
-            if (clickBtn == null) clickBtn = btn.AddComponent<Button>();
-            clickBtn.targetGraphic = rootImg;
-            clickBtn.onClick.AddListener(() => Toggle());
-
-            // Try to get a game icon sprite and apply it to the first child Image
-            try {
-                // Use a recognizable game sprite — the "Settings" gear icon
-                var settingsIcon = Game.Instance.UI.Canvas.transform
-                    .Find("NestedCanvas1/IngameMenuView/ButtonsPart/Container")
-                    ?.GetChild(0)?.GetComponentInChildren<Image>()?.sprite;
-                var iconImg = btn.GetComponentInChildren<Image>();
-                if (settingsIcon != null && iconImg != null) {
-                    iconImg.sprite = settingsIcon;
-                    iconImg.color = new Color(0.8f, 0.65f, 0.3f, 1f); // golden tint
-                }
-            } catch { }
+            if (targetImg != null) {
+                var clickBtn = targetImg.gameObject.AddComponent<Button>();
+                clickBtn.targetGraphic = targetImg;
+                clickBtn.onClick.AddListener(() => Toggle());
+            }
 
             // Add visibility sync with original NestedCanvas1
             ingameMenu.gameObject.AddComponent<TacticsHudSync>();

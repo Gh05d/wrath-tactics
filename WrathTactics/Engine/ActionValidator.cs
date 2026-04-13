@@ -36,7 +36,11 @@ namespace WrathTactics.Engine {
 
         static bool CanCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
             var ability = FindAbility(owner, abilityGuid);
-            if (ability == null) return false;
+            if (ability == null) {
+                Main.Log($"[DIAG] FindAbility FAILED for {owner.CharacterName}, guid={abilityGuid}");
+                return false;
+            }
+            Main.Log($"[DIAG] FindAbility OK: {ability.Name} for {owner.CharacterName}");
 
             if (ability.Spellbook != null) {
                 int level = ability.Spellbook.GetSpellLevel(ability);
