@@ -58,13 +58,42 @@ namespace WrathTactics.UI {
                     ConfigManager.Save();
                 });
 
-            // Value input
-            var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                0.56, 0.85, condition.Value ?? "", 16f);
-            valueInput.onEndEdit.AddListener(v => {
-                condition.Value = v;
-                ConfigManager.Save();
-            });
+            bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
+                || condition.Subject == ConditionSubject.EnemyCount;
+
+            if (isCountSubject) {
+                // Value = property threshold (HP %)
+                var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                    0.56, 0.70, condition.Value ?? "", 16f);
+                valueInput.onEndEdit.AddListener(v => {
+                    condition.Value = v;
+                    ConfigManager.Save();
+                });
+
+                // "Count:" label
+                var (countLbl, countLblRect) = UIHelpers.Create("CountLabel", root.transform);
+                countLblRect.SetAnchor(0.71, 0.78, 0, 1);
+                countLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(countLbl, "Cnt:", 14f, TextAlignmentOptions.MidlineLeft,
+                    new Color(0.7f, 0.7f, 0.7f));
+
+                // Value2 = count threshold
+                var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
+                    0.79, 0.89, condition.Value2 ?? "1", 16f,
+                    TMP_InputField.ContentType.IntegerNumber);
+                countInput.onEndEdit.AddListener(v => {
+                    condition.Value2 = v;
+                    ConfigManager.Save();
+                });
+            } else {
+                // Normal single value input
+                var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                    0.56, 0.85, condition.Value ?? "", 16f);
+                valueInput.onEndEdit.AddListener(v => {
+                    condition.Value = v;
+                    ConfigManager.Save();
+                });
+            }
 
             // Delete button
             var (delBtn, delRect) = UIHelpers.Create("DelBtn", root.transform);

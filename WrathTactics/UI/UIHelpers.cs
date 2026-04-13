@@ -120,6 +120,10 @@ namespace WrathTactics.UI {
             inputField.text = initialText;
             inputField.contentType = contentType;
 
+            // Set the background image as the target graphic for click detection
+            var bgImage = obj.GetComponent<Image>();
+            if (bgImage != null) inputField.targetGraphic = bgImage;
+
             // Force the text component to update
             textTmp.text = initialText;
 
@@ -281,15 +285,16 @@ namespace WrathTactics.UI {
                 // Add icon if available for this index
                 if (icons != null && i < icons.Count && icons[i] != null) {
                     var (iconObj, iconRect) = UIHelpers.Create("Icon", itemObj.transform);
-                    iconRect.SetAnchor(0, 0, 0, 0);
+                    iconRect.anchorMin = new Vector2(0, 0.5f);
+                    iconRect.anchorMax = new Vector2(0, 0.5f);
                     iconRect.pivot = new Vector2(0, 0.5f);
                     iconRect.anchoredPosition = new Vector2(4, 0);
-                    iconRect.sizeDelta = new Vector2(28, 28);
+                    iconRect.sizeDelta = new Vector2(30, 30);
                     var iconImg = iconObj.AddComponent<Image>();
                     iconImg.sprite = icons[i];
                     iconImg.preserveAspect = true;
                     iconImg.raycastTarget = false;
-                    label.margin = new Vector4(36, 0, 4, 0);
+                    label.margin = new Vector4(38, 0, 4, 0);
                 } else {
                     label.margin = new Vector4(4, 0, 4, 0);
                 }

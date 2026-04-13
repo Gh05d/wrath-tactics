@@ -50,7 +50,7 @@ namespace WrathTactics.UI {
             headerRect.anchorMin = new Vector2(0.01f, 1f);
             headerRect.anchorMax = new Vector2(0.99f, 1f);
             headerRect.pivot = new Vector2(0.5f, 1f);
-            headerRect.sizeDelta = new Vector2(0, 36);
+            headerRect.sizeDelta = new Vector2(0, 44);
 
             UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
 
@@ -65,8 +65,9 @@ namespace WrathTactics.UI {
 
             // Enable toggle button
             var (enableBtn, enableRect) = UIHelpers.Create("EnableBtn", header.transform);
-            enableRect.SetAnchor(0.65, 0.73, 0, 1);
+            enableRect.SetAnchor(0.65, 0.73, 0.08, 0.92);
             enableRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(enableBtn, new Color(0.25f, 0.25f, 0.25f, 1f));
             enabledLabel = UIHelpers.AddLabel(enableBtn, rule.Enabled ? "[ON]" : "[OFF]", 16f,
                 TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
             enableBtn.AddComponent<Button>().onClick.AddListener(() => {
@@ -78,7 +79,7 @@ namespace WrathTactics.UI {
 
             // Move up button
             var (upBtn, upRect) = UIHelpers.Create("UpBtn", header.transform);
-            upRect.SetAnchor(0.74, 0.82, 0, 1);
+            upRect.SetAnchor(0.74, 0.82, 0.08, 0.92);
             upRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(upBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
             UIHelpers.AddLabel(upBtn, "^", 18f, TextAlignmentOptions.Midline);
@@ -86,7 +87,7 @@ namespace WrathTactics.UI {
 
             // Move down button
             var (downBtn, downRect) = UIHelpers.Create("DownBtn", header.transform);
-            downRect.SetAnchor(0.83, 0.91, 0, 1);
+            downRect.SetAnchor(0.83, 0.91, 0.08, 0.92);
             downRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(downBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
             UIHelpers.AddLabel(downBtn, "v", 18f, TextAlignmentOptions.Midline);
@@ -94,7 +95,7 @@ namespace WrathTactics.UI {
 
             // Delete button
             var (delBtn, delRect) = UIHelpers.Create("DeleteBtn", header.transform);
-            delRect.SetAnchor(0.92, 1, 0, 1);
+            delRect.SetAnchor(0.92, 1, 0.08, 0.92);
             delRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(delBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
             UIHelpers.AddLabel(delBtn, "X", 18f, TextAlignmentOptions.Midline);
@@ -105,7 +106,7 @@ namespace WrathTactics.UI {
             bodyContainer = body;
             bodyRt.SetAnchor(0, 1, 0, 1);
             bodyRt.offsetMin = new Vector2(4, 4);
-            bodyRt.offsetMax = new Vector2(-4, -38);
+            bodyRt.offsetMax = new Vector2(-4, -46);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 4;

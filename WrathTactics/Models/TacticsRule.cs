@@ -22,6 +22,7 @@ namespace WrathTactics.Models {
         [JsonProperty] public ConditionProperty Property { get; set; }
         [JsonProperty] public ConditionOperator Operator { get; set; }
         [JsonProperty] public string Value { get; set; } = "";
+        [JsonProperty] public string Value2 { get; set; } = "";  // For AllyCount/EnemyCount: the count threshold
     }
 
     public class ActionDef {

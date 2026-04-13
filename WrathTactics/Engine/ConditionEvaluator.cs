@@ -58,17 +58,20 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateAllyCount(Condition condition, UnitEntityData owner) {
-            float threshold;
-            if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out threshold))
-                return false;
+            // Value = property threshold (e.g., "60" for HP < 60%)
+            // Value2 = count threshold (e.g., "2" for 2+ allies)
+            // Operator = comparison for the count (e.g., >= 2)
+            float countThreshold;
+            if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
+                countThreshold = 1; // default: at least 1
 
             int count = 0;
             foreach (var ally in GetAllPartyMembers(owner)) {
                 if (MatchesPropertyThreshold(condition, ally))
                     count++;
             }
-            return CompareFloat(count, condition.Operator, threshold);
+            return CompareFloat(count, condition.Operator, countThreshold);
         }
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
@@ -80,13 +83,14 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateEnemyCount(Condition condition, UnitEntityData owner) {
-            float threshold;
-            if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out threshold))
-                return false;
+            // Value2 = count threshold; Value = property threshold (currently unused for enemy count)
+            float countThreshold;
+            if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
+                countThreshold = 1; // default: at least 1
 
             int count = GetVisibleEnemies(owner).Count();
-            return CompareFloat(count, condition.Operator, threshold);
+            return CompareFloat(count, condition.Operator, countThreshold);
         }
 
         static bool EvaluateCombat(Condition condition) {
