@@ -11,7 +11,9 @@ namespace WrathTactics.UI {
     public class TacticsPanel : MonoBehaviour, IPartyCombatHandler {
         static TacticsPanel instance;
         GameObject panelRoot;
+        GameObject hudButton;
         bool isVisible;
+        bool hudButtonCreated;
         string selectedUnitId; // null = Global, "presets" = Presets
         string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
@@ -33,6 +35,7 @@ namespace WrathTactics.UI {
             if (instance != null) {
                 EventBus.Unsubscribe(instance);
                 if (instance.panelRoot != null) Destroy(instance.panelRoot);
+                if (instance.hudButton != null) Destroy(instance.hudButton);
                 Destroy(instance.gameObject);
                 instance = null;
                 Main.Log("[UI] TacticsPanel uninstalled");
@@ -283,8 +286,36 @@ namespace WrathTactics.UI {
             return unitId;
         }
 
+        void CreateHudButton() {
+            if (hudButton != null) return;
+
+            var canvas = Game.Instance.UI.Canvas.transform;
+
+            var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
+            hudButton = btn;
+
+            btnRect.SetAnchor(0, 0, 0, 0);  // anchor bottom-left
+            btnRect.pivot = new Vector2(0, 0);
+            btnRect.anchoredPosition = new Vector2(10, 80);  // 10px from left, 80px from bottom
+            btnRect.sizeDelta = new Vector2(100, 30);
+
+            UIHelpers.AddBackground(btn, new Color(0.2f, 0.15f, 0.1f, 0.9f));
+            UIHelpers.AddLabel(btn, "Tactics", 13, TextAnchor.MiddleCenter);
+            btn.AddComponent<UnityEngine.UI.Button>().onClick.AddListener(Toggle);
+
+            Main.Log("[UI] HUD button created");
+        }
+
         void Update() {
-            if (Input.GetKeyDown(KeyCode.F8)) {
+            // Create HUD button once the game UI is ready
+            if (!hudButtonCreated && Game.Instance?.UI?.Canvas != null) {
+                CreateHudButton();
+                hudButtonCreated = true;
+            }
+
+            // Keyboard shortcut: Ctrl+T
+            if (Input.GetKeyDown(KeyCode.T) &&
+                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) {
                 Toggle();
             }
         }
@@ -295,6 +326,7 @@ namespace WrathTactics.UI {
 
         void OnDestroy() {
             if (panelRoot != null) Destroy(panelRoot);
+            if (hudButton != null) Destroy(hudButton);
         }
     }
 }

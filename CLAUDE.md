@@ -17,6 +17,11 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 
 Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias.
 
+## UI
+
+- **Keybind:** `Ctrl+T` toggles the Tactics panel
+- **HUD button:** Small "Tactics" button at bottom-left (10px from left, 80px from bottom), created lazily once `Game.Instance.UI.Canvas` is available
+
 ## Gotchas
 
 - `GameInstall/` is a symlink to `../wrath-epic-buffing/GameInstall` — do not commit
