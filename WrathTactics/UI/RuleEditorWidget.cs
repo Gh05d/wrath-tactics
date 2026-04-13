@@ -50,7 +50,7 @@ namespace WrathTactics.UI {
             headerRect.anchorMin = new Vector2(0.01f, 1f);
             headerRect.anchorMax = new Vector2(0.99f, 1f);
             headerRect.pivot = new Vector2(0.5f, 1f);
-            headerRect.sizeDelta = new Vector2(0, 44);
+            headerRect.sizeDelta = new Vector2(0, 50);
 
             UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
 
@@ -106,7 +106,7 @@ namespace WrathTactics.UI {
             bodyContainer = body;
             bodyRt.SetAnchor(0, 1, 0, 1);
             bodyRt.offsetMin = new Vector2(4, 4);
-            bodyRt.offsetMax = new Vector2(-4, -46);
+            bodyRt.offsetMax = new Vector2(-4, -52);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 4;
@@ -448,7 +448,7 @@ namespace WrathTactics.UI {
             if (layoutElement == null) return;
             int condCount = rule.ConditionGroups.Sum(g => g.Conditions.Count);
             int groupCount = rule.ConditionGroups.Count;
-            float height = 28f  // header
+            float height = 50f  // header
                 + 20f           // IF: label
                 + condCount * 34f
                 + groupCount * 26f   // add-cond buttons

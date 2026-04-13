@@ -60,8 +60,22 @@ namespace WrathTactics.UI {
 
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
+            bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
 
-            if (isCountSubject) {
+            if (isHasCondition) {
+                // Dropdown for known condition names
+                var condNames = new List<string> {
+                    "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
+                    "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
+                    "Shaken", "Sickened", "Sleeping", "Petrified"
+                };
+                int condIdx = condNames.IndexOf(condition.Value);
+                if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
+                PopupSelector.Create(root, "CondValue", 0.56f, 0.88f, condNames, condIdx, v => {
+                    condition.Value = condNames[v];
+                    ConfigManager.Save();
+                });
+            } else if (isCountSubject) {
                 // Value = property threshold (HP %)
                 var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
                     0.56, 0.70, condition.Value ?? "", 16f);

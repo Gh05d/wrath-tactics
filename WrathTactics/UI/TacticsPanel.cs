@@ -418,9 +418,16 @@ namespace WrathTactics.UI {
             // Wire click
             var owlBtn = btn.GetComponentInChildren<OwlcatButton>();
             if (owlBtn != null) {
+                owlBtn.Interactable = true;
+                owlBtn.m_Interactable = true;
                 owlBtn.OnLeftClick.RemoveAllListeners();
                 owlBtn.OnLeftClick.AddListener(() => Toggle());
             }
+
+            // Fallback: transparent Unity Button as click receptor
+            // Ensures clicks work even if OwlcatButton is in a bad state
+            var unityBtn = btn.AddComponent<UnityEngine.UI.Button>();
+            unityBtn.onClick.AddListener(Toggle);
 
             // Set icon — brown/golden color
             var images = btn.GetComponentsInChildren<Image>(true);
