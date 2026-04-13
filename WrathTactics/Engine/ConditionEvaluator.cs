@@ -151,6 +151,13 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.HasCondition:
                     return HasConditionByName(unit, condition.Value);
 
+                case ConditionProperty.HasDebuff:
+                    if (string.IsNullOrEmpty(condition.Value)) return false;
+                    string debuffSearch = condition.Value.ToLowerInvariant();
+                    return unit.Buffs.RawFacts.Any(b =>
+                        b.Blueprint.name != null &&
+                        b.Blueprint.name.ToLowerInvariant().Contains(debuffSearch));
+
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
                     return CountAvailableSlotsAtLevel(unit, level) > 0;
@@ -185,6 +192,13 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.HasCondition:
                     return HasConditionByName(unit, condition.Value);
+
+                case ConditionProperty.HasDebuff:
+                    if (string.IsNullOrEmpty(condition.Value)) return false;
+                    string debuffMatch = condition.Value.ToLowerInvariant();
+                    return unit.Buffs.RawFacts.Any(b =>
+                        b.Blueprint.name != null &&
+                        b.Blueprint.name.ToLowerInvariant().Contains(debuffMatch));
 
                 default:
                     return false;

@@ -14,6 +14,7 @@ namespace WrathTactics.Models {
         HasBuff,
         MissingBuff,
         HasCondition,
+        HasDebuff,
         SpellSlotsAtLevel,
         SpellSlotsAboveLevel,
         Resource,
