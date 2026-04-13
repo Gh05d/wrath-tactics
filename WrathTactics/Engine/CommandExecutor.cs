@@ -33,7 +33,7 @@ namespace WrathTactics.Engine {
         static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
             var ability = ActionValidator.FindAbility(owner, abilityGuid);
             if (ability == null) {
-                Main.Debug($"[Executor] Spell {abilityGuid} not found on {owner.CharacterName}");
+                Main.DebugLog($"[Executor] Spell {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -43,12 +43,12 @@ namespace WrathTactics.Engine {
 
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command == null) {
-                Main.Debug($"[Executor] CreateCastCommand returned null for {ability.Name}");
+                Main.DebugLog($"[Executor] CreateCastCommand returned null for {ability.Name}");
                 return false;
             }
 
             owner.Commands.Run(command);
-            Main.Debug($"[Executor] Queued spell {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+            Main.DebugLog($"[Executor] Queued spell {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
             return true;
         }
 
@@ -58,7 +58,7 @@ namespace WrathTactics.Engine {
                 ?.Data;
 
             if (ability == null) {
-                Main.Debug($"[Executor] Item ability {abilityGuid} not found on {owner.CharacterName}");
+                Main.DebugLog($"[Executor] Item ability {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -68,19 +68,19 @@ namespace WrathTactics.Engine {
 
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command == null) {
-                Main.Debug($"[Executor] CreateCastCommand failed for item ability");
+                Main.DebugLog($"[Executor] CreateCastCommand failed for item ability");
                 return false;
             }
 
             owner.Commands.Run(command);
-            Main.Debug($"[Executor] Queued item use on {owner.CharacterName}");
+            Main.DebugLog($"[Executor] Queued item use on {owner.CharacterName}");
             return true;
         }
 
         static bool ExecuteToggleActivatable(string abilityGuid, UnitEntityData owner) {
             var activatable = ActionValidator.FindActivatable(owner, abilityGuid);
             if (activatable == null) {
-                Main.Debug($"[Executor] Activatable {abilityGuid} not found on {owner.CharacterName}");
+                Main.DebugLog($"[Executor] Activatable {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -88,7 +88,7 @@ namespace WrathTactics.Engine {
             if (!activatable.IsStarted)
                 activatable.TryStart();
 
-            Main.Debug($"[Executor] Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
+            Main.DebugLog($"[Executor] Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
             return true;
         }
 
@@ -97,7 +97,7 @@ namespace WrathTactics.Engine {
 
             var command = new UnitAttack(target, null);
             owner.Commands.Run(command);
-            Main.Debug($"[Executor] Queued attack on {owner.CharacterName} -> {target.CharacterName}");
+            Main.DebugLog($"[Executor] Queued attack on {owner.CharacterName} -> {target.CharacterName}");
             return true;
         }
     }

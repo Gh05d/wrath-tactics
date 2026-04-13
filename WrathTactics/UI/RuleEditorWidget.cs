@@ -50,7 +50,20 @@ namespace WrathTactics.UI {
 
             UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
 
-            UIHelpers.AddLabel(header, $"{index + 1}. {rule.Name}", 13, TextAnchor.MiddleLeft);
+            // Name input field (editable rule name)
+            var (nameObj, nameRect) = UIHelpers.Create("NameInput", header.transform);
+            nameRect.SetAnchor(0, 0.65, 0, 1);
+            nameRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(nameObj, new Color(0.12f, 0.12f, 0.12f, 1f));
+            var nameInput = nameObj.AddComponent<InputField>();
+            var nameText = UIHelpers.AddLabel(nameObj, $"{index + 1}. {rule.Name}", 13, TextAnchor.MiddleLeft);
+            nameInput.textComponent = nameText;
+            nameInput.text = $"{index + 1}. {rule.Name}";
+            nameInput.onEndEdit.AddListener(v => {
+                string prefix = $"{index + 1}. ";
+                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
+                Persistence.ConfigManager.Save();
+            });
 
             // Enable toggle button
             var (enableBtn, enableRect) = UIHelpers.Create("EnableBtn", header.transform);

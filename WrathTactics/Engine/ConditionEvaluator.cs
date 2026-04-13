@@ -49,7 +49,7 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
-            foreach (var ally in GetPartyMembers(owner)) {
+            foreach (var ally in GetAllPartyMembers(owner)) {
                 if (ally == owner) continue;
                 if (EvaluateUnitProperty(condition, ally))
                     return true;
@@ -64,7 +64,7 @@ namespace WrathTactics.Engine {
                 return false;
 
             int count = 0;
-            foreach (var ally in GetPartyMembers(owner)) {
+            foreach (var ally in GetAllPartyMembers(owner)) {
                 if (MatchesPropertyThreshold(condition, ally))
                     count++;
             }
@@ -136,11 +136,11 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
-                    return CountSpellSlotsAtLevel(unit, level) > 0;
+                    return CountAvailableSlotsAtLevel(unit, level) > 0;
 
                 case ConditionProperty.SpellSlotsAboveLevel:
                     int minLevel = (int)threshold;
-                    return CountSpellSlotsAboveLevel(unit, minLevel) > 0;
+                    return CountAvailableSlotsAboveLevel(unit, minLevel) > 0;
 
                 case ConditionProperty.Resource:
                     return HasResource(unit, condition.Value);
@@ -194,20 +194,25 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static int CountSpellSlotsAtLevel(UnitEntityData unit, int level) {
+        static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {
-                total += book.GetSpellsPerDay(level);
+                if (book.Blueprint.Spontaneous) {
+                    total += book.GetSpontaneousSlots(level);
+                } else {
+                    foreach (var slot in book.GetMemorizedSpells(level)) {
+                        if (slot.Spell != null && slot.Available)
+                            total++;
+                    }
+                }
             }
             return total;
         }
 
-        static int CountSpellSlotsAboveLevel(UnitEntityData unit, int minLevel) {
+        static int CountAvailableSlotsAboveLevel(UnitEntityData unit, int minLevel) {
             int total = 0;
-            foreach (var book in unit.Spellbooks) {
-                for (int l = minLevel; l <= 10; l++) {
-                    total += book.GetSpellsPerDay(l);
-                }
+            for (int l = minLevel; l <= 9; l++) {
+                total += CountAvailableSlotsAtLevel(unit, l);
             }
             return total;
         }
@@ -233,8 +238,12 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static IEnumerable<UnitEntityData> GetPartyMembers(UnitEntityData owner) {
+        static IEnumerable<UnitEntityData> GetLivingPartyMembers(UnitEntityData owner) {
             return Game.Instance.Player.Party.Where(u => u.IsInGame && u.HPLeft > 0);
+        }
+
+        static IEnumerable<UnitEntityData> GetAllPartyMembers(UnitEntityData owner) {
+            return Game.Instance.Player.Party.Where(u => u.IsInGame);
         }
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {

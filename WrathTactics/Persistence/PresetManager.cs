@@ -35,7 +35,14 @@ namespace WrathTactics.Persistence {
             }
         }
 
+        static string SanitizeName(string name) {
+            var invalid = Path.GetInvalidFileNameChars();
+            var sanitized = new string(name.Where(c => !invalid.Contains(c)).ToArray());
+            return string.IsNullOrWhiteSpace(sanitized) ? "preset" : sanitized.Trim();
+        }
+
         public static void SavePreset(string name, List<TacticsRule> rules) {
+            name = SanitizeName(name);
             try {
                 Directory.CreateDirectory(PresetDir);
                 var path = Path.Combine(PresetDir, $"{name}.json");
@@ -48,6 +55,7 @@ namespace WrathTactics.Persistence {
         }
 
         public static void DeletePreset(string name) {
+            name = SanitizeName(name);
             var path = Path.Combine(PresetDir, $"{name}.json");
             if (File.Exists(path)) {
                 File.Delete(path);

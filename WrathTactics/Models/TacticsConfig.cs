@@ -9,10 +9,12 @@ namespace WrathTactics.Models {
         [JsonProperty] public float TickIntervalSeconds { get; set; } = 3f;
         [JsonProperty] public bool DebugLogging { get; set; }
 
+        static readonly List<TacticsRule> EmptyRules = new List<TacticsRule>();
+
         public List<TacticsRule> GetRulesForCharacter(string unitId) {
             if (CharacterRules.TryGetValue(unitId, out var rules))
                 return rules;
-            return new List<TacticsRule>();
+            return EmptyRules;
         }
 
         public bool IsEnabled(string unitId) {

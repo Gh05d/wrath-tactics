@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace WrathTactics.Models {
     public class TacticsRule {
+        [JsonProperty] public string Id { get; set; } = System.Guid.NewGuid().ToString();
         [JsonProperty] public string Name { get; set; } = "New Rule";
         [JsonProperty] public bool Enabled { get; set; } = true;
         [JsonProperty] public int Priority { get; set; }

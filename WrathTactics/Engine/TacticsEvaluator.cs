@@ -13,15 +13,15 @@ namespace WrathTactics.Engine {
         static float combatStartTime;
         static bool wasInCombat;
 
-        // Per-rule cooldown tracking: (unitId, ruleIndex) -> last fire game time
-        static readonly Dictionary<(string, int), float> cooldowns = new Dictionary<(string, int), float>();
+        // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
+        static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
 
         public static void Tick(float gameTimeSec) {
             if (!Game.Instance.Player.IsInCombat) {
                 if (wasInCombat) {
                     wasInCombat = false;
                     cooldowns.Clear();
-                    Main.Debug("[Tactics] Combat ended, cooldowns cleared");
+                    Main.DebugLog("[Tactics] Combat ended, cooldowns cleared");
                 }
                 return;
             }
@@ -29,7 +29,7 @@ namespace WrathTactics.Engine {
             if (!wasInCombat) {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
-                Main.Debug("[Tactics] Combat started");
+                Main.DebugLog("[Tactics] Combat started");
             }
 
             var config = ConfigManager.Current;
@@ -71,7 +71,7 @@ namespace WrathTactics.Engine {
                 if (!rule.Enabled) continue;
 
                 // Check cooldown
-                var cooldownKey = (unit.UniqueId, rule.Priority);
+                var cooldownKey = (unit.UniqueId, rule.Id);
                 float cooldownSec = rule.CooldownRounds * 6f;
                 if (cooldowns.TryGetValue(cooldownKey, out float lastFired)) {
                     if (gameTimeSec - lastFired < cooldownSec) {
