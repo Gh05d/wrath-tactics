@@ -251,20 +251,6 @@ namespace WrathTactics.UI {
         }
 
         void SetupSpellSelector(GameObject row) {
-            // Global rules have no character context — can't show spells
-            if (string.IsNullOrEmpty(unitId)) {
-                bool showSpell = rule.Action.Type != ActionType.AttackTarget &&
-                                 rule.Action.Type != ActionType.DoNothing;
-                if (showSpell) {
-                    var (msgObj, msgRect) = UIHelpers.Create("NoCharMsg", row.transform);
-                    msgRect.SetAnchor(0.39f, 1.0f, 0, 1);
-                    msgRect.sizeDelta = Vector2.zero;
-                    UIHelpers.AddLabel(msgObj, "(select a character tab first)", 14f,
-                        TextAlignmentOptions.MidlineLeft, new Color(0.6f, 0.6f, 0.6f));
-                }
-                return;
-            }
-
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
@@ -307,32 +293,62 @@ namespace WrathTactics.UI {
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);
-            if (unit == null) {
-                return new List<SpellDropdownProvider.SpellEntry> {
-                    new SpellDropdownProvider.SpellEntry("(no character selected)", "")
-                };
-            }
-
             List<SpellDropdownProvider.SpellEntry> entries;
-            switch (actionType) {
-                case ActionType.CastSpell:
-                    entries = SpellDropdownProvider.GetSpells(unit);
-                    break;
-                case ActionType.UseItem:
-                    entries = SpellDropdownProvider.GetItemAbilities(unit);
-                    break;
-                case ActionType.ToggleActivatable:
-                    entries = SpellDropdownProvider.GetActivatables(unit);
-                    break;
-                default:
-                    entries = new List<SpellDropdownProvider.SpellEntry>();
-                    break;
+
+            if (unit == null) {
+                // Global rules: combine spells from ALL party members
+                entries = GetAllPartySpells(actionType);
+            } else {
+                switch (actionType) {
+                    case ActionType.CastSpell:
+                        entries = SpellDropdownProvider.GetSpells(unit);
+                        break;
+                    case ActionType.UseItem:
+                        entries = SpellDropdownProvider.GetItemAbilities(unit);
+                        break;
+                    case ActionType.ToggleActivatable:
+                        entries = SpellDropdownProvider.GetActivatables(unit);
+                        break;
+                    default:
+                        entries = new List<SpellDropdownProvider.SpellEntry>();
+                        break;
+                }
             }
 
             if (entries.Count == 0)
                 entries.Add(new SpellDropdownProvider.SpellEntry("(none available)", ""));
 
             return entries;
+        }
+
+        List<SpellDropdownProvider.SpellEntry> GetAllPartySpells(ActionType actionType) {
+            var combined = new List<SpellDropdownProvider.SpellEntry>();
+            var seen = new HashSet<string>();
+            var party = Game.Instance?.Player?.Party;
+            if (party == null) return combined;
+
+            foreach (var unit in party) {
+                if (!unit.IsInGame) continue;
+                List<SpellDropdownProvider.SpellEntry> unitEntries;
+                switch (actionType) {
+                    case ActionType.CastSpell:
+                        unitEntries = SpellDropdownProvider.GetSpells(unit);
+                        break;
+                    case ActionType.UseItem:
+                        unitEntries = SpellDropdownProvider.GetItemAbilities(unit);
+                        break;
+                    case ActionType.ToggleActivatable:
+                        unitEntries = SpellDropdownProvider.GetActivatables(unit);
+                        break;
+                    default:
+                        continue;
+                }
+                foreach (var entry in unitEntries) {
+                    if (seen.Add(entry.Guid))
+                        combined.Add(entry);
+                }
+            }
+            return combined.OrderBy(e => e.Name).ToList();
         }
 
         // ---- Target row ----

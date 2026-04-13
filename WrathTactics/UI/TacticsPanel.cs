@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Kingmaker;
 using Kingmaker.PubSubSystem;
+using Owlcat.Runtime.UI.Controls.Button;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -306,28 +307,72 @@ namespace WrathTactics.UI {
             if (hudButton != null) return;
             var canvas = Game.Instance.UI.Canvas.transform;
 
+            // Try to find BubbleBuffs' button container first
+            var bubbleRoot = canvas.parent?.Find("BUBBLEMODS_ROOT");
+            if (bubbleRoot == null) {
+                // Search at canvas level too
+                for (int i = 0; i < canvas.parent.childCount; i++) {
+                    var child = canvas.parent.GetChild(i);
+                    if (child.name == "BUBBLEMODS_ROOT") {
+                        bubbleRoot = child;
+                        break;
+                    }
+                }
+            }
+
+            if (bubbleRoot != null) {
+                var container = bubbleRoot.Find("IngameMenuView/ButtonsPart/Container");
+                if (container != null && container.childCount > 0) {
+                    // Clone BubbleBuffs' button template
+                    var prefab = container.GetChild(0).gameObject;
+                    hudButton = UnityEngine.Object.Instantiate(prefab, container);
+                    hudButton.name = "WrathTacticsBtn";
+                    hudButton.SetActive(true);
+
+                    // Wire click handler
+                    var owlBtn = hudButton.GetComponentInChildren<OwlcatButton>();
+                    if (owlBtn != null) {
+                        owlBtn.OnLeftClick.RemoveAllListeners();
+                        owlBtn.OnLeftClick.AddListener(() => Toggle());
+                    }
+
+                    // Try to set icon/label — the cloned button has Image components
+                    // Set a visible color on the main image
+                    var images = hudButton.GetComponentsInChildren<UnityEngine.UI.Image>();
+                    if (images.Length > 0) {
+                        // Create a simple solid color sprite for the button icon
+                        var tex = new Texture2D(1, 1);
+                        tex.SetPixel(0, 0, new Color(0.4f, 0.3f, 0.15f, 1f));
+                        tex.Apply();
+                        images[0].sprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f));
+                    }
+
+                    // Add a text label on top
+                    var tmpLabel = hudButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                    if (tmpLabel != null) {
+                        tmpLabel.text = "T";
+                        tmpLabel.fontSize = 24;
+                    } else {
+                        // No TMP found, add one
+                        UIHelpers.AddLabel(hudButton, "T", 24f, TMPro.TextAlignmentOptions.Center);
+                    }
+
+                    Main.Log("[UI] HUD button added to BubbleBuffs container");
+                    return;
+                }
+            }
+
+            // Fallback: create standalone button
+            Main.Log("[UI] BubbleBuffs container not found, creating standalone HUD button");
             var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
             hudButton = btn;
-
-            // Bottom-left, above the action bar area
             btnRect.SetAnchor(0, 0, 0, 0);
             btnRect.pivot = new Vector2(0, 0);
             btnRect.anchoredPosition = new Vector2(20, 200);
             btnRect.sizeDelta = new Vector2(120, 40);
-
             UIHelpers.AddBackground(btn, new Color(0.3f, 0.22f, 0.12f, 0.95f));
-
-            // Add a visible border by using a child with slightly inset anchors
-            var (inner, innerRect) = UIHelpers.Create("Inner", btn.transform);
-            innerRect.SetAnchor(0, 1, 0, 1);
-            innerRect.offsetMin = new Vector2(2, 2);
-            innerRect.offsetMax = new Vector2(-2, -2);
-            UIHelpers.AddBackground(inner, new Color(0.2f, 0.15f, 0.08f, 0.95f));
-
-            UIHelpers.AddLabel(inner, "Tactics", 20f, TMPro.TextAlignmentOptions.Center);
+            UIHelpers.AddLabel(btn, "Tactics", 22f, TMPro.TextAlignmentOptions.Center);
             btn.AddComponent<Button>().onClick.AddListener(Toggle);
-
-            Main.Log("[UI] HUD button created");
         }
 
         void Update() {

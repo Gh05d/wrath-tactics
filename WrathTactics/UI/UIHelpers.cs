@@ -213,31 +213,17 @@ namespace WrathTactics.UI {
             var (popup, popupRect) = UIHelpers.Create("PopupList", overlay.transform);
             UIHelpers.AddBackground(popup, new Color(0.15f, 0.15f, 0.15f, 0.98f));
 
-            // Position popup at button's world position
-            var buttonRect = gameObject.Rect();
-            Vector3[] corners = new Vector3[4];
-            buttonRect.GetWorldCorners(corners);
-
-            // Convert to canvas local position
-            var canvasRect = canvas as RectTransform;
-            Vector2 localMin, localMax;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                canvasRect, RectTransformUtility.WorldToScreenPoint(null, corners[0]),
-                null, out localMin);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                canvasRect, RectTransformUtility.WorldToScreenPoint(null, corners[2]),
-                null, out localMax);
-
-            float popupWidth = localMax.x - localMin.x;
-            float maxPopupHeight = 300f;
+            // Center the popup on screen (simpler and always correct)
+            float popupWidth = 350f; // fixed width for readability
+            float maxPopupHeight = 400f;
             float itemHeight = 36f;
             float totalHeight = Mathf.Min(options.Count * itemHeight + 8f, maxPopupHeight);
 
             popupRect.anchorMin = new Vector2(0.5f, 0.5f);
             popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-            popupRect.pivot = new Vector2(0f, 1f);
-            popupRect.anchoredPosition = new Vector2(localMin.x, localMin.y);
-            popupRect.sizeDelta = new Vector2(Mathf.Max(popupWidth, 150f), totalHeight);
+            popupRect.pivot = new Vector2(0.5f, 0.5f);
+            popupRect.anchoredPosition = Vector2.zero; // centered
+            popupRect.sizeDelta = new Vector2(popupWidth, totalHeight);
 
             // Scroll view for the options
             var (scrollObj, scrollRect) = UIHelpers.Create("Scroll", popup.transform);
