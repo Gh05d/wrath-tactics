@@ -54,7 +54,7 @@ namespace WrathTactics.UI {
             return component;
         }
 
-        public static TextMeshProUGUI AddLabel(GameObject parent, string text, float fontSize = 17f,
+        public static TextMeshProUGUI AddLabel(GameObject parent, string text, float fontSize = 20f,
             TextAlignmentOptions alignment = TextAlignmentOptions.MidlineLeft, Color? color = null) {
             var (labelObj, labelRect) = Create("Label", parent.transform);
             labelRect.FillParent();
@@ -89,7 +89,7 @@ namespace WrathTactics.UI {
         /// Creates a TMP_InputField with proper text viewport setup.
         /// </summary>
         public static TMP_InputField CreateTMPInputField(GameObject parent, string name,
-            double xMin, double xMax, string initialText, float fontSize = 14f,
+            double xMin, double xMax, string initialText, float fontSize = 16f,
             TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard) {
 
             var (obj, rect) = Create(name, parent.transform);
@@ -160,14 +160,14 @@ namespace WrathTactics.UI {
             // Button label showing current selection
             string labelText = selector.selectedIndex < selector.options.Count
                 ? selector.options[selector.selectedIndex] : "";
-            selector.buttonLabel = UIHelpers.AddLabel(obj, labelText, 13f,
+            selector.buttonLabel = UIHelpers.AddLabel(obj, labelText, 15f,
                 TextAlignmentOptions.MidlineLeft);
 
             // Arrow indicator on the right
             var (arrow, arrowRect) = UIHelpers.Create("Arrow", obj.transform);
             arrowRect.SetAnchor(0.88, 1, 0, 1);
             arrowRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(arrow, "v", 12f, TextAlignmentOptions.Midline,
+            UIHelpers.AddLabel(arrow, "v", 14f, TextAlignmentOptions.Midline,
                 new Color(0.6f, 0.6f, 0.6f));
 
             // Click handler on button
@@ -230,7 +230,7 @@ namespace WrathTactics.UI {
 
             float popupWidth = localMax.x - localMin.x;
             float maxPopupHeight = 300f;
-            float itemHeight = 32f;
+            float itemHeight = 36f;
             float totalHeight = Mathf.Min(options.Count * itemHeight + 8f, maxPopupHeight);
 
             popupRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -280,7 +280,7 @@ namespace WrathTactics.UI {
                     ? new Color(0.3f, 0.35f, 0.45f, 1f)
                     : new Color(0.2f, 0.2f, 0.2f, 1f);
                 UIHelpers.AddBackground(itemObj, bgColor);
-                var label = UIHelpers.AddLabel(itemObj, options[i], 14f,
+                var label = UIHelpers.AddLabel(itemObj, options[i], 16f,
                     TextAlignmentOptions.MidlineLeft);
                 label.margin = new Vector4(4, 0, 4, 0);
 

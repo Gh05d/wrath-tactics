@@ -50,13 +50,13 @@ namespace WrathTactics.UI {
             headerRect.anchorMin = new Vector2(0.01f, 1f);
             headerRect.anchorMax = new Vector2(0.99f, 1f);
             headerRect.pivot = new Vector2(0.5f, 1f);
-            headerRect.sizeDelta = new Vector2(0, 28);
+            headerRect.sizeDelta = new Vector2(0, 36);
 
             UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
 
             // Name input field (editable rule name)
             var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
-                0, 0.65, $"{index + 1}. {rule.Name}", 16f);
+                0, 0.65, $"{index + 1}. {rule.Name}", 18f);
             nameInput.onEndEdit.AddListener(v => {
                 string prefix = $"{index + 1}. ";
                 rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
@@ -67,7 +67,7 @@ namespace WrathTactics.UI {
             var (enableBtn, enableRect) = UIHelpers.Create("EnableBtn", header.transform);
             enableRect.SetAnchor(0.65, 0.73, 0, 1);
             enableRect.sizeDelta = Vector2.zero;
-            enabledLabel = UIHelpers.AddLabel(enableBtn, rule.Enabled ? "[ON]" : "[OFF]", 14f,
+            enabledLabel = UIHelpers.AddLabel(enableBtn, rule.Enabled ? "[ON]" : "[OFF]", 16f,
                 TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
             enableBtn.AddComponent<Button>().onClick.AddListener(() => {
                 rule.Enabled = !rule.Enabled;
@@ -81,7 +81,7 @@ namespace WrathTactics.UI {
             upRect.SetAnchor(0.74, 0.82, 0, 1);
             upRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(upBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(upBtn, "^", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(upBtn, "^", 18f, TextAlignmentOptions.Midline);
             upBtn.AddComponent<Button>().onClick.AddListener(() => MoveRule(-1));
 
             // Move down button
@@ -89,7 +89,7 @@ namespace WrathTactics.UI {
             downRect.SetAnchor(0.83, 0.91, 0, 1);
             downRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(downBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(downBtn, "v", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(downBtn, "v", 18f, TextAlignmentOptions.Midline);
             downBtn.AddComponent<Button>().onClick.AddListener(() => MoveRule(1));
 
             // Delete button
@@ -97,7 +97,7 @@ namespace WrathTactics.UI {
             delRect.SetAnchor(0.92, 1, 0, 1);
             delRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(delBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
-            UIHelpers.AddLabel(delBtn, "X", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(delBtn, "X", 18f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
 
             // --- Body: vertical layout below header ---
@@ -105,7 +105,7 @@ namespace WrathTactics.UI {
             bodyContainer = body;
             bodyRt.SetAnchor(0, 1, 0, 1);
             bodyRt.offsetMin = new Vector2(4, 4);
-            bodyRt.offsetMax = new Vector2(-4, -30);
+            bodyRt.offsetMax = new Vector2(-4, -38);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 4;
@@ -163,7 +163,7 @@ namespace WrathTactics.UI {
                 var (addCondBtn, _) = UIHelpers.Create($"AddCond_G{gi}", bodyContainer.transform);
                 addCondBtn.AddComponent<LayoutElement>().preferredHeight = 22;
                 UIHelpers.AddBackground(addCondBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addCondBtn, "+ Condition", 13f, TextAlignmentOptions.Midline);
+                UIHelpers.AddLabel(addCondBtn, "+ Condition", 15f, TextAlignmentOptions.Midline);
                 addCondBtn.AddComponent<Button>().onClick.AddListener(() => {
                     group.Conditions.Add(new Condition());
                     ConfigManager.Save();
@@ -176,7 +176,7 @@ namespace WrathTactics.UI {
                 var (addFirstBtn, _) = UIHelpers.Create("AddFirstCond", bodyContainer.transform);
                 addFirstBtn.AddComponent<LayoutElement>().preferredHeight = 26;
                 UIHelpers.AddBackground(addFirstBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addFirstBtn, "+ Condition", 14f, TextAlignmentOptions.Midline);
+                UIHelpers.AddLabel(addFirstBtn, "+ Condition", 16f, TextAlignmentOptions.Midline);
                 addFirstBtn.AddComponent<Button>().onClick.AddListener(() => {
                     rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
                     ConfigManager.Save();
@@ -188,7 +188,7 @@ namespace WrathTactics.UI {
             var (addOrBtn, _2) = UIHelpers.Create("AddOrBtn", bodyContainer.transform);
             addOrBtn.AddComponent<LayoutElement>().preferredHeight = 22;
             UIHelpers.AddBackground(addOrBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
-            UIHelpers.AddLabel(addOrBtn, "+ OR (new group)", 13f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(addOrBtn, "+ OR (new group)", 15f, TextAlignmentOptions.Midline);
             addOrBtn.AddComponent<Button>().onClick.AddListener(() => {
                 rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
                 ConfigManager.Save();
@@ -214,7 +214,7 @@ namespace WrathTactics.UI {
         void AddSectionLabel(Transform parent, string text) {
             var (labelObj, _) = UIHelpers.Create("SectionLabel_" + text, parent);
             labelObj.AddComponent<LayoutElement>().preferredHeight = 20;
-            UIHelpers.AddLabel(labelObj, text, 13f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(labelObj, text, 15f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.5f));
         }
 
@@ -233,7 +233,7 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("ThenLabel", row.transform);
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "THEN:", 14f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "THEN:", 16f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.5f));
 
             // Action type popup selector
@@ -251,6 +251,20 @@ namespace WrathTactics.UI {
         }
 
         void SetupSpellSelector(GameObject row) {
+            // Global rules have no character context — can't show spells
+            if (string.IsNullOrEmpty(unitId)) {
+                bool showSpell = rule.Action.Type != ActionType.AttackTarget &&
+                                 rule.Action.Type != ActionType.DoNothing;
+                if (showSpell) {
+                    var (msgObj, msgRect) = UIHelpers.Create("NoCharMsg", row.transform);
+                    msgRect.SetAnchor(0.39f, 1.0f, 0, 1);
+                    msgRect.sizeDelta = Vector2.zero;
+                    UIHelpers.AddLabel(msgObj, "(select a character tab first)", 14f,
+                        TextAlignmentOptions.MidlineLeft, new Color(0.6f, 0.6f, 0.6f));
+                }
+                return;
+            }
+
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
@@ -268,9 +282,9 @@ namespace WrathTactics.UI {
                 });
 
             // Hide if not applicable
-            bool showSpell = rule.Action.Type != ActionType.AttackTarget &&
-                             rule.Action.Type != ActionType.DoNothing;
-            spellSelector.gameObject.SetActive(showSpell);
+            bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
+                                rule.Action.Type != ActionType.DoNothing;
+            spellSelector.gameObject.SetActive(showSelector);
         }
 
         void RefreshSpellSelector(ActionType actionType) {
@@ -331,7 +345,7 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("TargetLabel", row.transform);
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "TARGET:", 14f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "TARGET:", 16f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.5f));
 
             // Target type popup selector — rebuilds body so filter shows/hides
@@ -356,11 +370,11 @@ namespace WrathTactics.UI {
                 var (filterLbl, filterLblRect) = UIHelpers.Create("FilterLabel", row.transform);
                 filterLblRect.SetAnchor(0.51, 0.65, 0, 1);
                 filterLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(filterLbl, filterLabel, 13f, TextAlignmentOptions.MidlineLeft,
+                UIHelpers.AddLabel(filterLbl, filterLabel, 15f, TextAlignmentOptions.MidlineLeft,
                     new Color(0.7f, 0.7f, 0.7f));
 
                 var filterInput = UIHelpers.CreateTMPInputField(row, "TargetFilter",
-                    0.66, 1.0, rule.Target.Filter ?? "", 13f);
+                    0.66, 1.0, rule.Target.Filter ?? "", 15f);
                 filterInput.onEndEdit.AddListener(v => {
                     rule.Target.Filter = v;
                     ConfigManager.Save();
@@ -377,11 +391,11 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("CdLabel", row.transform);
             lblRect.SetAnchor(0, 0.25, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "Cooldown (rounds):", 13f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "Cooldown (rounds):", 15f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.7f));
 
             var cdInput = UIHelpers.CreateTMPInputField(row, "CdInput",
-                0.26, 0.45, rule.CooldownRounds.ToString(), 14f,
+                0.26, 0.45, rule.CooldownRounds.ToString(), 16f,
                 TMP_InputField.ContentType.IntegerNumber);
             // Adjust vertical anchors for padding
             var cdRect = cdInput.GetComponent<RectTransform>();
@@ -399,7 +413,10 @@ namespace WrathTactics.UI {
             if (string.IsNullOrEmpty(uid)) return null;
             var party = Game.Instance?.Player?.Party;
             if (party == null) return null;
-            return party.FirstOrDefault(u => u.UniqueId == uid);
+            var unit = party.FirstOrDefault(u => u.UniqueId == uid);
+            if (unit == null)
+                Main.Log($"[UI] GetUnit failed for unitId={uid}");
+            return unit;
         }
 
         void UpdateHeight() {

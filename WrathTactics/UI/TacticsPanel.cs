@@ -72,14 +72,14 @@ namespace WrathTactics.UI {
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
-            UIHelpers.AddLabel(titleBar, "Wrath Tactics", 22f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(titleBar, "Wrath Tactics", 26f, TextAlignmentOptions.Midline);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
             closeRect.SetAnchor(0.95, 1, 0, 1);
             closeRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(closeBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
-            UIHelpers.AddLabel(closeBtn, "X", 19f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(closeBtn, "X", 22f, TextAlignmentOptions.Midline);
             closeBtn.AddComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
@@ -131,7 +131,7 @@ namespace WrathTactics.UI {
         void AddTab(GameObject parent, string label, UnityEngine.Events.UnityAction onClick) {
             var (btn, _) = UIHelpers.Create($"Tab_{label}", parent.transform);
             UIHelpers.AddBackground(btn, new Color(0.25f, 0.2f, 0.15f, 1f));
-            UIHelpers.AddLabel(btn, label, 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(btn, label, 16f, TextAlignmentOptions.Midline);
             btn.AddComponent<Button>().onClick.AddListener(onClick);
         }
 
@@ -151,7 +151,7 @@ namespace WrathTactics.UI {
             var (toggleBtn, toggleRect) = UIHelpers.Create("ToggleBtn", row.transform);
             toggleRect.SetAnchor(0, 0.5, 0, 1);
             toggleRect.sizeDelta = Vector2.zero;
-            toggleLabel = UIHelpers.AddLabel(toggleBtn, "Global Rules", 16f,
+            toggleLabel = UIHelpers.AddLabel(toggleBtn, "Global Rules", 18f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
             toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
 
@@ -160,7 +160,7 @@ namespace WrathTactics.UI {
             addRect.SetAnchor(0.75, 1, 0, 1);
             addRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-            UIHelpers.AddLabel(addBtn, "+ New Rule", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(addBtn, "+ New Rule", 18f, TextAlignmentOptions.Midline);
             addBtn.AddComponent<Button>().onClick.AddListener(AddNewRule);
         }
 
@@ -304,65 +304,30 @@ namespace WrathTactics.UI {
 
         void CreateHudButton() {
             if (hudButton != null) return;
-
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            var hudLayout = canvas.Find("NestedCanvas1");
-            if (hudLayout == null) {
-                Main.Log("[UI] NestedCanvas1 not found — using fallback button");
-                CreateFallbackHudButton(canvas);
-                return;
-            }
-
-            var buttonContainer = hudLayout.Find("IngameMenuView/ButtonsPart/Container");
-            if (buttonContainer == null) {
-                Main.Log("[UI] IngameMenuView/ButtonsPart/Container not found under NestedCanvas1");
-                var childNames = new System.Text.StringBuilder();
-                for (int i = 0; i < hudLayout.childCount; i++) {
-                    if (i > 0) childNames.Append(", ");
-                    childNames.Append(hudLayout.GetChild(i).name);
-                }
-                Main.Log($"[UI] NestedCanvas1 children: {childNames}");
-                CreateFallbackHudButton(canvas);
-                return;
-            }
-
-            // Try to clone an existing button for consistent styling
-            var existingButton = buttonContainer.childCount > 0
-                ? buttonContainer.GetChild(0).gameObject : null;
-            if (existingButton != null) {
-                var cloned = UnityEngine.Object.Instantiate(existingButton, buttonContainer);
-                cloned.name = "WrathTacticsHudBtn";
-                hudButton = cloned;
-
-                var btn = cloned.GetComponent<Button>();
-                if (btn != null) {
-                    btn.onClick.RemoveAllListeners();
-                    btn.onClick.AddListener(Toggle);
-                }
-
-                var label = cloned.GetComponentInChildren<TextMeshProUGUI>();
-                if (label != null) label.text = "Tactics";
-
-                Main.Log("[UI] HUD button created (cloned from game UI)");
-                return;
-            }
-
-            Main.Log("[UI] No existing buttons in container to clone — using fallback");
-            CreateFallbackHudButton(canvas);
-        }
-
-        void CreateFallbackHudButton(Transform canvas) {
             var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
             hudButton = btn;
+
+            // Bottom-left, above the action bar area
             btnRect.SetAnchor(0, 0, 0, 0);
             btnRect.pivot = new Vector2(0, 0);
-            btnRect.anchoredPosition = new Vector2(15, 150);
-            btnRect.sizeDelta = new Vector2(50, 50);
-            UIHelpers.AddBackground(btn, new Color(0.35f, 0.25f, 0.15f, 0.95f));
-            UIHelpers.AddLabel(btn, "T", 24f, TextAlignmentOptions.Center);
+            btnRect.anchoredPosition = new Vector2(20, 200);
+            btnRect.sizeDelta = new Vector2(120, 40);
+
+            UIHelpers.AddBackground(btn, new Color(0.3f, 0.22f, 0.12f, 0.95f));
+
+            // Add a visible border by using a child with slightly inset anchors
+            var (inner, innerRect) = UIHelpers.Create("Inner", btn.transform);
+            innerRect.SetAnchor(0, 1, 0, 1);
+            innerRect.offsetMin = new Vector2(2, 2);
+            innerRect.offsetMax = new Vector2(-2, -2);
+            UIHelpers.AddBackground(inner, new Color(0.2f, 0.15f, 0.08f, 0.95f));
+
+            UIHelpers.AddLabel(inner, "Tactics", 20f, TMPro.TextAlignmentOptions.Center);
             btn.AddComponent<Button>().onClick.AddListener(Toggle);
-            Main.Log("[UI] Fallback HUD button created");
+
+            Main.Log("[UI] HUD button created");
         }
 
         void Update() {

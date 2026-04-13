@@ -27,7 +27,7 @@ namespace WrathTactics.UI {
             titleRect.SetAnchor(0, 1, 0.9, 1);
             titleRect.sizeDelta = Vector2.zero;
             string context = lastCharacterId == null ? "Global Rules" : "Character Rules";
-            UIHelpers.AddLabel(titleObj, $"Presets (apply to: {context})", 17f,
+            UIHelpers.AddLabel(titleObj, $"Presets (apply to: {context})", 20f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
             titleObj.AddComponent<LayoutElement>().preferredHeight = 30;
 
@@ -39,7 +39,7 @@ namespace WrathTactics.UI {
 
             if (presets.Count == 0) {
                 var (emptyObj, _) = UIHelpers.Create("NoPresets", root.transform);
-                UIHelpers.AddLabel(emptyObj, "No presets saved.", 16f,
+                UIHelpers.AddLabel(emptyObj, "No presets saved.", 18f,
                     TextAlignmentOptions.MidlineLeft, Color.gray);
                 emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
             }
@@ -54,7 +54,7 @@ namespace WrathTactics.UI {
 
             // Name input using TMP_InputField
             var nameInput = UIHelpers.CreateTMPInputField(saveRow, "NameInput",
-                0.02, 0.6, "", 14f);
+                0.02, 0.6, "", 16f);
             // Adjust vertical anchors
             var nameRect = nameInput.GetComponent<RectTransform>();
             nameRect.SetAnchor(0.02, 0.6, 0.1, 0.9);
@@ -64,7 +64,7 @@ namespace WrathTactics.UI {
             phRect.FillParent();
             var phText = phObj.AddComponent<TextMeshProUGUI>();
             phText.text = "Enter preset name...";
-            phText.fontSize = 14f;
+            phText.fontSize = 16f;
             phText.alignment = TextAlignmentOptions.MidlineLeft;
             phText.color = new Color(0.5f, 0.5f, 0.5f);
             phText.enableWordWrapping = false;
@@ -77,7 +77,7 @@ namespace WrathTactics.UI {
             saveBtnRect.SetAnchor(0.65, 0.98, 0.1, 0.9);
             saveBtnRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(saveBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-            UIHelpers.AddLabel(saveBtn, "Save", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(saveBtn, "Save", 18f, TextAlignmentOptions.Midline);
             saveBtn.AddComponent<Button>().onClick.AddListener(() => {
                 var name = nameInput.text?.Trim();
                 if (string.IsNullOrEmpty(name)) return;
@@ -102,14 +102,14 @@ namespace WrathTactics.UI {
             var (nameObj, nameRect) = UIHelpers.Create("Name", row.transform);
             nameRect.SetAnchor(0.02, 0.5, 0, 1);
             nameRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(nameObj, presetName, 16f, TextAlignmentOptions.MidlineLeft);
+            UIHelpers.AddLabel(nameObj, presetName, 18f, TextAlignmentOptions.MidlineLeft);
 
             // Load button
             var (loadBtn, loadRect) = UIHelpers.Create("LoadBtn", row.transform);
             loadRect.SetAnchor(0.55, 0.75, 0.1, 0.9);
             loadRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(loadBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
-            UIHelpers.AddLabel(loadBtn, "Load", 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(loadBtn, "Load", 16f, TextAlignmentOptions.Midline);
             loadBtn.AddComponent<Button>().onClick.AddListener(() => LoadPreset(presetName));
 
             // Delete button
@@ -117,7 +117,7 @@ namespace WrathTactics.UI {
             delRect.SetAnchor(0.8, 0.98, 0.1, 0.9);
             delRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f, 1f));
-            UIHelpers.AddLabel(delBtn, "Delete", 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(delBtn, "Delete", 16f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => {
                 PresetManager.DeletePreset(presetName);
                 Rebuild();
