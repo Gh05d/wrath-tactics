@@ -44,18 +44,36 @@ namespace WrathTactics.Engine {
         static bool EvaluateCondition(Condition condition, UnitEntityData owner) {
             try {
                 switch (condition.Subject) {
-                    case ConditionSubject.Self:       return EvaluateUnitProperty(condition, owner);
-                    case ConditionSubject.Ally:       return EvaluateAlly(condition, owner);
-                    case ConditionSubject.AllyCount:  return EvaluateAllyCount(condition, owner);
-                    case ConditionSubject.Enemy:      return EvaluateEnemy(condition, owner);
-                    case ConditionSubject.EnemyCount: return EvaluateEnemyCount(condition, owner);
-                    case ConditionSubject.Combat:     return EvaluateCombat(condition);
-                    default:                          return false;
+                    case ConditionSubject.Self:                return EvaluateUnitProperty(condition, owner);
+                    case ConditionSubject.Ally:                return EvaluateAlly(condition, owner);
+                    case ConditionSubject.AllyCount:           return EvaluateAllyCount(condition, owner);
+                    case ConditionSubject.Enemy:               return EvaluateEnemy(condition, owner);
+                    case ConditionSubject.EnemyCount:          return EvaluateEnemyCount(condition, owner);
+                    case ConditionSubject.EnemyBiggestThreat:  return EvaluateEnemyThreatPick(condition, owner, biggest: true);
+                    case ConditionSubject.EnemyLowestThreat:   return EvaluateEnemyThreatPick(condition, owner, biggest: false);
+                    case ConditionSubject.Combat:              return EvaluateCombat(condition);
+                    default:                                   return false;
                 }
             } catch (Exception ex) {
                 Log.Engine.Error(ex, $"Failed to evaluate {condition.Subject}.{condition.Property}");
                 return false;
             }
+        }
+
+        static bool EvaluateEnemyThreatPick(Condition condition, UnitEntityData owner, bool biggest) {
+            UnitEntityData pick = null;
+            float bestThreat = biggest ? float.MinValue : float.MaxValue;
+            foreach (var enemy in GetVisibleEnemies(owner)) {
+                float threat = ThreatCalculator.Calculate(enemy);
+                bool better = biggest ? threat > bestThreat : threat < bestThreat;
+                if (better) { bestThreat = threat; pick = enemy; }
+            }
+            if (pick == null) return false;
+            if (EvaluateUnitProperty(condition, pick)) {
+                LastMatchedEnemy = pick;
+                return true;
+            }
+            return false;
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {

@@ -300,6 +300,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasCondition, ConditionProperty.HasDebuff, ConditionProperty.IsDead
                     };
                 case ConditionSubject.Enemy:
+                case ConditionSubject.EnemyBiggestThreat:
+                case ConditionSubject.EnemyLowestThreat:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.HasDebuff, ConditionProperty.CreatureType

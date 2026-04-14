@@ -5,7 +5,9 @@ namespace WrathTactics.Models {
         AllyCount,
         Enemy,
         EnemyCount,
-        Combat
+        Combat,
+        EnemyBiggestThreat,  // the single enemy with highest threat
+        EnemyLowestThreat    // the single enemy with lowest threat
     }
 
     public enum ConditionProperty {
