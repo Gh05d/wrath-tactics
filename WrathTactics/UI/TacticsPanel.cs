@@ -309,11 +309,21 @@ namespace WrathTactics.UI {
             return unitId;
         }
 
+        float hudButtonRetrySeconds;
+
         void Update() {
-            // Create button once the canvas is ready
+            // Try to find BubbleBuffs container first (up to 30s), then fall back to floating
             if (!hudButtonCreated && Game.Instance?.UI?.Canvas != null) {
-                CreateFloatingHudButton(Game.Instance.UI.Canvas.transform);
-                hudButtonCreated = true;
+                hudButtonRetrySeconds += Time.deltaTime;
+                var canvas = Game.Instance.UI.Canvas.transform;
+                var bbContainer = canvas.Find("BUBBLEMODS_ROOT/IngameMenuView/ButtonsPart/Container");
+                if (bbContainer != null) {
+                    CreateButtonInBubbleBuffsContainer(bbContainer);
+                    hudButtonCreated = true;
+                } else if (hudButtonRetrySeconds > 30f) {
+                    CreateFloatingHudButton(canvas);
+                    hudButtonCreated = true;
+                }
             }
 
             // Keyboard shortcut: Ctrl+T
@@ -321,6 +331,38 @@ namespace WrathTactics.UI {
                 (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) {
                 Toggle();
             }
+        }
+
+        void CreateButtonInBubbleBuffsContainer(Transform container) {
+            if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
+
+            // Extract helmet sprite from game's own HUD
+            Sprite helmetSprite = TryExtractGameSprite(Game.Instance.UI.Canvas.transform);
+
+            // Create fresh button inside the GridLayoutGroup container
+            var btn = new GameObject("TacticsBtn", typeof(RectTransform));
+            btn.transform.SetParent(container, false);
+            btn.transform.localScale = Vector3.one;
+            hudButton = btn;
+
+            var btnImg = btn.AddComponent<Image>();
+            if (helmetSprite != null) {
+                btnImg.sprite = helmetSprite;
+                btnImg.preserveAspect = true;
+                btnImg.color = Color.white;
+            } else {
+                btnImg.color = new Color(0.5f, 0.35f, 0.15f, 1f);
+            }
+            btnImg.raycastTarget = true;
+
+            var btnComp = btn.AddComponent<Button>();
+            btnComp.targetGraphic = btnImg;
+            btnComp.onClick.AddListener(() => {
+                Main.Log("[UI] HUD button clicked (in BB container)");
+                Toggle();
+            });
+
+            Main.Log("[UI] HUD button created in BubbleBuffs container");
         }
 
         void CreateFloatingHudButton(Transform canvas) {
