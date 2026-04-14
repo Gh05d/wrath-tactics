@@ -332,13 +332,17 @@ namespace WrathTactics.UI {
             var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
             hudButton = btn;
 
-            // Position: bottom-left, above where BubbleBuffs buttons sit
-            btnRect.SetAnchor(0, 0, 0, 0);
-            btnRect.pivot = new Vector2(0, 0);
-            btnRect.anchoredPosition = new Vector2(20, 200);
-            btnRect.sizeDelta = new Vector2(48, 48);
+            // Position: bottom-center, next to BubbleBuffs row (which sits at roughly y=96)
+            // Anchor bottom-center so it scales nicely across resolutions
+            btnRect.anchorMin = new Vector2(0.5f, 0f);
+            btnRect.anchorMax = new Vector2(0.5f, 0f);
+            btnRect.pivot = new Vector2(0.5f, 0f);
+            // X offset: to the LEFT of the game's action bar center
+            // Y offset: ~96 matches BubbleBuffs row height
+            btnRect.anchoredPosition = new Vector2(-260, 96);
+            btnRect.sizeDelta = new Vector2(44, 44);
 
-            // Main button background
+            // Main button background — just the helmet sprite, no extra frame
             var btnImg = btn.AddComponent<Image>();
             if (helmetSprite != null) {
                 btnImg.sprite = helmetSprite;
@@ -356,21 +360,7 @@ namespace WrathTactics.UI {
                 Toggle();
             });
 
-            // Small gear indicator in bottom-left (using a simple generated gear-like glyph)
-            var (gear, gearRect) = UIHelpers.Create("GearIndicator", btn.transform);
-            gearRect.SetAnchor(0, 0, 0, 0);
-            gearRect.pivot = new Vector2(0, 0);
-            gearRect.anchoredPosition = new Vector2(2, 2);
-            gearRect.sizeDelta = new Vector2(18, 18);
-
-            var gearBg = gear.AddComponent<Image>();
-            gearBg.color = new Color(0.15f, 0.1f, 0.05f, 0.95f);
-            gearBg.raycastTarget = false;
-
-            UIHelpers.AddLabel(gear, "*", 20f, TMPro.TextAlignmentOptions.Center,
-                new Color(0.9f, 0.8f, 0.3f, 1f));
-
-            Main.Log("[UI] Floating HUD button created");
+            Main.Log($"[UI] HUD button created (helmetSprite={(helmetSprite != null ? "found" : "null")})");
         }
 
         static Sprite TryExtractGameSprite(Transform canvas) {

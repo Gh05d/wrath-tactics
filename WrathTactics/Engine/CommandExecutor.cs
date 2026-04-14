@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.RuleSystem;
+using Kingmaker.RuleSystem.Rules.Abilities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.Utility;
@@ -37,7 +39,7 @@ namespace WrathTactics.Engine {
         static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
             var ability = ActionValidator.FindAbility(owner, abilityGuid);
             if (ability == null) {
-                Main.DebugLog($"[Executor] Spell {abilityGuid} not found on {owner.CharacterName}");
+                Main.Log($"[DIAG] Spell {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -45,15 +47,24 @@ namespace WrathTactics.Engine {
                 ? new TargetWrapper(target)
                 : new TargetWrapper(owner);
 
+            // Try animated command first
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
-            if (command == null) {
-                Main.DebugLog($"[Executor] CreateCastCommand returned null for {ability.Name}");
-                return false;
+            if (command != null) {
+                owner.Commands.Run(command);
+                Main.Log($"[DIAG] Queued ANIMATED spell {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                return true;
             }
 
-            owner.Commands.Run(command);
-            Main.DebugLog($"[Executor] Queued spell {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
-            return true;
+            // Fallback for synthetic AbilityData (variants etc.) — trigger rule directly
+            Main.Log($"[DIAG] CreateCastCommand returned null for {ability.Name}, trying Rulebook.Trigger");
+            try {
+                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
+                Main.Log($"[DIAG] Rulebook-triggered {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                return true;
+            } catch (Exception ex) {
+                Main.Error(ex, $"[Executor] Rulebook.Trigger failed for {ability.Name}");
+                return false;
+            }
         }
 
         static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
