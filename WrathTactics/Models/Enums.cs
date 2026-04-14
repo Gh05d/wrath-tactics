@@ -44,13 +44,20 @@ namespace WrathTactics.Models {
         ToggleActivatable,
         AttackTarget,
         Heal,           // automatically use best available heal
-        DoNothing
+        DoNothing,
+        ThrowSplash     // throw a splash weapon (Alchemist's Fire, Acid Flask, Holy Water)
     }
 
     public enum HealMode {
         Any,            // Use any available heal (spell > scroll > potion)
         Strongest,      // Use the highest-level heal available
         Weakest         // Use the lowest-level heal (conserve resources)
+    }
+
+    public enum ThrowSplashMode {
+        Any,        // Use whatever splash item is first in inventory
+        Strongest,  // Use the highest-damage splash item
+        Cheapest    // Use the lowest-cost splash item
     }
 
     public enum TargetType {
