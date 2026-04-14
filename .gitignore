@@ -2,6 +2,7 @@ bin/
 obj/
 GameInstall
 GamePath.props
+deploy.sh
 *.user
 *.suo
 .vs/
