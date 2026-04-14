@@ -5,6 +5,7 @@ using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
@@ -52,7 +53,7 @@ namespace WrathTactics.Engine {
                     default:                          return false;
                 }
             } catch (Exception ex) {
-                Main.Error(ex, $"[Condition] Failed to evaluate {condition.Subject}.{condition.Property}");
+                Log.Engine.Error(ex, $"Failed to evaluate {condition.Subject}.{condition.Property}");
                 return false;
             }
         }
@@ -239,7 +240,7 @@ namespace WrathTactics.Engine {
             // Check Blueprint.Type (unit type blueprint)
             string bpTypeName = unit.Blueprint.Type?.name?.ToLowerInvariant() ?? "";
             if (bpTypeName.Contains(target)) {
-                Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Blueprint.Type: '{bpTypeName}'");
+                Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Blueprint.Type: '{bpTypeName}'");
                 return true;
             }
 
@@ -250,7 +251,7 @@ namespace WrathTactics.Engine {
                 foreach (var fact in progression.Features.Enumerable) {
                     var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
                     if (fname.Contains(target)) {
-                        Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Feature: '{fname}'");
+                        Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Feature: '{fname}'");
                         return true;
                     }
                 }
@@ -260,12 +261,12 @@ namespace WrathTactics.Engine {
             foreach (var fact in unit.Descriptor.Facts.List) {
                 var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
                 if (fname.Contains(target)) {
-                    Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Fact: '{fname}'");
+                    Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Fact: '{fname}'");
                     return true;
                 }
             }
 
-            Main.Log($"[DIAG] CreatureType NO MATCH for {unit.CharacterName} (Blueprint.Type='{bpTypeName}', looking for '{target}')");
+            Log.Engine.Trace($"CreatureType NO MATCH for {unit.CharacterName} (Blueprint.Type='{bpTypeName}', looking for '{target}')");
             return false;
         }
 
