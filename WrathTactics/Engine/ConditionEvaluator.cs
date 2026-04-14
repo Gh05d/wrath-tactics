@@ -160,6 +160,15 @@ namespace WrathTactics.Engine {
                     int ac = unit.Stats.AC.ModifiedValue;
                     return CompareFloat(ac, condition.Operator, threshold);
 
+                case ConditionProperty.SaveFortitude:
+                    return CompareFloat(unit.Stats.SaveFortitude.ModifiedValue, condition.Operator, threshold);
+
+                case ConditionProperty.SaveReflex:
+                    return CompareFloat(unit.Stats.SaveReflex.ModifiedValue, condition.Operator, threshold);
+
+                case ConditionProperty.SaveWill:
+                    return CompareFloat(unit.Stats.SaveWill.ModifiedValue, condition.Operator, threshold);
+
                 case ConditionProperty.IsDead:
                     bool isDead = unit.HPLeft <= 0;
                     bool wantDead = threshold > 0;
@@ -219,6 +228,17 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out threshold))
                         return false;
                     return CompareFloat(ac, condition.Operator, threshold);
+
+                case ConditionProperty.SaveFortitude:
+                case ConditionProperty.SaveReflex:
+                case ConditionProperty.SaveWill:
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    int saveVal = condition.Property == ConditionProperty.SaveFortitude ? unit.Stats.SaveFortitude.ModifiedValue
+                        : condition.Property == ConditionProperty.SaveReflex ? unit.Stats.SaveReflex.ModifiedValue
+                        : unit.Stats.SaveWill.ModifiedValue;
+                    return CompareFloat(saveVal, condition.Operator, threshold);
 
                 case ConditionProperty.IsDead:
                     return unit.HPLeft <= 0;

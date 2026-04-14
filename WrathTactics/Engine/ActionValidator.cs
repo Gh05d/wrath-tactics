@@ -161,10 +161,22 @@ namespace WrathTactics.Engine {
             }
 
             // Class abilities (Lay on Hands, Channel Positive Energy)
+            // Must check resource availability — some abilities are per-day
             foreach (var ability in owner.Abilities.RawFacts) {
-                if (ability.Data.SourceItem == null && IsHealingSpell(ability.Blueprint)) {
-                    heals.Add((ability.Data, 80)); // next priority: class features
+                if (ability.Data.SourceItem != null) continue;
+                if (!IsHealingSpell(ability.Blueprint)) continue;
+
+                // Check resource cost — skip if no uses left
+                var resource = ability.Data.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
+                if (resource?.RequiredResource != null) {
+                    int available = owner.Resources.GetResourceAmount(resource.RequiredResource);
+                    if (available < resource.Amount) {
+                        Log.Engine.Trace($"Skipping heal ability {ability.Blueprint.name} for {owner.CharacterName}: resource {resource.RequiredResource.name}={available}/{resource.Amount}");
+                        continue;
+                    }
                 }
+
+                heals.Add((ability.Data, 80)); // next priority: class features
             }
 
             // Item-backed abilities (wands, staves, equipped healing items)

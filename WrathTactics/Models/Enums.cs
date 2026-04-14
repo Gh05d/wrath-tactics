@@ -22,7 +22,10 @@ namespace WrathTactics.Models {
         Resource,
         CreatureType,
         CombatRounds,
-        IsDead
+        IsDead,
+        SaveFortitude,
+        SaveReflex,
+        SaveWill
     }
 
     public enum ConditionOperator {

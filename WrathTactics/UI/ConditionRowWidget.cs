@@ -303,8 +303,10 @@ namespace WrathTactics.UI {
                 case ConditionSubject.EnemyBiggestThreat:
                 case ConditionSubject.EnemyLowestThreat:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
-                        ConditionProperty.HasCondition, ConditionProperty.HasDebuff, ConditionProperty.CreatureType
+                        ConditionProperty.HpPercent, ConditionProperty.AC,
+                        ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,
+                        ConditionProperty.HasBuff, ConditionProperty.HasCondition,
+                        ConditionProperty.HasDebuff, ConditionProperty.CreatureType
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
