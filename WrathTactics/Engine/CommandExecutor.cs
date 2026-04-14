@@ -6,6 +6,7 @@ using Kingmaker.RuleSystem.Rules.Abilities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.Utility;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
@@ -31,7 +32,7 @@ namespace WrathTactics.Engine {
                         return false;
                 }
             } catch (Exception ex) {
-                Main.Error(ex, $"[Executor] Failed to execute {action.Type} for {owner.CharacterName}");
+                Log.Engine.Error(ex, $"Failed to execute {action.Type} for {owner.CharacterName}");
                 return false;
             }
         }
@@ -40,7 +41,7 @@ namespace WrathTactics.Engine {
             bool isSynthetic;
             var ability = ActionValidator.FindAbilityEx(owner, abilityGuid, out isSynthetic);
             if (ability == null) {
-                Main.Log($"[DIAG] Spell {abilityGuid} not found on {owner.CharacterName}");
+                Log.Engine.Warn($"Spell {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -53,17 +54,17 @@ namespace WrathTactics.Engine {
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
-                Main.Log($"[DIAG] Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                Log.Engine.Debug($"Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             }
 
             // Fallback for edge cases: trigger rule directly (no animation)
             try {
                 Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Main.Log($"[DIAG] Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
+                Log.Engine.Debug($"Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
                 return true;
             } catch (Exception ex) {
-                Main.Error(ex, $"[Executor] Rulebook.Trigger fallback failed for {ability.Name}");
+                Log.Engine.Error(ex, $"Rulebook.Trigger fallback failed for {ability.Name}");
                 return false;
             }
         }
@@ -74,7 +75,7 @@ namespace WrathTactics.Engine {
                 ?.Data;
 
             if (ability == null) {
-                Main.DebugLog($"[Executor] Item ability {abilityGuid} not found on {owner.CharacterName}");
+                Log.Engine.Warn($"Item ability {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -84,19 +85,19 @@ namespace WrathTactics.Engine {
 
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command == null) {
-                Main.DebugLog($"[Executor] CreateCastCommand failed for item ability");
+                Log.Engine.Warn($"CreateCastCommand failed for item ability");
                 return false;
             }
 
             owner.Commands.Run(command);
-            Main.DebugLog($"[Executor] Queued item use on {owner.CharacterName}");
+            Log.Engine.Info($"Queued item use on {owner.CharacterName}");
             return true;
         }
 
         static bool ExecuteToggleActivatable(string abilityGuid, UnitEntityData owner) {
             var activatable = ActionValidator.FindActivatable(owner, abilityGuid);
             if (activatable == null) {
-                Main.DebugLog($"[Executor] Activatable {abilityGuid} not found on {owner.CharacterName}");
+                Log.Engine.Warn($"Activatable {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
@@ -104,14 +105,14 @@ namespace WrathTactics.Engine {
             if (!activatable.IsStarted)
                 activatable.TryStart();
 
-            Main.DebugLog($"[Executor] Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
+            Log.Engine.Info($"Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
             return true;
         }
 
         static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
             var ability = ActionValidator.FindBestHeal(owner, action.HealMode);
             if (ability == null) {
-                Main.Log($"[DIAG] FindBestHeal returned null for {owner.CharacterName}");
+                Log.Engine.Warn($"FindBestHeal returned null for {owner.CharacterName}");
                 return false;
             }
 
@@ -126,7 +127,7 @@ namespace WrathTactics.Engine {
                 var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
                 if (command != null) {
                     owner.Commands.Run(command);
-                    Main.Log($"[Executor] Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                    Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                     return true;
                 }
             }
@@ -134,10 +135,10 @@ namespace WrathTactics.Engine {
             // Item-backed or fallback — use Rulebook.Trigger (no animation)
             try {
                 Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Main.Log($"[Executor] Heal (item/rulebook): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                Log.Engine.Info($"Heal (item/rulebook): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             } catch (Exception ex) {
-                Main.Error(ex, $"[Executor] Heal Rulebook.Trigger failed for {ability.Name}");
+                Log.Engine.Error(ex, $"Heal Rulebook.Trigger failed for {ability.Name}");
                 return false;
             }
         }
@@ -147,7 +148,7 @@ namespace WrathTactics.Engine {
 
             var command = new UnitAttack(target, null);
             owner.Commands.Run(command);
-            Main.DebugLog($"[Executor] Queued attack on {owner.CharacterName} -> {target.CharacterName}");
+            Log.Engine.Info($"Queued attack on {owner.CharacterName} -> {target.CharacterName}");
             return true;
         }
     }
