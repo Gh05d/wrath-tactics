@@ -1,4 +1,5 @@
 using UnityModManagerNet;
+using WrathTactics.Logging;
 
 namespace WrathTactics.Compatibility {
     public static class BubbleBuffsCompat {
@@ -8,7 +9,7 @@ namespace WrathTactics.Compatibility {
             if (!isBubbleBuffsInstalled.HasValue) {
                 isBubbleBuffsInstalled = UnityModManager.FindMod("BuffIt2TheLimit") != null;
                 if (isBubbleBuffsInstalled.Value)
-                    Main.Log("[Compat] BubbleBuffs (BuffIt2TheLimit) detected");
+                    Log.Compat.Info("BubbleBuffs (BuffIt2TheLimit) detected");
             }
             return isBubbleBuffsInstalled.Value;
         }
