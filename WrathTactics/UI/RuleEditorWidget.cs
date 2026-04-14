@@ -290,6 +290,12 @@ namespace WrathTactics.UI {
                 if (idx >= 0) initialIndex = idx;
             }
 
+            // Auto-save the displayed selection so the AbilityId matches what the dropdown shows
+            if (entries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                rule.Action.AbilityId = entries[initialIndex].Guid;
+                ConfigManager.Save();
+            }
+
             spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.39f, 1.0f,
                 options, icons, initialIndex, idx => {
                     if (idx < currentSpellEntries.Count)
@@ -323,6 +329,12 @@ namespace WrathTactics.UI {
             var options = entries.Select(e => e.Name).ToList();
             var icons = entries.Select(e => e.Icon).ToList();
             spellSelector.SetOptions(options, 0, icons);
+
+            // Auto-save the first entry so AbilityId matches the displayed dropdown value
+            if (entries.Count > 0) {
+                rule.Action.AbilityId = entries[0].Guid;
+                ConfigManager.Save();
+            }
         }
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {

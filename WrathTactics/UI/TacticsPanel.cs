@@ -312,15 +312,17 @@ namespace WrathTactics.UI {
         float hudButtonRetrySeconds;
 
         void Update() {
-            // Try to find BubbleBuffs container first (up to 30s), then fall back to floating
-            if (!hudButtonCreated && Game.Instance?.UI?.Canvas != null) {
+            // Re-create button if it was destroyed (e.g. by BubbleBuffs rebuilding its root on area load)
+            bool needsButton = hudButton == null || !hudButton.activeInHierarchy;
+            if (needsButton && Game.Instance?.UI?.Canvas != null) {
                 hudButtonRetrySeconds += Time.deltaTime;
                 var canvas = Game.Instance.UI.Canvas.transform;
                 var bbContainer = canvas.Find("BUBBLEMODS_ROOT/IngameMenuView/ButtonsPart/Container");
                 if (bbContainer != null) {
                     CreateButtonInBubbleBuffsContainer(bbContainer);
                     hudButtonCreated = true;
-                } else if (hudButtonRetrySeconds > 30f) {
+                    hudButtonRetrySeconds = 0f;
+                } else if (hudButtonRetrySeconds > 30f && hudButton == null) {
                     CreateFloatingHudButton(canvas);
                     hudButtonCreated = true;
                 }
