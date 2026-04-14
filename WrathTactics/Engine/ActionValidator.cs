@@ -35,6 +35,10 @@ namespace WrathTactics.Engine {
         }
 
         static bool CanCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
+            if (string.IsNullOrEmpty(abilityGuid)) {
+                Main.Log($"[DIAG] CastSpell/CastAbility has EMPTY AbilityId for {owner.CharacterName} — user didn't pick an ability!");
+                return false;
+            }
             var ability = FindAbility(owner, abilityGuid);
             if (ability == null) {
                 Main.Log($"[DIAG] FindAbility FAILED for {owner.CharacterName}, guid={abilityGuid}");

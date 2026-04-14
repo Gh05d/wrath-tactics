@@ -30,6 +30,12 @@ namespace WrathTactics.Engine {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
                 Main.DebugLog("[Tactics] Combat started");
+                // Log party composition once per combat for diagnostics
+                var partyNames = new List<string>();
+                foreach (var u in Game.Instance.Player.Party) {
+                    partyNames.Add($"{u.CharacterName}({u.UniqueId}) inGame={u.IsInGame}");
+                }
+                Main.Log($"[DIAG] Combat party: {string.Join(", ", partyNames)}");
             }
 
             var config = ConfigManager.Current;

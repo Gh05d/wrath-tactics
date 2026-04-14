@@ -225,8 +225,14 @@ namespace WrathTactics.Engine {
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
 
                 case ConditionProperty.CreatureType:
-                    return unit.Blueprint.Type?.ToString() == condition.Value
-                        || unit.Blueprint.Type?.name == condition.Value;
+                    string typeName = unit.Blueprint.Type?.name ?? "";
+                    string typeStr = unit.Blueprint.Type?.ToString() ?? "";
+                    bool ctMatch = typeName == condition.Value
+                        || typeStr == condition.Value
+                        || typeName.Contains(condition.Value)
+                        || typeStr.Contains(condition.Value);
+                    Main.Log($"[DIAG] CreatureType check on {unit.CharacterName}: name='{typeName}', str='{typeStr}', looking for '{condition.Value}' → {ctMatch}");
+                    return ctMatch;
 
                 default:
                     return false;
