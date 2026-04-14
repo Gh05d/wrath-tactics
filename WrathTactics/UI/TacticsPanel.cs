@@ -5,6 +5,7 @@ using Kingmaker.PubSubSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
 using Object = UnityEngine.Object;
@@ -30,7 +31,7 @@ namespace WrathTactics.UI {
             DontDestroyOnLoad(go);
             instance = go.AddComponent<TacticsPanel>();
             EventBus.Subscribe(instance);
-            Main.Log("[UI] TacticsPanel installed");
+            Log.UI.Info("TacticsPanel installed");
         }
 
         public static void Uninstall() {
@@ -40,7 +41,7 @@ namespace WrathTactics.UI {
                 if (instance.hudButton != null) Destroy(instance.hudButton);
                 Destroy(instance.gameObject);
                 instance = null;
-                Main.Log("[UI] TacticsPanel uninstalled");
+                Log.UI.Info("TacticsPanel uninstalled");
             }
         }
 
@@ -102,7 +103,7 @@ namespace WrathTactics.UI {
             CreateRuleList(root.transform);
 
             panelRoot.SetActive(false);
-            Main.Log("[UI] Panel created");
+            Log.UI.Info("Panel created");
         }
 
         void RebuildTabs() {
@@ -357,11 +358,11 @@ namespace WrathTactics.UI {
             var btnComp = btn.AddComponent<Button>();
             btnComp.targetGraphic = btnImg;
             btnComp.onClick.AddListener(() => {
-                Main.Log("[UI] HUD button clicked (in BB container)");
+                Log.UI.Debug("HUD button clicked (in BB container)");
                 Toggle();
             });
 
-            Main.Log("[UI] HUD button created in BubbleBuffs container");
+            Log.UI.Info("HUD button created in BubbleBuffs container");
         }
 
         void CreateFloatingHudButton(Transform canvas) {
@@ -397,11 +398,11 @@ namespace WrathTactics.UI {
             var btnComp = btn.AddComponent<Button>();
             btnComp.targetGraphic = btnImg;
             btnComp.onClick.AddListener(() => {
-                Main.Log("[UI] HUD button clicked!");
+                Log.UI.Debug("HUD button clicked!");
                 Toggle();
             });
 
-            Main.Log($"[UI] HUD button created (helmetSprite={(helmetSprite != null ? "found" : "null")})");
+            Log.UI.Info($"HUD button created (helmetSprite={(helmetSprite != null ? "found" : "null")})");
         }
 
         static Sprite TryExtractGameSprite(Transform canvas) {

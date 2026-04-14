@@ -6,6 +6,7 @@ using Kingmaker.EntitySystem.Entities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
 
@@ -487,7 +488,7 @@ namespace WrathTactics.UI {
             if (party == null) return null;
             var unit = party.FirstOrDefault(u => u.UniqueId == uid);
             if (unit == null)
-                Main.Log($"[UI] GetUnit failed for unitId={uid}");
+                Log.UI.Debug($"GetUnit failed for unitId={uid}");
             return unit;
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
 
@@ -84,7 +85,7 @@ namespace WrathTactics.UI {
 
                 var rules = GetCurrentRules();
                 if (rules == null || rules.Count == 0) {
-                    Main.Log("[Presets] No rules to save");
+                    Log.UI.Warn("No rules to save");
                     return;
                 }
 
@@ -137,7 +138,7 @@ namespace WrathTactics.UI {
             }
 
             ConfigManager.Save();
-            Main.Log($"[Presets] Loaded '{presetName}' into {(lastCharacterId == null ? "global" : lastCharacterId)}");
+            Log.UI.Info($"Loaded preset '{presetName}' into {(lastCharacterId == null ? "global" : lastCharacterId)}");
             onRulesLoaded?.Invoke();
         }
 
