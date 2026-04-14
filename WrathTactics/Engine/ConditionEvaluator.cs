@@ -225,18 +225,48 @@ namespace WrathTactics.Engine {
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
 
                 case ConditionProperty.CreatureType:
-                    string typeName = unit.Blueprint.Type?.name ?? "";
-                    string typeStr = unit.Blueprint.Type?.ToString() ?? "";
-                    bool ctMatch = typeName == condition.Value
-                        || typeStr == condition.Value
-                        || typeName.Contains(condition.Value)
-                        || typeStr.Contains(condition.Value);
-                    Main.Log($"[DIAG] CreatureType check on {unit.CharacterName}: name='{typeName}', str='{typeStr}', looking for '{condition.Value}' → {ctMatch}");
-                    return ctMatch;
+                    return CheckCreatureType(unit, condition.Value);
 
                 default:
                     return false;
             }
+        }
+
+        static bool CheckCreatureType(UnitEntityData unit, string typeValue) {
+            if (string.IsNullOrEmpty(typeValue)) return false;
+            string target = typeValue.ToLowerInvariant();
+
+            // Check Blueprint.Type (unit type blueprint)
+            string bpTypeName = unit.Blueprint.Type?.name?.ToLowerInvariant() ?? "";
+            if (bpTypeName.Contains(target)) {
+                Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Blueprint.Type: '{bpTypeName}'");
+                return true;
+            }
+
+            // Check all features on the unit — creature types are typically features
+            // named "UndeadType", "AnimalType", "ConstructType", etc.
+            var progression = unit.Descriptor.Progression;
+            if (progression?.Features != null) {
+                foreach (var fact in progression.Features.Enumerable) {
+                    var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
+                    if (fname.Contains(target)) {
+                        Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Feature: '{fname}'");
+                        return true;
+                    }
+                }
+            }
+
+            // Also check all raw facts on the descriptor
+            foreach (var fact in unit.Descriptor.Facts.List) {
+                var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
+                if (fname.Contains(target)) {
+                    Main.Log($"[DIAG] CreatureType matched on {unit.CharacterName} via Fact: '{fname}'");
+                    return true;
+                }
+            }
+
+            Main.Log($"[DIAG] CreatureType NO MATCH for {unit.CharacterName} (Blueprint.Type='{bpTypeName}', looking for '{target}')");
+            return false;
         }
 
         public static bool HasConditionByName(UnitEntityData unit, string conditionName) {
