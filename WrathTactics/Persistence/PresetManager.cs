@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Persistence {
@@ -20,17 +21,17 @@ namespace WrathTactics.Persistence {
         public static List<TacticsRule> LoadPreset(string name) {
             var path = Path.Combine(PresetDir, $"{name}.json");
             if (!File.Exists(path)) {
-                Main.Error($"[Presets] Preset not found: {name}");
+                Log.Persistence.Warn($"Preset not found: {name}");
                 return new List<TacticsRule>();
             }
 
             try {
                 var json = File.ReadAllText(path);
                 var rules = JsonConvert.DeserializeObject<List<TacticsRule>>(json);
-                Main.Log($"[Presets] Loaded preset '{name}' ({rules.Count} rules)");
+                Log.Persistence.Info($"Loaded preset '{name}' ({rules.Count} rules)");
                 return rules;
             } catch (Exception ex) {
-                Main.Error(ex, $"[Presets] Failed to load preset '{name}'");
+                Log.Persistence.Error(ex, $"Failed to load preset '{name}'");
                 return new List<TacticsRule>();
             }
         }
@@ -48,9 +49,9 @@ namespace WrathTactics.Persistence {
                 var path = Path.Combine(PresetDir, $"{name}.json");
                 var json = JsonConvert.SerializeObject(rules, Formatting.Indented);
                 File.WriteAllText(path, json);
-                Main.Log($"[Presets] Saved preset '{name}' ({rules.Count} rules)");
+                Log.Persistence.Info($"Saved preset '{name}' ({rules.Count} rules)");
             } catch (Exception ex) {
-                Main.Error(ex, $"[Presets] Failed to save preset '{name}'");
+                Log.Persistence.Error(ex, $"Failed to save preset '{name}'");
             }
         }
 
@@ -59,7 +60,7 @@ namespace WrathTactics.Persistence {
             var path = Path.Combine(PresetDir, $"{name}.json");
             if (File.Exists(path)) {
                 File.Delete(path);
-                Main.Log($"[Presets] Deleted preset '{name}'");
+                Log.Persistence.Info($"Deleted preset '{name}'");
             }
         }
     }
