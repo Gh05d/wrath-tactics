@@ -421,32 +421,28 @@ namespace WrathTactics.UI {
             btn.name = "TacticsBtn";
             btn.SetActive(true);
 
-            // COMPLETELY strip the cloned button — remove ALL MonoBehaviours except Transform
-            foreach (var comp in btn.GetComponentsInChildren<MonoBehaviour>(true)) {
-                DestroyImmediate(comp);
-            }
+            // ONLY remove OwlcatButton and Selectable/Button components — keep Images, Masks, etc.
+            foreach (var ob in btn.GetComponentsInChildren<OwlcatButton>(true))
+                DestroyImmediate(ob);
+            foreach (var sel in btn.GetComponentsInChildren<Selectable>(true))
+                DestroyImmediate(sel);
 
-            // Add click handling on EVERY Image in the hierarchy
-            bool buttonAdded = false;
-            foreach (var img in btn.GetComponentsInChildren<Image>(true)) {
+            // Make all Images raycast-able
+            foreach (var img in btn.GetComponentsInChildren<Image>(true))
                 img.raycastTarget = true;
-                if (!buttonAdded) {
-                    var clickBtn = img.gameObject.AddComponent<Button>();
-                    clickBtn.targetGraphic = img;
-                    clickBtn.onClick.AddListener(() => Toggle());
-                    buttonAdded = true;
-                }
-            }
 
-            // Fallback: if no Image found, add one on root
-            if (!buttonAdded) {
-                var rootImg = btn.AddComponent<Image>();
-                rootImg.raycastTarget = true;
-                rootImg.color = new Color(0.4f, 0.3f, 0.15f, 1f);
-                var clickBtn = btn.AddComponent<Button>();
-                clickBtn.targetGraphic = rootImg;
-                clickBtn.onClick.AddListener(() => Toggle());
-            }
+            // Add Unity Button on the ROOT for guaranteed click capture
+            // Add a transparent Image overlay that doesn't hide the existing visuals
+            var (overlay, overlayRect) = UIHelpers.Create("ClickOverlay", btn.transform);
+            overlayRect.FillParent();
+            var overlayImg = overlay.AddComponent<Image>();
+            overlayImg.color = new Color(1, 1, 1, 0); // fully transparent
+            overlayImg.raycastTarget = true;
+            var clickBtn = overlay.AddComponent<Button>();
+            clickBtn.targetGraphic = overlayImg;
+            clickBtn.onClick.AddListener(() => Toggle());
+            // Make sure overlay is on TOP
+            overlay.transform.SetAsLastSibling();
 
             // Add visibility sync with original NestedCanvas1
             ingameMenu.gameObject.AddComponent<TacticsHudSync>();

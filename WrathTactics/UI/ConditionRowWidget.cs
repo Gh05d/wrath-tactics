@@ -108,15 +108,35 @@ namespace WrathTactics.UI {
                     ConfigManager.Save();
                 });
             } else {
-                // Operator popup selector (only for non-count subjects)
-                var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
-                PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames,
-                    (int)condition.Operator, v => {
-                        condition.Operator = (ConditionOperator)v;
+                bool isCreatureType = condition.Property == ConditionProperty.CreatureType;
+                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType;
+
+                // Operator popup selector (hidden for dropdown-based properties)
+                if (needsOperator) {
+                    var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                    PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames,
+                        (int)condition.Operator, v => {
+                            condition.Operator = (ConditionOperator)v;
+                            ConfigManager.Save();
+                        });
+                } else {
+                    // Use Equal for dropdown matches
+                    condition.Operator = ConditionOperator.Equal;
+                }
+
+                if (isCreatureType) {
+                    var creatureTypes = new List<string> {
+                        "Aberration", "Animal", "Construct", "Dragon", "Fey",
+                        "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
+                        "Outsider", "Plant", "Undead", "Vermin"
+                    };
+                    int ctIdx = creatureTypes.IndexOf(condition.Value);
+                    if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
+                    PopupSelector.Create(root, "CreatureTypeValue", 0.38f, 0.88f, creatureTypes, ctIdx, v => {
+                        condition.Value = creatureTypes[v];
                         ConfigManager.Save();
                     });
-
-                if (isHasCondition) {
+                } else if (isHasCondition) {
                     // Dropdown for known condition names
                     var condNames = new List<string> {
                         "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
@@ -125,7 +145,7 @@ namespace WrathTactics.UI {
                     };
                     int condIdx = condNames.IndexOf(condition.Value);
                     if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
-                    PopupSelector.Create(root, "CondValue", 0.51f, 0.88f, condNames, condIdx, v => {
+                    PopupSelector.Create(root, "CondValue", 0.38f, 0.88f, condNames, condIdx, v => {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
@@ -166,7 +186,7 @@ namespace WrathTactics.UI {
                     };
                     int debuffIdx = debuffNames.IndexOf(condition.Value);
                     if (debuffIdx < 0) { debuffIdx = 0; condition.Value = debuffNames[0]; }
-                    PopupSelector.Create(root, "DebuffValue", 0.51f, 0.88f, displayNames, debuffIdx, v => {
+                    PopupSelector.Create(root, "DebuffValue", 0.38f, 0.88f, displayNames, debuffIdx, v => {
                         condition.Value = debuffNames[v];
                         ConfigManager.Save();
                     });
