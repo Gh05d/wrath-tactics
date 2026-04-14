@@ -48,31 +48,19 @@ namespace WrathTactics.Engine {
                 ? new TargetWrapper(target)
                 : new TargetWrapper(owner);
 
-            // Synthetic abilities (variants like Evil Eye - AC) MUST use Rulebook.Trigger.
-            // CreateCastCommand silently rejects them even though it returns non-null.
-            if (isSynthetic) {
-                try {
-                    Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                    Main.Log($"[DIAG] Rulebook-triggered SYNTHETIC {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
-                    return true;
-                } catch (Exception ex) {
-                    Main.Error(ex, $"[Executor] Rulebook.Trigger failed for {ability.Name}");
-                    return false;
-                }
-            }
-
-            // Real ability — use animated command
+            // Try animated cast first (works for real abilities AND variants constructed
+            // via the two-param AbilityData(parent, variant) constructor)
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
-                Main.Log($"[DIAG] Queued ANIMATED spell {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                Main.Log($"[DIAG] Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             }
 
-            // Fallback for anything else
+            // Fallback for edge cases: trigger rule directly (no animation)
             try {
                 Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Main.Log($"[DIAG] Rulebook-triggered (fallback) {ability.Name} on {owner.CharacterName}");
+                Main.Log($"[DIAG] Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
                 return true;
             } catch (Exception ex) {
                 Main.Error(ex, $"[Executor] Rulebook.Trigger fallback failed for {ability.Name}");

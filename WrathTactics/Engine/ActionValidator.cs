@@ -105,14 +105,15 @@ namespace WrathTactics.Engine {
                 if (ability.Blueprint.AssetGuid.ToString() == abilityGuid)
                     return ability.Data;
 
-                // Check variants (e.g. Evil Eye - AC). These are synthetic — must use Rulebook.Trigger.
+                // Check variants (e.g. Evil Eye - AC).
+                // Use the two-param AbilityData(parent, variant) constructor so the
+                // variant inherits spellbook context and CreateCastCommand accepts it (with animation).
                 var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
                 if (variants != null && variants.m_Variants != null) {
                     foreach (var variant in variants.Variants) {
                         if (variant != null && variant.AssetGuid.ToString() == abilityGuid) {
                             isSynthetic = true;
-                            var variantAbility = new Kingmaker.UnitLogic.Abilities.Ability(variant, owner.Descriptor);
-                            return variantAbility.Data;
+                            return new AbilityData(ability.Data, variant);
                         }
                     }
                 }
