@@ -4,6 +4,7 @@ using System.Linq;
 using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
 using WrathTactics.Compatibility;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
 
@@ -21,7 +22,7 @@ namespace WrathTactics.Engine {
                 if (wasInCombat) {
                     wasInCombat = false;
                     cooldowns.Clear();
-                    Main.DebugLog("[Tactics] Combat ended, cooldowns cleared");
+                    Log.Engine.Info("Combat ended, cooldowns cleared");
                 }
                 return;
             }
@@ -29,13 +30,13 @@ namespace WrathTactics.Engine {
             if (!wasInCombat) {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
-                Main.DebugLog("[Tactics] Combat started");
+                Log.Engine.Info("Combat started");
                 // Log party composition once per combat for diagnostics
                 var partyNames = new List<string>();
                 foreach (var u in Game.Instance.Player.Party) {
                     partyNames.Add($"{u.CharacterName}({u.UniqueId}) inGame={u.IsInGame}");
                 }
-                Main.Log($"[DIAG] Combat party: {string.Join(", ", partyNames)}");
+                Log.Engine.Info($"Combat party: {string.Join(", ", partyNames)}");
             }
 
             var config = ConfigManager.Current;
@@ -58,19 +59,17 @@ namespace WrathTactics.Engine {
             // Our cooldown system (1 round = 6s) prevents spam.
             // BubbleBuffs also queues commands without checking.
 
-            var debugLog = config.DebugLogging;
-
             // Evaluate global rules first, then character-specific
             var globalRules = config.GlobalRules;
             var charRules = config.GetRulesForCharacter(unit.UniqueId);
 
-            if (TryExecuteRules(globalRules, unit, "global", gameTimeSec, debugLog))
+            if (TryExecuteRules(globalRules, unit, "global", gameTimeSec))
                 return;
-            TryExecuteRules(charRules, unit, unit.CharacterName, gameTimeSec, debugLog);
+            TryExecuteRules(charRules, unit, unit.CharacterName, gameTimeSec);
         }
 
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
-            string source, float gameTimeSec, bool debugLog) {
+            string source, float gameTimeSec) {
             for (int i = 0; i < rules.Count; i++) {
                 var rule = rules[i];
                 if (!rule.Enabled) continue;
@@ -80,8 +79,7 @@ namespace WrathTactics.Engine {
                 float cooldownSec = rule.CooldownRounds * 6f;
                 if (cooldowns.TryGetValue(cooldownKey, out float lastFired)) {
                     if (gameTimeSec - lastFired < cooldownSec) {
-                        if (debugLog)
-                            Main.Log($"[Tactics] {unit.CharacterName} Rule {i} \"{rule.Name}\": on cooldown ({gameTimeSec - lastFired:F1}s / {cooldownSec:F0}s)");
+                        Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\": on cooldown ({gameTimeSec - lastFired:F1}s / {cooldownSec:F0}s)");
                         continue;
                     }
                 }
@@ -92,8 +90,7 @@ namespace WrathTactics.Engine {
                 // Evaluate conditions
                 bool match = ConditionEvaluator.Evaluate(rule, unit);
                 if (!match) {
-                    if (debugLog)
-                        Main.Log($"[Tactics] {unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): conditions not met");
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): conditions not met");
                     continue;
                 }
 
@@ -102,16 +99,14 @@ namespace WrathTactics.Engine {
 
                 // Validate action
                 if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
-                    if (debugLog)
-                        Main.Log($"[Tactics] {unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
                     continue;
                 }
 
                 // Execute!
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     cooldowns[cooldownKey] = gameTimeSec;
-                    if (debugLog)
-                        Main.Log($"[Tactics] {unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
+                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
                     return true;
                 }
             }
