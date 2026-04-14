@@ -26,6 +26,8 @@ namespace WrathTactics.Engine {
                         return ExecuteAttack(owner, target);
                     case ActionType.Heal:
                         return ExecuteHeal(action, owner, target);
+                    case ActionType.ThrowSplash:
+                        return ExecuteThrowSplash(action, owner, target);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -139,6 +141,39 @@ namespace WrathTactics.Engine {
                 return true;
             } catch (Exception ex) {
                 Log.Engine.Error(ex, $"Heal Rulebook.Trigger failed for {ability.Name}");
+                return false;
+            }
+        }
+
+        static bool ExecuteThrowSplash(ActionDef action, UnitEntityData owner, UnitEntityData target) {
+            if (target == null) {
+                Log.Engine.Warn($"ThrowSplash: no target for {owner.CharacterName}");
+                return false;
+            }
+
+            var pick = SplashItemResolver.FindBest(owner, action.SplashMode);
+            if (!pick.HasValue) {
+                Log.Engine.Warn($"ThrowSplash: no splash items available for {owner.CharacterName}");
+                return false;
+            }
+
+            var ability = pick.Value.ThrowAbility;
+            var data = new AbilityData(ability, owner.Descriptor);
+            var tw = new TargetWrapper(target);
+
+            var cmd = UnitUseAbility.CreateCastCommand(data, tw);
+            if (cmd != null) {
+                owner.Commands.Run(cmd);
+                Log.Engine.Info($"ThrowSplash (animated): {owner.CharacterName} threw {pick.Value.Item.Blueprint.name} at {target.CharacterName}");
+                return true;
+            }
+
+            try {
+                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(data, tw));
+                Log.Engine.Info($"ThrowSplash (rulebook): {owner.CharacterName} threw {pick.Value.Item.Blueprint.name} at {target.CharacterName}");
+                return true;
+            } catch (Exception ex) {
+                Log.Engine.Error(ex, $"ThrowSplash Rulebook.Trigger failed for {pick.Value.Item.Blueprint.name}");
                 return false;
             }
         }
