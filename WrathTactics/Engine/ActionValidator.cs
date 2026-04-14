@@ -6,6 +6,7 @@ using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.Utility;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
@@ -36,15 +37,15 @@ namespace WrathTactics.Engine {
 
         static bool CanCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
             if (string.IsNullOrEmpty(abilityGuid)) {
-                Main.Log($"[DIAG] CastSpell/CastAbility has EMPTY AbilityId for {owner.CharacterName} — user didn't pick an ability!");
+                Log.Engine.Warn($"CastSpell/CastAbility has EMPTY AbilityId for {owner.CharacterName} — user didn't pick an ability!");
                 return false;
             }
             var ability = FindAbility(owner, abilityGuid);
             if (ability == null) {
-                Main.Log($"[DIAG] FindAbility FAILED for {owner.CharacterName}, guid={abilityGuid}");
+                Log.Engine.Warn($"FindAbility FAILED for {owner.CharacterName}, guid={abilityGuid}");
                 return false;
             }
-            Main.Log($"[DIAG] FindAbility OK: {ability.Name} for {owner.CharacterName}");
+            Log.Engine.Trace($"FindAbility OK: {ability.Name} for {owner.CharacterName}");
 
             if (ability.Spellbook != null) {
                 int level = ability.Spellbook.GetSpellLevel(ability);
