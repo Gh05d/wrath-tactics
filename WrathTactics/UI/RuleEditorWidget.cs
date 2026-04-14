@@ -281,6 +281,16 @@ namespace WrathTactics.UI {
                 return;
             }
 
+            if (rule.Action.Type == ActionType.ThrowSplash) {
+                var splashModeNames = Enum.GetNames(typeof(ThrowSplashMode)).ToList();
+                PopupSelector.Create(row, "SplashMode", 0.39f, 0.7f, splashModeNames,
+                    (int)rule.Action.SplashMode, idx => {
+                        rule.Action.SplashMode = (ThrowSplashMode)idx;
+                        ConfigManager.Save();
+                    });
+                return;
+            }
+
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
@@ -306,13 +316,14 @@ namespace WrathTactics.UI {
 
             // Hide if not applicable
             bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
-                                rule.Action.Type != ActionType.DoNothing;
+                                rule.Action.Type != ActionType.DoNothing &&
+                                rule.Action.Type != ActionType.ThrowSplash;
             spellSelector.gameObject.SetActive(showSelector);
         }
 
         void RefreshSpellSelector(ActionType actionType) {
-            // For Heal, rebuild body to show HealMode selector instead
-            if (actionType == ActionType.Heal) {
+            // For Heal/ThrowSplash, rebuild body to show mode selector instead
+            if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash) {
                 RebuildBody();
                 return;
             }
@@ -320,7 +331,8 @@ namespace WrathTactics.UI {
             if (spellSelector == null) return;
 
             bool showSpell = actionType != ActionType.AttackTarget &&
-                             actionType != ActionType.DoNothing;
+                             actionType != ActionType.DoNothing &&
+                             actionType != ActionType.ThrowSplash;
             spellSelector.gameObject.SetActive(showSpell);
 
             if (!showSpell) return;
@@ -340,7 +352,7 @@ namespace WrathTactics.UI {
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
             if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing
-                || actionType == ActionType.Heal)
+                || actionType == ActionType.Heal || actionType == ActionType.ThrowSplash)
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);
