@@ -28,6 +28,8 @@ namespace WrathTactics.Engine {
                     return target != null && target.HPLeft > 0;
                 case ActionType.Heal:
                     return FindBestHeal(owner, action.HealMode) != null;
+                case ActionType.ThrowSplash:
+                    return target != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.DoNothing:
                     return true;
                 default:
