@@ -97,14 +97,18 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateEnemyCount(Condition condition, UnitEntityData owner) {
-            // Value2 = count threshold; Value = property threshold (currently unused for enemy count)
+            // Value2 = count threshold; Value = property threshold
             float countThreshold;
             if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
                 countThreshold = 1; // default: at least 1
 
-            int count = GetVisibleEnemies(owner).Count();
-            // Count comparison is ALWAYS >= (hardcoded)
+            int count = 0;
+            foreach (var enemy in GetVisibleEnemies(owner)) {
+                if (MatchesPropertyThreshold(condition, enemy))
+                    count++;
+            }
+            // Count comparison is ALWAYS >= (hardcoded, UI shows "count >=")
             return count >= countThreshold;
         }
 
@@ -180,15 +184,22 @@ namespace WrathTactics.Engine {
         }
 
         static bool MatchesPropertyThreshold(Condition condition, UnitEntityData unit) {
+            float threshold;
             switch (condition.Property) {
                 case ConditionProperty.HpPercent:
                     if (unit.HPLeft <= 0) return false; // Don't count dead as "low HP"
                     float hpPct = (float)unit.HPLeft / Math.Max(1, unit.Stats.HitPoints.ModifiedValue) * 100f;
-                    float threshold;
                     if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
                         System.Globalization.CultureInfo.InvariantCulture, out threshold))
                         return false;
-                    return hpPct < threshold;
+                    return CompareFloat(hpPct, condition.Operator, threshold);
+
+                case ConditionProperty.AC:
+                    float ac = unit.Stats.AC.ModifiedValue;
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    return CompareFloat(ac, condition.Operator, threshold);
 
                 case ConditionProperty.IsDead:
                     return unit.HPLeft <= 0;
@@ -202,6 +213,20 @@ namespace WrathTactics.Engine {
                     return unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.name != null &&
                         b.Blueprint.name.ToLowerInvariant().Contains(debuffMatch));
+
+                case ConditionProperty.HasBuff:
+                    return !string.IsNullOrEmpty(condition.Value) && unit.Buffs.RawFacts.Any(b =>
+                        b.Blueprint.AssetGuid.ToString() == condition.Value ||
+                        (b.Blueprint.name?.Contains(condition.Value) ?? false));
+
+                case ConditionProperty.MissingBuff:
+                    return !string.IsNullOrEmpty(condition.Value) && !unit.Buffs.RawFacts.Any(b =>
+                        b.Blueprint.AssetGuid.ToString() == condition.Value ||
+                        (b.Blueprint.name?.Contains(condition.Value) ?? false));
+
+                case ConditionProperty.CreatureType:
+                    return unit.Blueprint.Type?.ToString() == condition.Value
+                        || unit.Blueprint.Type?.name == condition.Value;
 
                 default:
                     return false;

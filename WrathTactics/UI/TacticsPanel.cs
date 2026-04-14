@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Kingmaker;
 using Kingmaker.PubSubSystem;
-using Owlcat.Runtime.UI.Controls.Button;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -409,40 +408,43 @@ namespace WrathTactics.UI {
             var grid = container.GetComponent<GridLayoutGroup>();
             if (grid != null) grid.startCorner = GridLayoutGroup.Corner.LowerLeft;
 
-            // Keep child[0] as prefab, destroy rest
-            var prefab = container.GetChild(0).gameObject;
-            prefab.SetActive(false);
-            int childCount = container.childCount;
-            for (int i = 1; i < childCount; i++)
-                DestroyImmediate(container.GetChild(1).gameObject);
+            // Extract sprite from the original game button (before we destroy container children)
+            var originalContainer = staticRoot.Find("NestedCanvas1/IngameMenuView/ButtonsPart/Container");
+            Sprite bgSprite = null;
+            if (originalContainer != null && originalContainer.childCount > 0) {
+                var origBtn = originalContainer.GetChild(0).gameObject;
+                var origImg = origBtn.GetComponentInChildren<Image>(true);
+                if (origImg != null) bgSprite = origImg.sprite;
+            }
 
-            // Create our button from the prefab
-            var btn = Instantiate(prefab, container);
-            btn.name = "TacticsBtn";
-            btn.SetActive(true);
+            // Destroy ALL existing children in Container
+            for (int i = container.childCount - 1; i >= 0; i--)
+                DestroyImmediate(container.GetChild(i).gameObject);
 
-            // ONLY remove OwlcatButton and Selectable/Button components — keep Images, Masks, etc.
-            foreach (var ob in btn.GetComponentsInChildren<OwlcatButton>(true))
-                DestroyImmediate(ob);
-            foreach (var sel in btn.GetComponentsInChildren<Selectable>(true))
-                DestroyImmediate(sel);
+            // Create our OWN fresh button GameObject — no cloned prefab, no inherited components
+            var btn = new GameObject("TacticsBtn", typeof(RectTransform));
+            btn.transform.SetParent(container, false);
+            btn.transform.localScale = Vector3.one;
+            btn.transform.localPosition = Vector3.zero;
 
-            // Make all Images raycast-able
-            foreach (var img in btn.GetComponentsInChildren<Image>(true))
-                img.raycastTarget = true;
+            // Add Image with the extracted sprite so it looks like a game button
+            var btnImg = btn.AddComponent<Image>();
+            if (bgSprite != null) {
+                btnImg.sprite = bgSprite;
+                btnImg.type = Image.Type.Sliced;
+            } else {
+                btnImg.color = new Color(0.35f, 0.25f, 0.15f, 1f);
+            }
+            btnImg.raycastTarget = true;
 
-            // Add Unity Button on the ROOT for guaranteed click capture
-            // Add a transparent Image overlay that doesn't hide the existing visuals
-            var (overlay, overlayRect) = UIHelpers.Create("ClickOverlay", btn.transform);
-            overlayRect.FillParent();
-            var overlayImg = overlay.AddComponent<Image>();
-            overlayImg.color = new Color(1, 1, 1, 0); // fully transparent
-            overlayImg.raycastTarget = true;
-            var clickBtn = overlay.AddComponent<Button>();
-            clickBtn.targetGraphic = overlayImg;
+            // Add Unity Button — guaranteed to work since this is a fresh GameObject
+            var clickBtn = btn.AddComponent<Button>();
+            clickBtn.targetGraphic = btnImg;
             clickBtn.onClick.AddListener(() => Toggle());
-            // Make sure overlay is on TOP
-            overlay.transform.SetAsLastSibling();
+
+            // Add a "T" label so user can identify the button
+            UIHelpers.AddLabel(btn, "T", 24f, TMPro.TextAlignmentOptions.Center,
+                new Color(0.9f, 0.8f, 0.4f, 1f));
 
             // Add visibility sync with original NestedCanvas1
             ingameMenu.gameObject.AddComponent<TacticsHudSync>();
