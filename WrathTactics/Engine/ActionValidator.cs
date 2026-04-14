@@ -152,18 +152,46 @@ namespace WrathTactics.Engine {
                 for (int level = 0; level <= 9; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (IsHealingSpell(spell.Blueprint)) {
-                            // Check if spell can still be cast
                             if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)
-                                heals.Add((spell, level * 10));
+                                heals.Add((spell, 100 + level * 10)); // highest priority: spellbook spells
                         }
                     }
                 }
             }
 
-            // Search abilities (class heals like Lay on Hands)
+            // Class abilities (Lay on Hands, Channel Positive Energy)
             foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null && IsHealingSpell(ability.Blueprint)) {
-                    heals.Add((ability.Data, 50)); // medium priority
+                    heals.Add((ability.Data, 80)); // next priority: class features
+                }
+            }
+
+            // Item-backed abilities (wands, staves, equipped healing items)
+            foreach (var ability in owner.Abilities.RawFacts) {
+                if (ability.Data.SourceItem == null) continue;
+                if (ability.Data.SourceItem.Charges <= 0) continue;
+                if (IsHealingSpell(ability.Blueprint))
+                    heals.Add((ability.Data, 30)); // lower priority: wands/staves
+            }
+
+            // Healing potions/scrolls from inventory
+            var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
+            if (inventory != null) {
+                foreach (var item in inventory) {
+                    if (item == null || item.Count <= 0) continue;
+                    var usable = item.Blueprint as Kingmaker.Blueprints.Items.Equipment.BlueprintItemEquipmentUsable;
+                    if (usable == null || usable.Ability == null) continue;
+                    if (!IsHealingSpell(usable.Ability)) continue;
+
+                    // Synthesize AbilityData with item's caster/spell level overrides
+                    var itemAbility = new AbilityData(usable.Ability, owner.Descriptor) {
+                        OverrideCasterLevel = usable.CasterLevel,
+                        OverrideSpellLevel = usable.SpellLevel,
+                    };
+
+                    // Lower priority: potions before scrolls (conserve scrolls)
+                    int priority = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion ? 10 : 20;
+                    heals.Add((itemAbility, priority));
                 }
             }
 
@@ -176,7 +204,7 @@ namespace WrathTactics.Engine {
                     return heals.OrderBy(h => h.priority).First().ability;
                 case HealMode.Any:
                 default:
-                    return heals.First().ability;
+                    return heals.OrderByDescending(h => h.priority).First().ability;
             }
         }
 

@@ -15,7 +15,6 @@ namespace WrathTactics.UI {
         GameObject panelRoot;
         GameObject hudButton;
         bool isVisible;
-        bool hudButtonCreated;
         string selectedUnitId; // null = Global, "presets" = Presets
         string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
@@ -320,11 +319,9 @@ namespace WrathTactics.UI {
                 var bbContainer = canvas.Find("BUBBLEMODS_ROOT/IngameMenuView/ButtonsPart/Container");
                 if (bbContainer != null) {
                     CreateButtonInBubbleBuffsContainer(bbContainer);
-                    hudButtonCreated = true;
                     hudButtonRetrySeconds = 0f;
                 } else if (hudButtonRetrySeconds > 30f && hudButton == null) {
                     CreateFloatingHudButton(canvas);
-                    hudButtonCreated = true;
                 }
             }
 

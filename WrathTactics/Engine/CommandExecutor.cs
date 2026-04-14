@@ -110,18 +110,36 @@ namespace WrathTactics.Engine {
 
         static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
             var ability = ActionValidator.FindBestHeal(owner, action.HealMode);
-            if (ability == null) return false;
+            if (ability == null) {
+                Main.Log($"[DIAG] FindBestHeal returned null for {owner.CharacterName}");
+                return false;
+            }
 
             var targetWrapper = target != null
                 ? new TargetWrapper(target)
                 : new TargetWrapper(owner);
 
-            var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
-            if (command == null) return false;
+            // Items (potions/scrolls) have synthetic AbilityData — CreateCastCommand rejects them.
+            // Use Rulebook.Trigger for items, animated command for real spells/abilities.
+            bool isItem = ability.SourceItem != null;
+            if (!isItem) {
+                var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
+                if (command != null) {
+                    owner.Commands.Run(command);
+                    Main.Log($"[Executor] Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                    return true;
+                }
+            }
 
-            owner.Commands.Run(command);
-            Main.DebugLog($"[Executor] Heal: {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
-            return true;
+            // Item-backed or fallback — use Rulebook.Trigger (no animation)
+            try {
+                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
+                Main.Log($"[Executor] Heal (item/rulebook): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                return true;
+            } catch (Exception ex) {
+                Main.Error(ex, $"[Executor] Heal Rulebook.Trigger failed for {ability.Name}");
+                return false;
+            }
         }
 
         static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target) {
