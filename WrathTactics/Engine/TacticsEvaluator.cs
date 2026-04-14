@@ -13,6 +13,7 @@ namespace WrathTactics.Engine {
         static float lastTickTime;
         static float combatStartTime;
         static bool wasInCombat;
+        static int tickCounter;
 
         // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
         static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
@@ -44,6 +45,13 @@ namespace WrathTactics.Engine {
             if (gameTimeSec - lastTickTime < interval) return;
             lastTickTime = gameTimeSec;
 
+            tickCounter++;
+            int evaluableUnits = 0;
+            foreach (var u in Game.Instance.Player.Party) {
+                if (u.IsInGame && u.HPLeft > 0) evaluableUnits++;
+            }
+            Log.Engine.Trace($"Tick #{tickCounter} gameTime={gameTimeSec:F1}s evaluable={evaluableUnits}");
+
             // Skip if BubbleBuffs is currently executing
             if (BubbleBuffsCompat.IsExecuting()) return;
 
@@ -58,6 +66,8 @@ namespace WrathTactics.Engine {
             // No command check — let the game's command system handle conflicts.
             // Our cooldown system (1 round = 6s) prevents spam.
             // BubbleBuffs also queues commands without checking.
+
+            Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId})");
 
             // Evaluate global rules first, then character-specific
             var globalRules = config.GlobalRules;
@@ -122,6 +132,7 @@ namespace WrathTactics.Engine {
             lastTickTime = 0;
             combatStartTime = 0;
             wasInCombat = false;
+            tickCounter = 0;
             cooldowns.Clear();
         }
     }
