@@ -161,35 +161,23 @@ namespace WrathTactics.UI {
             header.AddComponent<LayoutElement>().preferredHeight = 44;
             UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
 
-            // Use a HorizontalLayoutGroup for header children
+            // HLG — childControlWidth=true so LayoutElement.preferredWidth/flexibleWidth work
             var hlg = header.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 4;
             hlg.childForceExpandHeight = true;
             hlg.childForceExpandWidth = false;
             hlg.childControlHeight = true;
-            hlg.childControlWidth = false;
+            hlg.childControlWidth = true;
             hlg.padding = new RectOffset(4, 4, 4, 4);
+            hlg.childAlignment = TextAnchor.MiddleLeft;
 
-            // Name input — flexible width
-            var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
-                0, 1, $"{index + 1}. {rule.Name}", 18f);
-            var nameLE = nameInput.gameObject.GetComponent<LayoutElement>();
-            if (nameLE == null) nameLE = nameInput.gameObject.AddComponent<LayoutElement>();
-            nameLE.flexibleWidth = 1;
-            // Reset anchors since we're in an HLG now
-            var nameRect = nameInput.GetComponent<RectTransform>();
-            nameRect.anchorMin = Vector2.zero;
-            nameRect.anchorMax = Vector2.one;
-
-            nameInput.onEndEdit.AddListener(v => {
-                string prefix = $"{index + 1}. ";
-                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
-                ConfigManager.Save();
-            });
+            // Order: [ON] [^] [v] [X] [Name input (flexible)]
 
             // ON/OFF button
-            var (enableBtnObj, _2) = UIHelpers.Create("EnableBtn", header.transform);
-            enableBtnObj.AddComponent<LayoutElement>().preferredWidth = 50;
+            var (enableBtnObj, _1) = UIHelpers.Create("EnableBtn", header.transform);
+            var enableLE = enableBtnObj.AddComponent<LayoutElement>();
+            enableLE.preferredWidth = 50;
+            enableLE.flexibleWidth = 0;
             UIHelpers.AddBackground(enableBtnObj, new Color(0.25f, 0.25f, 0.25f, 1f));
             enabledLabel = UIHelpers.AddLabel(enableBtnObj, rule.Enabled ? "ON" : "OFF", 16f,
                 TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
@@ -201,25 +189,44 @@ namespace WrathTactics.UI {
             });
 
             // Move up
-            var (upObj, _3) = UIHelpers.Create("Up", header.transform);
-            upObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            var (upObj, _2) = UIHelpers.Create("Up", header.transform);
+            var upLE = upObj.AddComponent<LayoutElement>();
+            upLE.preferredWidth = 36;
+            upLE.flexibleWidth = 0;
             UIHelpers.AddBackground(upObj, new Color(0.3f, 0.3f, 0.3f, 1f));
             UIHelpers.AddLabel(upObj, "^", 18f, TextAlignmentOptions.Midline);
             upObj.AddComponent<Button>().onClick.AddListener(() => MoveRule(-1));
 
             // Move down
-            var (downObj, _4) = UIHelpers.Create("Down", header.transform);
-            downObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            var (downObj, _3) = UIHelpers.Create("Down", header.transform);
+            var downLE = downObj.AddComponent<LayoutElement>();
+            downLE.preferredWidth = 36;
+            downLE.flexibleWidth = 0;
             UIHelpers.AddBackground(downObj, new Color(0.3f, 0.3f, 0.3f, 1f));
             UIHelpers.AddLabel(downObj, "v", 18f, TextAlignmentOptions.Midline);
             downObj.AddComponent<Button>().onClick.AddListener(() => MoveRule(1));
 
             // Delete
-            var (delObj, _5) = UIHelpers.Create("Del", header.transform);
-            delObj.AddComponent<LayoutElement>().preferredWidth = 36;
+            var (delObj, _4) = UIHelpers.Create("Del", header.transform);
+            var delLE = delObj.AddComponent<LayoutElement>();
+            delLE.preferredWidth = 36;
+            delLE.flexibleWidth = 0;
             UIHelpers.AddBackground(delObj, new Color(0.6f, 0.2f, 0.2f, 1f));
             UIHelpers.AddLabel(delObj, "X", 18f, TextAlignmentOptions.Midline);
             delObj.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
+
+            // Name input — fills remaining space on the right
+            var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
+                0, 1, $"{index + 1}. {rule.Name}", 18f);
+            var nameLE = nameInput.gameObject.GetComponent<LayoutElement>();
+            if (nameLE == null) nameLE = nameInput.gameObject.AddComponent<LayoutElement>();
+            nameLE.flexibleWidth = 1;
+            nameLE.preferredWidth = 200;
+            nameInput.onEndEdit.AddListener(v => {
+                string prefix = $"{index + 1}. ";
+                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
+                ConfigManager.Save();
+            });
         }
 
         void AddSectionLabel(Transform parent, string text) {

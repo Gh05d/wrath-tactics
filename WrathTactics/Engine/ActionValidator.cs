@@ -74,6 +74,15 @@ namespace WrathTactics.Engine {
         }
 
         public static AbilityData FindAbility(UnitEntityData owner, string abilityGuid) {
+            return FindAbilityEx(owner, abilityGuid, out _);
+        }
+
+        /// <summary>
+        /// Returns ability and whether it's synthetic (variant/not in owner's fact list).
+        /// Synthetic abilities must use Rulebook.Trigger — CreateCastCommand silently rejects them.
+        /// </summary>
+        public static AbilityData FindAbilityEx(UnitEntityData owner, string abilityGuid, out bool isSynthetic) {
+            isSynthetic = false;
             if (string.IsNullOrEmpty(abilityGuid)) return null;
 
             foreach (var book in owner.Spellbooks) {
@@ -92,16 +101,16 @@ namespace WrathTactics.Engine {
             foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
 
-                // Direct match
+                // Direct match — real ability, not synthetic
                 if (ability.Blueprint.AssetGuid.ToString() == abilityGuid)
                     return ability.Data;
 
-                // Check variants (e.g. Evil Eye - AC, Evil Eye - Attack Rolls, etc.)
+                // Check variants (e.g. Evil Eye - AC). These are synthetic — must use Rulebook.Trigger.
                 var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
                 if (variants != null && variants.m_Variants != null) {
                     foreach (var variant in variants.Variants) {
                         if (variant != null && variant.AssetGuid.ToString() == abilityGuid) {
-                            // Create a proper Ability object so CreateCastCommand accepts it
+                            isSynthetic = true;
                             var variantAbility = new Kingmaker.UnitLogic.Abilities.Ability(variant, owner.Descriptor);
                             return variantAbility.Data;
                         }

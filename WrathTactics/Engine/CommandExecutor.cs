@@ -37,7 +37,8 @@ namespace WrathTactics.Engine {
         }
 
         static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
-            var ability = ActionValidator.FindAbility(owner, abilityGuid);
+            bool isSynthetic;
+            var ability = ActionValidator.FindAbilityEx(owner, abilityGuid, out isSynthetic);
             if (ability == null) {
                 Main.Log($"[DIAG] Spell {abilityGuid} not found on {owner.CharacterName}");
                 return false;
@@ -47,7 +48,20 @@ namespace WrathTactics.Engine {
                 ? new TargetWrapper(target)
                 : new TargetWrapper(owner);
 
-            // Try animated command first
+            // Synthetic abilities (variants like Evil Eye - AC) MUST use Rulebook.Trigger.
+            // CreateCastCommand silently rejects them even though it returns non-null.
+            if (isSynthetic) {
+                try {
+                    Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
+                    Main.Log($"[DIAG] Rulebook-triggered SYNTHETIC {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                    return true;
+                } catch (Exception ex) {
+                    Main.Error(ex, $"[Executor] Rulebook.Trigger failed for {ability.Name}");
+                    return false;
+                }
+            }
+
+            // Real ability — use animated command
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
@@ -55,14 +69,13 @@ namespace WrathTactics.Engine {
                 return true;
             }
 
-            // Fallback for synthetic AbilityData (variants etc.) — trigger rule directly
-            Main.Log($"[DIAG] CreateCastCommand returned null for {ability.Name}, trying Rulebook.Trigger");
+            // Fallback for anything else
             try {
                 Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Main.Log($"[DIAG] Rulebook-triggered {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                Main.Log($"[DIAG] Rulebook-triggered (fallback) {ability.Name} on {owner.CharacterName}");
                 return true;
             } catch (Exception ex) {
-                Main.Error(ex, $"[Executor] Rulebook.Trigger failed for {ability.Name}");
+                Main.Error(ex, $"[Executor] Rulebook.Trigger fallback failed for {ability.Name}");
                 return false;
             }
         }
