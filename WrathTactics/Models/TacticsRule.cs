@@ -11,12 +11,8 @@ namespace WrathTactics.Models {
         [JsonProperty] public List<ConditionGroup> ConditionGroups { get; set; } = new();
         [JsonProperty] public ActionDef Action { get; set; } = new();
         [JsonProperty] public TargetDef Target { get; set; } = new();
-        /// <summary>
-        /// If set, this rule is linked to a preset. Conditions/Action/Target are resolved live
-        /// from the preset at eval/render time. Any edit materializes current preset data into
-        /// this rule and clears PresetId (link break).
-        /// </summary>
-        [JsonProperty] public string PresetId { get; set; } = null;
+        /// <summary>Optional link to a preset; when set, rule body (conditions/action/target) is resolved from the preset at runtime.</summary>
+        [JsonProperty] public string PresetId { get; set; }
     }
 
     public class ConditionGroup {
