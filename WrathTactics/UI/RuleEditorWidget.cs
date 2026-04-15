@@ -74,6 +74,14 @@ namespace WrathTactics.UI {
             // Header row — inside VLG as first child
             CreateHeader(bodyContainer.transform);
 
+            // Linked-rule branch: render summary and skip standalone body
+            var linkedPreset = !string.IsNullOrEmpty(rule.PresetId) ? Engine.PresetRegistry.Get(rule.PresetId) : null;
+            if (linkedPreset != null) {
+                RenderLinkedSummary(bodyContainer.transform, linkedPreset);
+                UpdateHeight();
+                return;
+            }
+
             // IF: label row
             AddSectionLabel(bodyContainer.transform, "IF:");
 
@@ -158,9 +166,15 @@ namespace WrathTactics.UI {
         }
 
         void CreateHeader(Transform parent) {
+            var linkedPreset = !string.IsNullOrEmpty(rule.PresetId) ? Engine.PresetRegistry.Get(rule.PresetId) : null;
+            bool isLinked = linkedPreset != null;
+
             var (header, _) = UIHelpers.Create("Header", parent);
             header.AddComponent<LayoutElement>().preferredHeight = 44;
-            UIHelpers.AddBackground(header, new Color(0.25f, 0.22f, 0.18f, 1f));
+            var headerBg = isLinked
+                ? new Color(0.22f, 0.3f, 0.4f, 1f)   // blue-grey for linked
+                : new Color(0.25f, 0.22f, 0.18f, 1f); // default brown
+            UIHelpers.AddBackground(header, headerBg);
 
             // HLG — childControlWidth=true so LayoutElement.preferredWidth/flexibleWidth work
             var hlg = header.AddComponent<HorizontalLayoutGroup>();
@@ -226,16 +240,56 @@ namespace WrathTactics.UI {
             delObj.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
 
             // Name input — fills remaining space on the right
+            string displayName = isLinked
+                ? $"🔗 {linkedPreset.Name}"
+                : $"{index + 1}. {rule.Name}";
+
             var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
-                0, 1, $"{index + 1}. {rule.Name}", 18f);
+                0, 1, displayName, 18f);
             var nameLE = nameInput.gameObject.GetComponent<LayoutElement>();
             if (nameLE == null) nameLE = nameInput.gameObject.AddComponent<LayoutElement>();
             nameLE.flexibleWidth = 1;
             nameLE.preferredWidth = 200;
-            nameInput.onEndEdit.AddListener(v => {
-                string prefix = $"{index + 1}. ";
-                rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
+
+            nameInput.interactable = !isLinked;  // linked: name comes from preset, not editable here
+            if (!isLinked) {
+                nameInput.onEndEdit.AddListener(v => {
+                    string prefix = $"{index + 1}. ";
+                    rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
+                    ConfigManager.Save();
+                });
+            }
+        }
+
+        void RenderLinkedSummary(Transform parent, TacticsRule preset) {
+            // Badge
+            var (badge, _) = UIHelpers.Create("LinkedBadge", parent);
+            badge.AddComponent<LayoutElement>().preferredHeight = 26;
+            UIHelpers.AddBackground(badge, new Color(0.22f, 0.3f, 0.4f, 1f));
+            UIHelpers.AddLabel(badge, $"Linked to preset: {preset.Name}", 14f,
+                TextAlignmentOptions.MidlineLeft, new Color(0.85f, 0.9f, 1f));
+
+            // Summary
+            int condCount = 0;
+            foreach (var g in preset.ConditionGroups) condCount += g.Conditions.Count;
+            string abilityInfo = string.IsNullOrEmpty(preset.Action.AbilityId)
+                ? ""
+                : $" ({preset.Action.AbilityId.Substring(0, System.Math.Min(8, preset.Action.AbilityId.Length))}…)";
+            string summary = $"IF: {condCount} condition(s) | THEN: {preset.Action.Type}{abilityInfo} | Target: {preset.Target.Type}";
+
+            var (sumObj, _s) = UIHelpers.Create("Summary", parent);
+            sumObj.AddComponent<LayoutElement>().preferredHeight = 22;
+            UIHelpers.AddLabel(sumObj, summary, 13f, TextAlignmentOptions.MidlineLeft, Color.gray);
+
+            // Unlink & Edit button
+            var (unlinkBtn, _u) = UIHelpers.Create("UnlinkBtn", parent);
+            unlinkBtn.AddComponent<LayoutElement>().preferredHeight = 28;
+            UIHelpers.AddBackground(unlinkBtn, new Color(0.45f, 0.35f, 0.15f));
+            UIHelpers.AddLabel(unlinkBtn, "Unlink & Edit (break link)", 14f, TextAlignmentOptions.Midline);
+            unlinkBtn.AddComponent<Button>().onClick.AddListener(() => {
+                Engine.PresetRegistry.BreakLink(rule);
                 ConfigManager.Save();
+                RebuildBody();
             });
         }
 
@@ -515,6 +569,11 @@ namespace WrathTactics.UI {
 
         void UpdateHeight() {
             if (layoutElement == null) return;
+            if (!string.IsNullOrEmpty(rule.PresetId) && Engine.PresetRegistry.Get(rule.PresetId) != null) {
+                // Linked rule: header (44) + badge (26) + summary (22) + unlink btn (28) + padding/spacing
+                layoutElement.preferredHeight = 44f + 26f + 22f + 28f + 20f;
+                return;
+            }
             int condCount = rule.ConditionGroups.Sum(g => g.Conditions.Count);
             int groupCount = rule.ConditionGroups.Count;
             float height = 44f  // header (inside VLG)
@@ -547,11 +606,13 @@ namespace WrathTactics.UI {
         }
 
         void CloneRule() {
-            // Deep copy via JSON roundtrip — simplest safe clone for nested condition groups.
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(rule);
+            // Resolve first so the clone holds materialized logic (not just a linked pointer).
+            var source = Engine.PresetRegistry.Resolve(rule);
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(source);
             var copy = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
             copy.Id = System.Guid.NewGuid().ToString();
-            copy.Name = rule.Name + " (copy)";
+            copy.Name = source.Name + " (copy)";
+            copy.PresetId = null;  // standalone copy; never inherit the link
             ruleList.Insert(index + 1, copy);
             ConfigManager.Save();
             onChanged?.Invoke();
