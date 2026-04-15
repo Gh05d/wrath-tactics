@@ -107,19 +107,17 @@ namespace WrathTactics.Engine {
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
             int checkedCount = 0;
-            var sampleNames = new List<string>();
+            var uniqueTypes = new HashSet<string>();
             foreach (var enemy in GetVisibleEnemies(owner)) {
                 checkedCount++;
-                if (sampleNames.Count < 5) {
-                    string typeName = enemy.Blueprint?.Type?.name ?? "<no-type>";
-                    sampleNames.Add($"{enemy.CharacterName}({typeName})");
-                }
+                string typeName = enemy.Blueprint?.Type?.name ?? "<no-type>";
+                uniqueTypes.Add($"{enemy.CharacterName}({typeName})");
                 if (EvaluateUnitProperty(condition, enemy)) {
                     LastMatchedEnemy = enemy;
                     return true;
                 }
             }
-            Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} visible enemies, no match. Sample: {string.Join(", ", sampleNames)}");
+            Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} in-combat enemies, no match. All: {string.Join(", ", uniqueTypes)}");
             return false;
         }
 
@@ -389,12 +387,14 @@ namespace WrathTactics.Engine {
         }
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
-            // Don't filter by IsVisibleForPlayer — too strict for combat
-            // (units in combat are always relevant even if briefly out of LOS)
+            // Only consider enemies actively in combat with the party.
+            // Without IsInCombat, companions would run off to attack enemies
+            // that aren't even engaged (seen across the map).
             return Game.Instance.State.Units
                 .Where(u => u.IsInGame
                     && u.HPLeft > 0
-                    && u.IsPlayersEnemy);
+                    && u.IsPlayersEnemy
+                    && u.IsInCombat);
         }
     }
 }
