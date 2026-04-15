@@ -191,12 +191,22 @@ namespace WrathTactics.Engine {
 
             // Healing potions/scrolls from inventory
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
+            int invTotal = 0, invUsable = 0, invHealing = 0;
             if (inventory != null) {
                 foreach (var item in inventory) {
                     if (item == null || item.Count <= 0) continue;
+                    invTotal++;
                     var usable = item.Blueprint as Kingmaker.Blueprints.Items.Equipment.BlueprintItemEquipmentUsable;
                     if (usable == null || usable.Ability == null) continue;
-                    if (!IsHealingSpell(usable.Ability)) continue;
+                    invUsable++;
+                    string itemName = item.Blueprint.name ?? "?";
+                    string abilityName = usable.Ability.Name ?? usable.Ability.name ?? "?";
+                    if (!IsHealingSpell(usable.Ability)) {
+                        Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): NOT a healing spell");
+                        continue;
+                    }
+                    invHealing++;
+                    Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): IS heal — added");
 
                     // Synthesize AbilityData with item's caster/spell level overrides
                     var itemAbility = new AbilityData(usable.Ability, owner.Descriptor) {
@@ -210,6 +220,7 @@ namespace WrathTactics.Engine {
                 }
             }
 
+            Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: total inventory items={invTotal}, usable={invUsable}, healing={invHealing}, heals candidates total={heals.Count}");
             if (heals.Count == 0) return null;
 
             switch (mode) {
@@ -225,11 +236,17 @@ namespace WrathTactics.Engine {
 
         static bool IsHealingSpell(BlueprintAbility blueprint) {
             if (blueprint == null) return false;
-            string name = (blueprint.Name ?? "").ToLowerInvariant();
-            // Match common healing spell names
-            return name.Contains("cure") || name.Contains("heal")
-                || name.Contains("restoration") || name.Contains("lay on hands")
-                || name.Contains("channel positive");
+            // Check both display name (localized) and internal blueprint name (English)
+            string displayName = (blueprint.Name ?? "").ToLowerInvariant();
+            string internalName = (blueprint.name ?? "").ToLowerInvariant();
+            return MatchesHealKeyword(displayName) || MatchesHealKeyword(internalName);
+        }
+
+        static bool MatchesHealKeyword(string n) {
+            return n.Contains("cure") || n.Contains("heal")
+                || n.Contains("restoration") || n.Contains("lay on hands")
+                || n.Contains("channel positive")
+                || n.Contains("wunden") || n.Contains("heilung");  // German fallback
         }
     }
 }

@@ -106,12 +106,15 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
+            int checkedCount = 0;
             foreach (var enemy in GetVisibleEnemies(owner)) {
+                checkedCount++;
                 if (EvaluateUnitProperty(condition, enemy)) {
                     LastMatchedEnemy = enemy;
                     return true;
                 }
             }
+            Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} visible enemies, no match");
             return false;
         }
 
@@ -381,11 +384,12 @@ namespace WrathTactics.Engine {
         }
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
+            // Don't filter by IsVisibleForPlayer — too strict for combat
+            // (units in combat are always relevant even if briefly out of LOS)
             return Game.Instance.State.Units
                 .Where(u => u.IsInGame
                     && u.HPLeft > 0
-                    && u.IsPlayersEnemy
-                    && u.IsVisibleForPlayer);
+                    && u.IsPlayersEnemy);
         }
     }
 }
