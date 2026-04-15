@@ -210,7 +210,7 @@ namespace WrathTactics.Engine {
                     return HasResource(unit, condition.Value);
 
                 case ConditionProperty.CreatureType:
-                    return unit.Blueprint.Type?.ToString() == condition.Value;
+                    return CheckCreatureType(unit, condition.Value);
 
                 default:
                     return false;
