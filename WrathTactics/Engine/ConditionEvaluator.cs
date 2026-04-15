@@ -107,14 +107,19 @@ namespace WrathTactics.Engine {
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
             int checkedCount = 0;
+            var sampleNames = new List<string>();
             foreach (var enemy in GetVisibleEnemies(owner)) {
                 checkedCount++;
+                if (sampleNames.Count < 5) {
+                    string typeName = enemy.Blueprint?.Type?.name ?? "<no-type>";
+                    sampleNames.Add($"{enemy.CharacterName}({typeName})");
+                }
                 if (EvaluateUnitProperty(condition, enemy)) {
                     LastMatchedEnemy = enemy;
                     return true;
                 }
             }
-            Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} visible enemies, no match");
+            Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} visible enemies, no match. Sample: {string.Join(", ", sampleNames)}");
             return false;
         }
 

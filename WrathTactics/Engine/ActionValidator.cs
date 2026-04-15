@@ -12,9 +12,8 @@ using WrathTactics.Models;
 namespace WrathTactics.Engine {
     public static class ActionValidator {
         public static bool CanExecute(ActionDef action, UnitEntityData owner, UnitEntityData target) {
-            if (owner.Commands.IsRunning())
-                return false;
-
+            // No IsRunning() guard — auto-attacks would block everything in real-time mode.
+            // Cooldown system + game's command queue handle conflicts.
             switch (action.Type) {
                 case ActionType.CastSpell:
                     return CanCastSpell(action.AbilityId, owner, target);
