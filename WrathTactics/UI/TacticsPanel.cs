@@ -220,11 +220,7 @@ namespace WrathTactics.UI {
             if (selectedUnitId == "presets") {
                 var (presetObj, _) = UIHelpers.Create("PresetPanel", ruleListContent);
                 var presetPanel = presetObj.AddComponent<PresetPanel>();
-                presetPanel.Init(lastNonPresetUnitId, ruleListContent, () => {
-                    // After loading a preset, switch back to the character tab
-                    selectedUnitId = lastNonPresetUnitId;
-                    RefreshRuleList();
-                });
+                presetPanel.Init(lastNonPresetUnitId, ruleListContent, () => RefreshRuleList());
                 UpdateToggleLabel();
                 return;
             }
