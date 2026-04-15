@@ -81,11 +81,13 @@ namespace WrathTactics.Engine {
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
             string source, float gameTimeSec) {
             for (int i = 0; i < rules.Count; i++) {
-                var rule = rules[i];
-                if (!rule.Enabled) continue;
+                var entry = rules[i];
+                if (!entry.Enabled) continue;
 
-                // Check cooldown
-                var cooldownKey = (unit.UniqueId, rule.Id);
+                var rule = PresetRegistry.Resolve(entry);
+
+                // Check cooldown — key on entry.Id so linked copies cooldown independently
+                var cooldownKey = (unit.UniqueId, entry.Id);
                 float cooldownSec = rule.CooldownRounds * 6f;
                 if (cooldowns.TryGetValue(cooldownKey, out float lastFired)) {
                     if (gameTimeSec - lastFired < cooldownSec) {
