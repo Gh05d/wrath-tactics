@@ -17,6 +17,7 @@ namespace WrathTactics.UI {
         List<TacticsRule> ruleList;
         Action onChanged;
         string unitId;
+        bool hideHeader;  // when true, skip the list-entry header (used by the preset editor)
 
         TextMeshProUGUI enabledLabel;
         LayoutElement layoutElement;
@@ -28,12 +29,13 @@ namespace WrathTactics.UI {
         PopupSelector spellSelector;
         List<SpellDropdownProvider.SpellEntry> currentSpellEntries;
 
-        public void Init(TacticsRule rule, int index, List<TacticsRule> ruleList, Action onChanged, string unitId = null) {
+        public void Init(TacticsRule rule, int index, List<TacticsRule> ruleList, Action onChanged, string unitId = null, bool hideHeader = false) {
             this.rule = rule;
             this.index = index;
             this.ruleList = ruleList;
             this.onChanged = onChanged;
             this.unitId = unitId;
+            this.hideHeader = hideHeader;
             BuildUI();
         }
 
@@ -71,14 +73,16 @@ namespace WrathTactics.UI {
             for (int i = bodyContainer.transform.childCount - 1; i >= 0; i--)
                 Destroy(bodyContainer.transform.GetChild(i).gameObject);
 
-            // Header row — inside VLG as first child
-            CreateHeader(bodyContainer.transform);
-
-            // Linked-rule branch: render summary and skip standalone body
+            // Resolve once per rebuild — used by header tint, body branch, and UpdateHeight.
             var linkedPreset = !string.IsNullOrEmpty(rule.PresetId) ? Engine.PresetRegistry.Get(rule.PresetId) : null;
+
+            // Header row — inside VLG as first child (skipped when embedded in the preset editor)
+            if (!hideHeader)
+                CreateHeader(bodyContainer.transform, linkedPreset);
+
             if (linkedPreset != null) {
                 RenderLinkedSummary(bodyContainer.transform, linkedPreset);
-                UpdateHeight();
+                UpdateHeight(linkedPreset);
                 return;
             }
 
@@ -162,11 +166,10 @@ namespace WrathTactics.UI {
             SetupCooldownRow(bodyContainer.transform);
 
             // Update card height based on content
-            UpdateHeight();
+            UpdateHeight(null);
         }
 
-        void CreateHeader(Transform parent) {
-            var linkedPreset = !string.IsNullOrEmpty(rule.PresetId) ? Engine.PresetRegistry.Get(rule.PresetId) : null;
+        void CreateHeader(Transform parent, TacticsRule linkedPreset) {
             bool isLinked = linkedPreset != null;
 
             var (header, _) = UIHelpers.Create("Header", parent);
@@ -271,7 +274,10 @@ namespace WrathTactics.UI {
 
             // Summary
             int condCount = 0;
-            foreach (var g in preset.ConditionGroups) condCount += g.Conditions.Count;
+            if (preset.ConditionGroups != null) {
+                foreach (var g in preset.ConditionGroups)
+                    if (g?.Conditions != null) condCount += g.Conditions.Count;
+            }
             string abilityInfo = string.IsNullOrEmpty(preset.Action.AbilityId)
                 ? ""
                 : $" ({preset.Action.AbilityId.Substring(0, System.Math.Min(8, preset.Action.AbilityId.Length))}…)";
@@ -567,16 +573,23 @@ namespace WrathTactics.UI {
             return unit;
         }
 
-        void UpdateHeight() {
+        void UpdateHeight(TacticsRule linkedPreset) {
             if (layoutElement == null) return;
-            if (!string.IsNullOrEmpty(rule.PresetId) && Engine.PresetRegistry.Get(rule.PresetId) != null) {
-                // Linked rule: header (44) + badge (26) + summary (22) + unlink btn (28) + padding/spacing
-                layoutElement.preferredHeight = 44f + 26f + 22f + 28f + 20f;
+            float headerH = hideHeader ? 0f : 44f;
+            // VLG spacing between body children (see BuildUI: vlg.spacing = 4).
+            const float bodySpacing = 4f;
+            if (linkedPreset != null) {
+                // header + badge (26) + summary (22) + unlink btn (28) + 3 VLG gaps + padding
+                float gaps = (hideHeader ? 2 : 3) * bodySpacing;
+                layoutElement.preferredHeight = headerH + 26f + 22f + 28f + gaps + 12f;
                 return;
             }
             int condCount = rule.ConditionGroups.Sum(g => g.Conditions.Count);
             int groupCount = rule.ConditionGroups.Count;
-            float height = 44f  // header (inside VLG)
+            // Child count reflects the widgets rendered below — ~condCount + groupCount*2
+            // rows plus 6 fixed sections. Close enough to estimate VLG gaps.
+            int childEstimate = condCount + groupCount * 2 + 7 + (hideHeader ? 0 : 1);
+            float height = headerH
                 + 20f           // IF: label
                 + condCount * 34f
                 + groupCount * 26f   // add-cond buttons
@@ -586,7 +599,8 @@ namespace WrathTactics.UI {
                 + 28f           // action row
                 + 28f           // target row
                 + 28f           // cooldown row
-                + 20f;          // padding + VLG spacing
+                + Mathf.Max(0, childEstimate - 1) * bodySpacing
+                + 12f;          // VLG padding
             layoutElement.preferredHeight = Mathf.Max(160f, height);
         }
 

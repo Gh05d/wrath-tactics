@@ -229,11 +229,13 @@ namespace WrathTactics.UI {
                 onPick?.Invoke(idx);
                 if (overlay != null) UnityEngine.Object.Destroy(overlay);
             });
-            // Wire the overlay background click to destroy the overlay
             var capturedOverlay = overlay;
             overlay.GetComponent<Button>().onClick.AddListener(() => {
                 if (capturedOverlay != null) UnityEngine.Object.Destroy(capturedOverlay);
             });
+            // Attach an Escape handler that destroys the overlay — instance PopupSelectors
+            // listen on their own Update, transient pickers need their own.
+            overlay.AddComponent<EscapeCloser>();
         }
 
         /// <summary>
@@ -361,6 +363,14 @@ namespace WrathTactics.UI {
 
         void OnDestroy() {
             ClosePopup();
+        }
+    }
+
+    /// <summary>Attached to transient ShowPicker overlays so Escape destroys them.</summary>
+    class EscapeCloser : MonoBehaviour {
+        void Update() {
+            if (Input.GetKeyDown(KeyCode.Escape))
+                Destroy(gameObject);
         }
     }
 }

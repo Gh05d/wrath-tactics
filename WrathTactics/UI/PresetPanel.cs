@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -105,7 +106,9 @@ namespace WrathTactics.UI {
                 preset.Name = trimmed;
                 PresetRegistry.Save(preset);
                 onPresetsChanged?.Invoke();
-                Rebuild();
+                // Defer — Rebuild destroys the TMP_InputField and its teardown must not
+                // race with the onEndEdit callback still on the stack.
+                StartCoroutine(DeferredRebuild());
             });
 
             // Edit toggle
@@ -137,7 +140,8 @@ namespace WrathTactics.UI {
                 Rebuild();
             });
 
-            // Expanded editor — inline RuleEditorWidget bound to the preset itself
+            // Expanded editor — inline RuleEditorWidget bound to the preset itself.
+            // hideHeader:true so the widget renders only the body; rename/delete live on the row above.
             if (expanded) {
                 var (editorObj, _eo) = UIHelpers.Create($"Editor_{preset.Id}", parent);
                 var widget = editorObj.AddComponent<RuleEditorWidget>();
@@ -145,8 +149,13 @@ namespace WrathTactics.UI {
                 widget.Init(preset, 0, solo, () => {
                     PresetRegistry.Save(preset);
                     onPresetsChanged?.Invoke();
-                }, unitId: null);
+                }, unitId: null, hideHeader: true);
             }
+        }
+
+        IEnumerator DeferredRebuild() {
+            yield return null;
+            Rebuild();
         }
 
         void Rebuild() {
