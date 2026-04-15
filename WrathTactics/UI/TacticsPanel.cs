@@ -162,13 +162,21 @@ namespace WrathTactics.UI {
                 TextAlignmentOptions.MidlineLeft, Color.white);
             toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
 
-            // Add Rule button
+            // "+ New Rule" button
             var (addBtn, addRect) = UIHelpers.Create("AddRuleBtn", row.transform);
-            addRect.SetAnchor(0.75, 1, 0, 1);
+            addRect.SetAnchor(0.55, 0.76, 0, 1);
             addRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
             UIHelpers.AddLabel(addBtn, "+ New Rule", 18f, TextAlignmentOptions.Midline);
             addBtn.AddComponent<Button>().onClick.AddListener(AddNewRule);
+
+            // "+ From Preset" button
+            var (fromPresetBtn, fromPresetRect) = UIHelpers.Create("FromPresetBtn", row.transform);
+            fromPresetRect.SetAnchor(0.77, 1, 0, 1);
+            fromPresetRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(fromPresetBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
+            UIHelpers.AddLabel(fromPresetBtn, "+ From Preset \u25be", 16f, TextAlignmentOptions.Midline);
+            fromPresetBtn.AddComponent<Button>().onClick.AddListener(AddFromPreset);
         }
 
         void CreateRuleList(Transform parent) {
@@ -286,6 +294,36 @@ namespace WrathTactics.UI {
             });
             ConfigManager.Save();
             RefreshRuleList();
+        }
+
+        void AddFromPreset() {
+            if (selectedUnitId == "presets") return;
+
+            var presets = WrathTactics.Engine.PresetRegistry.All();
+            if (presets.Count == 0) {
+                Log.UI.Info("No presets available — create one on the Presets tab first");
+                return;
+            }
+
+            var options = new List<string>();
+            foreach (var p in presets) options.Add(p.Name);
+
+            PopupSelector.ShowPicker(options, idx => {
+                if (idx < 0 || idx >= presets.Count) return;
+                var preset = presets[idx];
+                var list = selectedUnitId == null
+                    ? ConfigManager.Current.GlobalRules
+                    : GetOrCreateCharacterRules(selectedUnitId);
+
+                list.Add(new TacticsRule {
+                    Id = System.Guid.NewGuid().ToString(),
+                    Enabled = true,
+                    PresetId = preset.Id,
+                    Priority = list.Count,
+                });
+                ConfigManager.Save();
+                RefreshRuleList();
+            });
         }
 
         List<TacticsRule> GetOrCreateCharacterRules(string unitId) {

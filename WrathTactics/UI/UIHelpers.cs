@@ -212,22 +212,54 @@ namespace WrathTactics.UI {
 
         void OpenPopup() {
             if (options.Count == 0) return;
+            popupOverlay = CreatePickerOverlay(options, icons, selectedIndex, idx => {
+                SelectOption(idx);
+            });
+            // Wire the overlay background click to ClosePopup so popupOverlay is nulled properly
+            popupOverlay.GetComponent<Button>().onClick.AddListener(ClosePopup);
+        }
+
+        /// <summary>
+        /// Creates a transient centered picker popup without a backing selector button.
+        /// The overlay is destroyed when the user picks an option or clicks outside.
+        /// </summary>
+        public static void ShowPicker(List<string> options, Action<int> onPick) {
+            GameObject overlay = null;
+            overlay = CreatePickerOverlay(options, null, -1, idx => {
+                onPick?.Invoke(idx);
+                if (overlay != null) UnityEngine.Object.Destroy(overlay);
+            });
+            // Wire the overlay background click to destroy the overlay
+            var capturedOverlay = overlay;
+            overlay.GetComponent<Button>().onClick.AddListener(() => {
+                if (capturedOverlay != null) UnityEngine.Object.Destroy(capturedOverlay);
+            });
+        }
+
+        /// <summary>
+        /// Builds a full-screen overlay with a centered scrollable option list.
+        /// Returns the overlay GameObject. The overlay has a Button component on its root
+        /// with no listeners yet — callers must attach their own outside-click handler.
+        /// onOptionClicked fires with the chosen index when an option button is pressed;
+        /// the caller is responsible for closing/destroying the overlay.
+        /// </summary>
+        static GameObject CreatePickerOverlay(List<string> options, List<Sprite> icons,
+            int selectedIndex, Action<int> onOptionClicked) {
 
             var canvas = Game.Instance.UI.Canvas.transform;
 
             // Full-screen overlay to catch clicks outside
             var (overlay, overlayRect) = UIHelpers.Create("PopupOverlay", canvas);
-            popupOverlay = overlay;
             overlayRect.FillParent();
-            var overlayImg = UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.3f));
-            overlay.AddComponent<Button>().onClick.AddListener(ClosePopup);
+            UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.3f));
+            // Button with no listeners yet; callers attach their outside-click handler
+            overlay.AddComponent<Button>();
 
-            // Popup container positioned near the selector button
+            // Popup container — centered on screen
             var (popup, popupRect) = UIHelpers.Create("PopupList", overlay.transform);
             UIHelpers.AddBackground(popup, new Color(0.15f, 0.15f, 0.15f, 0.98f));
 
-            // Center the popup on screen (simpler and always correct)
-            float popupWidth = 350f; // fixed width for readability
+            float popupWidth = 350f;
             float maxPopupHeight = 400f;
             float itemHeight = 36f;
             float totalHeight = Mathf.Min(options.Count * itemHeight + 8f, maxPopupHeight);
@@ -235,10 +267,10 @@ namespace WrathTactics.UI {
             popupRect.anchorMin = new Vector2(0.5f, 0.5f);
             popupRect.anchorMax = new Vector2(0.5f, 0.5f);
             popupRect.pivot = new Vector2(0.5f, 0.5f);
-            popupRect.anchoredPosition = Vector2.zero; // centered
+            popupRect.anchoredPosition = Vector2.zero;
             popupRect.sizeDelta = new Vector2(popupWidth, totalHeight);
 
-            // Scroll view for the options
+            // Scroll view
             var (scrollObj, scrollRect) = UIHelpers.Create("Scroll", popup.transform);
             scrollRect.FillParent();
 
@@ -269,7 +301,7 @@ namespace WrathTactics.UI {
             scroll.vertical = true;
             scroll.scrollSensitivity = 30f;
 
-            // Create option buttons
+            // Option buttons
             for (int i = 0; i < options.Count; i++) {
                 var capturedIndex = i;
                 var (itemObj, itemObjRect) = UIHelpers.Create($"Option_{i}", content.transform);
@@ -282,7 +314,6 @@ namespace WrathTactics.UI {
                 var label = UIHelpers.AddLabel(itemObj, options[i], 16f,
                     TextAlignmentOptions.MidlineLeft);
 
-                // Add icon if available for this index
                 if (icons != null && i < icons.Count && icons[i] != null) {
                     var (iconObj, iconRect) = UIHelpers.Create("Icon", itemObj.transform);
                     iconRect.anchorMin = new Vector2(0, 0.5f);
@@ -300,9 +331,11 @@ namespace WrathTactics.UI {
                 }
 
                 itemObj.AddComponent<Button>().onClick.AddListener(() => {
-                    SelectOption(capturedIndex);
+                    onOptionClicked?.Invoke(capturedIndex);
                 });
             }
+
+            return overlay;
         }
 
         void SelectOption(int index) {
