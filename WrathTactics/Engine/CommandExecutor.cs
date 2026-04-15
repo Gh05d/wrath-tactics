@@ -1,6 +1,9 @@
 using System;
 using System.Linq;
+using Kingmaker;
+using Kingmaker.Blueprints.Items.Equipment;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.Items;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules.Abilities;
 using Kingmaker.UnitLogic.Abilities;
@@ -157,25 +160,43 @@ namespace WrathTactics.Engine {
                 return false;
             }
 
-            var ability = pick.Value.ThrowAbility;
-            var data = new AbilityData(ability, owner.Descriptor);
-            var tw = new TargetWrapper(target);
-
-            var cmd = UnitUseAbility.CreateCastCommand(data, tw);
-            if (cmd != null) {
-                owner.Commands.Run(cmd);
-                Log.Engine.Info($"ThrowSplash (animated): {owner.CharacterName} threw {pick.Value.Item.Blueprint.name} at {target.CharacterName}");
-                return true;
-            }
-
-            try {
-                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(data, tw));
-                Log.Engine.Info($"ThrowSplash (rulebook): {owner.CharacterName} threw {pick.Value.Item.Blueprint.name} at {target.CharacterName}");
-                return true;
-            } catch (Exception ex) {
-                Log.Engine.Error(ex, $"ThrowSplash Rulebook.Trigger failed for {pick.Value.Item.Blueprint.name}");
+            var item = pick.Value.Item;
+            var usable = item.Blueprint as BlueprintItemEquipmentUsable;
+            if (usable == null) {
+                Log.Engine.Warn($"ThrowSplash: {item.Blueprint.name} is not a usable item");
                 return false;
             }
+
+            // CreateCastCommand silently drops synthetic AbilityData not registered on the unit.
+            // Use Rulebook.Trigger with SourceItem set, then manually consume the stack.
+            var data = new AbilityData(usable.Ability, owner.Descriptor) {
+                OverrideCasterLevel = usable.CasterLevel,
+                OverrideSpellLevel = usable.SpellLevel,
+            };
+            var tw = new TargetWrapper(target);
+
+            try {
+                Rulebook.Trigger(new RuleCastSpell(data, tw));
+                ConsumeSplashItem(item, usable);
+                Log.Engine.Info($"ThrowSplash: {owner.CharacterName} threw {item.Blueprint.name} at {target.CharacterName}");
+                return true;
+            } catch (Exception ex) {
+                Log.Engine.Error(ex, $"ThrowSplash Rulebook.Trigger failed for {item.Blueprint.name}");
+                return false;
+            }
+        }
+
+        static void ConsumeSplashItem(ItemEntity item, BlueprintItemEquipmentUsable usable) {
+            if (usable.Type == UsableItemType.Potion || usable.Type == UsableItemType.Scroll) {
+                Game.Instance.Player.Inventory.Remove(item, 1);
+                return;
+            }
+            if (item.IsSpendCharges) {
+                item.Charges--;
+                return;
+            }
+            // Utility-type splash items (Alchemist's Fire, Acid Flask): consume one from stack
+            Game.Instance.Player.Inventory.Remove(item, 1);
         }
 
         static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target) {
