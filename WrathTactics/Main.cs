@@ -24,6 +24,8 @@ namespace WrathTactics {
             harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
 
+            Engine.PresetRegistry.Reload();
+
             UI.TacticsPanel.Install();
 
             EventBus.Subscribe(saveLoadWatcher = new SaveLoadWatcher());
