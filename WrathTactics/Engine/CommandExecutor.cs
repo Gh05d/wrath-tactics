@@ -115,7 +115,8 @@ namespace WrathTactics.Engine {
         }
 
         static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
-            var ability = ActionValidator.FindBestHeal(owner, action.HealMode);
+            ItemEntity inventorySource;
+            var ability = ActionValidator.FindBestHealEx(owner, action.HealMode, out inventorySource);
             if (ability == null) {
                 Log.Engine.Warn($"FindBestHeal returned null for {owner.CharacterName}");
                 return false;
@@ -125,27 +126,52 @@ namespace WrathTactics.Engine {
                 ? new TargetWrapper(target)
                 : new TargetWrapper(owner);
 
-            // Items (potions/scrolls) have synthetic AbilityData — CreateCastCommand rejects them.
-            // Use Rulebook.Trigger for items, animated command for real spells/abilities.
-            bool isItem = ability.SourceItem != null;
-            if (!isItem) {
-                var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
-                if (command != null) {
-                    owner.Commands.Run(command);
-                    Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+            // Inventory potions/scrolls: synthesized AbilityData (no SourceItem). CreateCastCommand
+            // drops these silently. Trigger the rule and consume the stack explicitly — otherwise
+            // the game's internal potion-use flow fires too, producing a duplicate floating tooltip.
+            if (inventorySource != null) {
+                try {
+                    Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
+                    var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    Log.Engine.Info($"Heal (inventory): {inventorySource.Blueprint.name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                     return true;
+                } catch (Exception ex) {
+                    Log.Engine.Error(ex, $"Heal inventory trigger failed for {inventorySource.Blueprint.name}");
+                    return false;
                 }
             }
 
-            // Item-backed or fallback — use Rulebook.Trigger (no animation)
+            // Spellbook spell, class ability, or quickslot wand — animated cast path.
+            var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
+            if (command != null) {
+                owner.Commands.Run(command);
+                Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                return true;
+            }
+
             try {
-                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Log.Engine.Info($"Heal (item/rulebook): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
+                Log.Engine.Info($"Heal (rulebook fallback): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             } catch (Exception ex) {
                 Log.Engine.Error(ex, $"Heal Rulebook.Trigger failed for {ability.Name}");
                 return false;
             }
+        }
+
+        static void ConsumeInventoryItem(ItemEntity item, BlueprintItemEquipmentUsable usable) {
+            int before = item.Count;
+            int charges = item.Charges;
+            string path;
+            if (usable.Type == UsableItemType.Wand) {
+                item.Charges--;
+                path = "Charges--";
+            } else {
+                Game.Instance.Player.Inventory.Remove(item, 1);
+                path = "Remove";
+            }
+            Log.Engine.Debug($"Consume {item.Blueprint.name} via {path}: Count {before}->{item.Count}, Charges {charges}->{item.Charges}, Type={usable.Type}");
         }
 
         static bool ExecuteThrowSplash(ActionDef action, UnitEntityData owner, UnitEntityData target) {
@@ -177,30 +203,13 @@ namespace WrathTactics.Engine {
 
             try {
                 Rulebook.Trigger(new RuleCastSpell(data, tw));
-                ConsumeSplashItem(item, usable);
+                ConsumeInventoryItem(item, usable);
                 Log.Engine.Info($"ThrowSplash: {owner.CharacterName} threw {item.Blueprint.name} at {target.CharacterName}");
                 return true;
             } catch (Exception ex) {
                 Log.Engine.Error(ex, $"ThrowSplash Rulebook.Trigger failed for {item.Blueprint.name}");
                 return false;
             }
-        }
-
-        static void ConsumeSplashItem(ItemEntity item, BlueprintItemEquipmentUsable usable) {
-            int before = item.Count;
-            int charges = item.Charges;
-            string path;
-            // Wand: multi-charge per instance → Charges--. Everything else (Potion, Scroll, Utility)
-            // stacks in inventory → Inventory.Remove. IsSpendCharges is true for Utility items too
-            // but their Charges=1 per instance, so decrementing underflows instead of reducing the stack.
-            if (usable.Type == UsableItemType.Wand) {
-                item.Charges--;
-                path = "Charges--";
-            } else {
-                Game.Instance.Player.Inventory.Remove(item, 1);
-                path = "Remove";
-            }
-            Log.Engine.Debug($"Consume {item.Blueprint.name} via {path}: Count {before}->{item.Count}, Charges {charges}->{item.Charges}, Type={usable.Type}");
         }
 
         static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target) {

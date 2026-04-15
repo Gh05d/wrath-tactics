@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.Items;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.ActivatableAbilities;
@@ -147,7 +148,18 @@ namespace WrathTactics.Engine {
         }
 
         public static AbilityData FindBestHeal(UnitEntityData owner, HealMode mode = HealMode.Any) {
-            var heals = new List<(AbilityData ability, int priority)>();
+            return FindBestHealEx(owner, mode, out _);
+        }
+
+        /// <summary>
+        /// Returns best heal ability plus the inventory ItemEntity it came from (null for
+        /// spellbook spells, class abilities, and quickslot/equipped wands). Caller must
+        /// consume the item via Inventory.Remove after casting — synthesized AbilityData
+        /// from inventory doesn't auto-consume through Rulebook.Trigger.
+        /// </summary>
+        public static AbilityData FindBestHealEx(UnitEntityData owner, HealMode mode, out ItemEntity inventorySource) {
+            inventorySource = null;
+            var heals = new List<(AbilityData ability, int priority, ItemEntity source)>();
 
             // Search spellbooks for cure/heal spells
             foreach (var book in owner.Spellbooks) {
@@ -155,7 +167,7 @@ namespace WrathTactics.Engine {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (IsHealingSpell(spell.Blueprint)) {
                             if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)
-                                heals.Add((spell, 100 + level * 10)); // highest priority: spellbook spells
+                                heals.Add((spell, 100 + level * 10, null)); // highest priority: spellbook spells
                         }
                     }
                 }
@@ -177,7 +189,7 @@ namespace WrathTactics.Engine {
                     }
                 }
 
-                heals.Add((ability.Data, 80)); // next priority: class features
+                heals.Add((ability.Data, 80, null)); // next priority: class features
             }
 
             // Item-backed abilities (wands, staves, equipped healing items)
@@ -185,7 +197,7 @@ namespace WrathTactics.Engine {
                 if (ability.Data.SourceItem == null) continue;
                 if (ability.Data.SourceItem.Charges <= 0) continue;
                 if (IsHealingSpell(ability.Blueprint))
-                    heals.Add((ability.Data, 30)); // lower priority: wands/staves
+                    heals.Add((ability.Data, 30, null)); // lower priority: wands/staves (real SourceItem, auto-consumed)
             }
 
             // Healing potions/scrolls from inventory
@@ -215,22 +227,26 @@ namespace WrathTactics.Engine {
 
                     // Lower priority: potions before scrolls (conserve scrolls)
                     int priority = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion ? 10 : 20;
-                    heals.Add((itemAbility, priority));
+                    heals.Add((itemAbility, priority, item));
                 }
             }
 
             Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: total inventory items={invTotal}, usable={invUsable}, healing={invHealing}, heals candidates total={heals.Count}");
             if (heals.Count == 0) return null;
 
+            (AbilityData ability, int priority, ItemEntity source) pick;
             switch (mode) {
-                case HealMode.Strongest:
-                    return heals.OrderByDescending(h => h.priority).First().ability;
                 case HealMode.Weakest:
-                    return heals.OrderBy(h => h.priority).First().ability;
+                    pick = heals.OrderBy(h => h.priority).First();
+                    break;
+                case HealMode.Strongest:
                 case HealMode.Any:
                 default:
-                    return heals.OrderByDescending(h => h.priority).First().ability;
+                    pick = heals.OrderByDescending(h => h.priority).First();
+                    break;
             }
+            inventorySource = pick.source;
+            return pick.ability;
         }
 
         static bool IsHealingSpell(BlueprintAbility blueprint) {

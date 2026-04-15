@@ -7,7 +7,9 @@ namespace WrathTactics.Models {
         EnemyCount,
         Combat,
         EnemyBiggestThreat,  // the single enemy with highest threat
-        EnemyLowestThreat    // the single enemy with lowest threat
+        EnemyLowestThreat,   // the single enemy with lowest threat
+        EnemyHighestHp,      // the single enemy with highest HP%
+        EnemyLowestHp        // the single enemy with lowest HP%
     }
 
     public enum ConditionProperty {
@@ -67,6 +69,7 @@ namespace WrathTactics.Models {
         AllyMissingBuff,
         EnemyNearest,
         EnemyLowestHp,
+        EnemyHighestHp,
         EnemyHighestAC,
         EnemyHighestThreat,
         EnemyCreatureType,

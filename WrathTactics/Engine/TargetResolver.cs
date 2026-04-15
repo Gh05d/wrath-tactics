@@ -14,6 +14,7 @@ namespace WrathTactics.Engine {
                 case TargetType.AllyMissingBuff:    return GetAllyMissingBuff(owner, target.Filter);
                 case TargetType.EnemyNearest:       return GetEnemyNearest(owner);
                 case TargetType.EnemyLowestHp:      return GetEnemyLowestHp(owner);
+                case TargetType.EnemyHighestHp:     return GetEnemyHighestHp(owner);
                 case TargetType.EnemyHighestAC:     return GetEnemyHighestAC(owner);
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
@@ -51,6 +52,12 @@ namespace WrathTactics.Engine {
         static UnitEntityData GetEnemyLowestHp(UnitEntityData owner) {
             return GetVisibleEnemies(owner)
                 .OrderBy(e => (float)e.HPLeft / System.Math.Max(1, e.Stats.HitPoints.ModifiedValue))
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyHighestHp(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderByDescending(e => (float)e.HPLeft / System.Math.Max(1, e.Stats.HitPoints.ModifiedValue))
                 .FirstOrDefault();
         }
 

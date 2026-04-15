@@ -49,8 +49,10 @@ namespace WrathTactics.Engine {
                     case ConditionSubject.AllyCount:           return EvaluateAllyCount(condition, owner);
                     case ConditionSubject.Enemy:               return EvaluateEnemy(condition, owner);
                     case ConditionSubject.EnemyCount:          return EvaluateEnemyCount(condition, owner);
-                    case ConditionSubject.EnemyBiggestThreat:  return EvaluateEnemyThreatPick(condition, owner, biggest: true);
-                    case ConditionSubject.EnemyLowestThreat:   return EvaluateEnemyThreatPick(condition, owner, biggest: false);
+                    case ConditionSubject.EnemyBiggestThreat:  return EvaluateEnemyPick(condition, owner, e => ThreatCalculator.Calculate(e), biggest: true);
+                    case ConditionSubject.EnemyLowestThreat:   return EvaluateEnemyPick(condition, owner, e => ThreatCalculator.Calculate(e), biggest: false);
+                    case ConditionSubject.EnemyHighestHp:      return EvaluateEnemyPick(condition, owner, HpPercent, biggest: true);
+                    case ConditionSubject.EnemyLowestHp:       return EvaluateEnemyPick(condition, owner, HpPercent, biggest: false);
                     case ConditionSubject.Combat:              return EvaluateCombat(condition);
                     default:                                   return false;
                 }
@@ -60,13 +62,14 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool EvaluateEnemyThreatPick(Condition condition, UnitEntityData owner, bool biggest) {
+        static bool EvaluateEnemyPick(Condition condition, UnitEntityData owner,
+            Func<UnitEntityData, float> metric, bool biggest) {
             UnitEntityData pick = null;
-            float bestThreat = biggest ? float.MinValue : float.MaxValue;
+            float best = biggest ? float.MinValue : float.MaxValue;
             foreach (var enemy in GetVisibleEnemies(owner)) {
-                float threat = ThreatCalculator.Calculate(enemy);
-                bool better = biggest ? threat > bestThreat : threat < bestThreat;
-                if (better) { bestThreat = threat; pick = enemy; }
+                float val = metric(enemy);
+                bool better = biggest ? val > best : val < best;
+                if (better) { best = val; pick = enemy; }
             }
             if (pick == null) return false;
             if (EvaluateUnitProperty(condition, pick)) {
@@ -74,6 +77,11 @@ namespace WrathTactics.Engine {
                 return true;
             }
             return false;
+        }
+
+        static float HpPercent(UnitEntityData unit) {
+            int max = unit.Stats.HitPoints.ModifiedValue;
+            return max <= 0 ? 0 : (float)unit.HPLeft / max;
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {

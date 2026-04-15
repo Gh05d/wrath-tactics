@@ -207,6 +207,15 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(downObj, "v", 18f, TextAlignmentOptions.Midline);
             downObj.AddComponent<Button>().onClick.AddListener(() => MoveRule(1));
 
+            // Copy
+            var (copyObj, _4c) = UIHelpers.Create("Copy", header.transform);
+            var copyLE = copyObj.AddComponent<LayoutElement>();
+            copyLE.preferredWidth = 48;
+            copyLE.flexibleWidth = 0;
+            UIHelpers.AddBackground(copyObj, new Color(0.2f, 0.35f, 0.5f, 1f));
+            UIHelpers.AddLabel(copyObj, "Copy", 14f, TextAlignmentOptions.Midline);
+            copyObj.AddComponent<Button>().onClick.AddListener(() => CloneRule());
+
             // Delete
             var (delObj, _4) = UIHelpers.Create("Del", header.transform);
             var delLE = delObj.AddComponent<LayoutElement>();
@@ -533,6 +542,17 @@ namespace WrathTactics.UI {
 
         void DeleteRule() {
             ruleList.Remove(rule);
+            ConfigManager.Save();
+            onChanged?.Invoke();
+        }
+
+        void CloneRule() {
+            // Deep copy via JSON roundtrip — simplest safe clone for nested condition groups.
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(rule);
+            var copy = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
+            copy.Id = System.Guid.NewGuid().ToString();
+            copy.Name = rule.Name + " (copy)";
+            ruleList.Insert(index + 1, copy);
             ConfigManager.Save();
             onChanged?.Invoke();
         }
