@@ -187,16 +187,20 @@ namespace WrathTactics.Engine {
         }
 
         static void ConsumeSplashItem(ItemEntity item, BlueprintItemEquipmentUsable usable) {
-            if (usable.Type == UsableItemType.Potion || usable.Type == UsableItemType.Scroll) {
-                Game.Instance.Player.Inventory.Remove(item, 1);
-                return;
-            }
-            if (item.IsSpendCharges) {
+            int before = item.Count;
+            int charges = item.Charges;
+            string path;
+            // Wand: multi-charge per instance → Charges--. Everything else (Potion, Scroll, Utility)
+            // stacks in inventory → Inventory.Remove. IsSpendCharges is true for Utility items too
+            // but their Charges=1 per instance, so decrementing underflows instead of reducing the stack.
+            if (usable.Type == UsableItemType.Wand) {
                 item.Charges--;
-                return;
+                path = "Charges--";
+            } else {
+                Game.Instance.Player.Inventory.Remove(item, 1);
+                path = "Remove";
             }
-            // Utility-type splash items (Alchemist's Fire, Acid Flask): consume one from stack
-            Game.Instance.Player.Inventory.Remove(item, 1);
+            Log.Engine.Debug($"Consume {item.Blueprint.name} via {path}: Count {before}->{item.Count}, Charges {charges}->{item.Charges}, Type={usable.Type}");
         }
 
         static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target) {
