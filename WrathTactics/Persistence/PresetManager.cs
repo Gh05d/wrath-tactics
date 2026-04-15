@@ -40,11 +40,19 @@ namespace WrathTactics.Persistence {
         }
 
         public static void Save(TacticsRule preset) {
+            if (preset == null || string.IsNullOrEmpty(preset.Id)) {
+                Log.Persistence.Warn("Save called with null preset or empty Id — ignored");
+                return;
+            }
             try {
                 Directory.CreateDirectory(PresetDir);
                 var path = Path.Combine(PresetDir, $"{preset.Id}.json");
+                var tmp = path + ".tmp";
                 var json = JsonConvert.SerializeObject(preset, Formatting.Indented);
-                File.WriteAllText(path, json);
+                // Write-then-rename so a crash mid-write can't leave an empty/partial file.
+                File.WriteAllText(tmp, json);
+                if (File.Exists(path)) File.Delete(path);
+                File.Move(tmp, path);
                 Log.Persistence.Info($"Saved preset '{preset.Name}' (id={preset.Id})");
             } catch (Exception ex) {
                 Log.Persistence.Error(ex, $"Failed to save preset '{preset.Name}'");
@@ -52,10 +60,15 @@ namespace WrathTactics.Persistence {
         }
 
         public static void Delete(string presetId) {
-            var path = Path.Combine(PresetDir, $"{presetId}.json");
-            if (File.Exists(path)) {
-                File.Delete(path);
-                Log.Persistence.Info($"Deleted preset id={presetId}");
+            if (string.IsNullOrEmpty(presetId)) return;
+            try {
+                var path = Path.Combine(PresetDir, $"{presetId}.json");
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                    Log.Persistence.Info($"Deleted preset id={presetId}");
+                }
+            } catch (Exception ex) {
+                Log.Persistence.Error(ex, $"Failed to delete preset id={presetId}");
             }
         }
     }
