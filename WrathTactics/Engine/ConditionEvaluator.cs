@@ -53,6 +53,14 @@ namespace WrathTactics.Engine {
                     case ConditionSubject.EnemyLowestThreat:   return EvaluateEnemyPick(condition, owner, e => ThreatCalculator.Calculate(e), biggest: false);
                     case ConditionSubject.EnemyHighestHp:      return EvaluateEnemyPick(condition, owner, HpPercent, biggest: true);
                     case ConditionSubject.EnemyLowestHp:       return EvaluateEnemyPick(condition, owner, HpPercent, biggest: false);
+                    case ConditionSubject.EnemyLowestAC:      return EvaluateEnemyPick(condition, owner, UnitAC, biggest: false);
+                    case ConditionSubject.EnemyHighestAC:     return EvaluateEnemyPick(condition, owner, UnitAC, biggest: true);
+                    case ConditionSubject.EnemyLowestFort:    return EvaluateEnemyPick(condition, owner, UnitFort, biggest: false);
+                    case ConditionSubject.EnemyHighestFort:   return EvaluateEnemyPick(condition, owner, UnitFort, biggest: true);
+                    case ConditionSubject.EnemyLowestReflex:  return EvaluateEnemyPick(condition, owner, UnitReflex, biggest: false);
+                    case ConditionSubject.EnemyHighestReflex: return EvaluateEnemyPick(condition, owner, UnitReflex, biggest: true);
+                    case ConditionSubject.EnemyLowestWill:    return EvaluateEnemyPick(condition, owner, UnitWill, biggest: false);
+                    case ConditionSubject.EnemyHighestWill:   return EvaluateEnemyPick(condition, owner, UnitWill, biggest: true);
                     case ConditionSubject.Combat:              return EvaluateCombat(condition);
                     default:                                   return false;
                 }
@@ -82,6 +90,22 @@ namespace WrathTactics.Engine {
         static float HpPercent(UnitEntityData unit) {
             int max = unit.Stats.HitPoints.ModifiedValue;
             return max <= 0 ? 0 : (float)unit.HPLeft / max;
+        }
+
+        static float UnitAC(UnitEntityData unit) {
+            return unit.Stats.AC.ModifiedValue;
+        }
+
+        static float UnitFort(UnitEntityData unit) {
+            return unit.Stats.SaveFortitude.ModifiedValue;
+        }
+
+        static float UnitReflex(UnitEntityData unit) {
+            return unit.Stats.SaveReflex.ModifiedValue;
+        }
+
+        static float UnitWill(UnitEntityData unit) {
+            return unit.Stats.SaveWill.ModifiedValue;
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {

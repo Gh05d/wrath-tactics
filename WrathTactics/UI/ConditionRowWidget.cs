@@ -304,6 +304,14 @@ namespace WrathTactics.UI {
                 case ConditionSubject.EnemyLowestThreat:
                 case ConditionSubject.EnemyHighestHp:
                 case ConditionSubject.EnemyLowestHp:
+                case ConditionSubject.EnemyLowestAC:
+                case ConditionSubject.EnemyHighestAC:
+                case ConditionSubject.EnemyLowestFort:
+                case ConditionSubject.EnemyHighestFort:
+                case ConditionSubject.EnemyLowestReflex:
+                case ConditionSubject.EnemyHighestReflex:
+                case ConditionSubject.EnemyLowestWill:
+                case ConditionSubject.EnemyHighestWill:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC,
                         ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,

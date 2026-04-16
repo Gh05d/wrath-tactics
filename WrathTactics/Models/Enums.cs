@@ -9,7 +9,15 @@ namespace WrathTactics.Models {
         EnemyBiggestThreat,  // the single enemy with highest threat
         EnemyLowestThreat,   // the single enemy with lowest threat
         EnemyHighestHp,      // the single enemy with highest HP%
-        EnemyLowestHp        // the single enemy with lowest HP%
+        EnemyLowestHp,       // the single enemy with lowest HP%
+        EnemyLowestAC,       // the single enemy with lowest AC
+        EnemyHighestAC,      // the single enemy with highest AC
+        EnemyLowestFort,     // the single enemy with lowest Fortitude save
+        EnemyHighestFort,    // the single enemy with highest Fortitude save
+        EnemyLowestReflex,   // the single enemy with lowest Reflex save
+        EnemyHighestReflex,  // the single enemy with highest Reflex save
+        EnemyLowestWill,     // the single enemy with lowest Will save
+        EnemyHighestWill     // the single enemy with highest Will save
     }
 
     public enum ConditionProperty {
@@ -71,6 +79,13 @@ namespace WrathTactics.Models {
         EnemyLowestHp,
         EnemyHighestHp,
         EnemyHighestAC,
+        EnemyLowestAC,
+        EnemyHighestFort,
+        EnemyLowestFort,
+        EnemyHighestReflex,
+        EnemyLowestReflex,
+        EnemyHighestWill,
+        EnemyLowestWill,
         EnemyHighestThreat,
         EnemyCreatureType,
         ConditionTarget    // the enemy/ally that matched the triggering condition

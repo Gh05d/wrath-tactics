@@ -16,6 +16,13 @@ namespace WrathTactics.Engine {
                 case TargetType.EnemyLowestHp:      return GetEnemyLowestHp(owner);
                 case TargetType.EnemyHighestHp:     return GetEnemyHighestHp(owner);
                 case TargetType.EnemyHighestAC:     return GetEnemyHighestAC(owner);
+                case TargetType.EnemyLowestAC:      return GetEnemyLowestAC(owner);
+                case TargetType.EnemyHighestFort:   return GetEnemyHighestFort(owner);
+                case TargetType.EnemyLowestFort:    return GetEnemyLowestFort(owner);
+                case TargetType.EnemyHighestReflex: return GetEnemyHighestReflex(owner);
+                case TargetType.EnemyLowestReflex:  return GetEnemyLowestReflex(owner);
+                case TargetType.EnemyHighestWill:   return GetEnemyHighestWill(owner);
+                case TargetType.EnemyLowestWill:    return GetEnemyLowestWill(owner);
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
                 case TargetType.ConditionTarget:    return GetConditionTarget(owner);
@@ -64,6 +71,48 @@ namespace WrathTactics.Engine {
         static UnitEntityData GetEnemyHighestAC(UnitEntityData owner) {
             return GetVisibleEnemies(owner)
                 .OrderByDescending(e => e.Stats.AC.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyLowestAC(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderBy(e => e.Stats.AC.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyLowestFort(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderBy(e => e.Stats.SaveFortitude.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyHighestFort(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderByDescending(e => e.Stats.SaveFortitude.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyLowestReflex(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderBy(e => e.Stats.SaveReflex.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyHighestReflex(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderByDescending(e => e.Stats.SaveReflex.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyLowestWill(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderBy(e => e.Stats.SaveWill.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyHighestWill(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderByDescending(e => e.Stats.SaveWill.ModifiedValue)
                 .FirstOrDefault();
         }
 
