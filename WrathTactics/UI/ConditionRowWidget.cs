@@ -4,6 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Engine;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
 
@@ -158,8 +159,12 @@ namespace WrathTactics.UI {
                         condition.Value = debuffNames[v];
                         ConfigManager.Save();
                     });
+                } else if (condition.Property == ConditionProperty.HasBuff
+                    || condition.Property == ConditionProperty.MissingBuff) {
+                    condition.Operator = ConditionOperator.Equal;
+                    CreateBuffSelector(root, 0.58f, 0.88f);
                 } else {
-                    // HasBuff, MissingBuff, IsDead — fall back to text input
+                    // IsDead — fall back to text input
                     condition.Operator = ConditionOperator.Equal;
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
                         0.58, 0.88, condition.Value ?? "", 16f);
@@ -170,7 +175,9 @@ namespace WrathTactics.UI {
                 }
             } else {
                 bool isCreatureType = condition.Property == ConditionProperty.CreatureType;
-                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType;
+                bool isBuffProp = condition.Property == ConditionProperty.HasBuff
+                    || condition.Property == ConditionProperty.MissingBuff;
+                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType && !isBuffProp;
 
                 // Operator popup selector (hidden for dropdown-based properties)
                 if (needsOperator) {
@@ -251,6 +258,9 @@ namespace WrathTactics.UI {
                         condition.Value = debuffNames[v];
                         ConfigManager.Save();
                     });
+                } else if (condition.Property == ConditionProperty.HasBuff
+                    || condition.Property == ConditionProperty.MissingBuff) {
+                    CreateBuffSelector(root, 0.38f, 0.88f);
                 } else {
                     // Normal single value input
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
@@ -269,6 +279,29 @@ namespace WrathTactics.UI {
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f, 1f));
             UIHelpers.AddLabel(delBtn, "X", 16f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => onDelete?.Invoke());
+        }
+
+        void CreateBuffSelector(GameObject root, float xMin, float xMax) {
+            var buffs = BuffBlueprintProvider.GetBuffs();
+            if (buffs.Count == 0) {
+                // Fallback to text input if no buffs are in cache yet
+                var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                    xMin, xMax, condition.Value ?? "", 16f);
+                valueInput.onEndEdit.AddListener(v => {
+                    condition.Value = v;
+                    ConfigManager.Save();
+                });
+                return;
+            }
+
+            var names = buffs.Select(b => b.Name).ToList();
+            int idx = buffs.FindIndex(b => b.Guid == condition.Value);
+            if (idx < 0) { idx = 0; condition.Value = buffs[0].Guid; }
+
+            PopupSelector.Create(root, "BuffValue", (float)xMin, (float)xMax, names, idx, v => {
+                if (v < buffs.Count) condition.Value = buffs[v].Guid;
+                ConfigManager.Save();
+            });
         }
 
         void RefreshPropertySelector() {
