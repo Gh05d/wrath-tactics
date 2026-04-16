@@ -45,12 +45,22 @@ namespace WrathTactics.UI {
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 
-            // Body container fills entire card — header is INSIDE the VLG
-            var (body, bodyRt) = UIHelpers.Create("Body", root.transform);
+            // ScrollRect wrapper — clips body content when card exceeds max height
+            var (scrollObj, scrollObjRect) = UIHelpers.Create("BodyScroll", root.transform);
+            scrollObjRect.FillParent();
+            scrollObjRect.offsetMin = new Vector2(4, 4);
+            scrollObjRect.offsetMax = new Vector2(-4, -4);
+
+            var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
+            viewportRect.FillParent();
+            viewport.AddComponent<RectMask2D>();
+
+            // Body container — content inside the scroll viewport
+            var (body, bodyRt) = UIHelpers.Create("Body", viewport.transform);
             bodyContainer = body;
-            bodyRt.FillParent();
-            bodyRt.offsetMin = new Vector2(4, 4);
-            bodyRt.offsetMax = new Vector2(-4, -4);
+            bodyRt.SetAnchor(0, 1, 1, 1);
+            bodyRt.pivot = new Vector2(0.5f, 1f);
+            bodyRt.sizeDelta = new Vector2(0, 0);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 4;
@@ -62,6 +72,13 @@ namespace WrathTactics.UI {
 
             var csf = body.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var scroll = scrollObj.AddComponent<ScrollRect>();
+            scroll.viewport = viewportRect;
+            scroll.content = bodyRt;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.scrollSensitivity = 30f;
 
             RebuildBody();
         }
@@ -601,7 +618,7 @@ namespace WrathTactics.UI {
                 + 28f           // cooldown row
                 + Mathf.Max(0, childEstimate - 1) * bodySpacing
                 + 12f;          // VLG padding
-            layoutElement.preferredHeight = Mathf.Max(160f, height);
+            layoutElement.preferredHeight = Mathf.Clamp(height, 160f, 500f);
         }
 
         void MoveRule(int direction) {
