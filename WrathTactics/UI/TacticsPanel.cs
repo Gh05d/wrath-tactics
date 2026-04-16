@@ -207,6 +207,22 @@ namespace WrathTactics.UI {
             var csf = content.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            // Vertical scrollbar track on the right edge
+            var (scrollbarObj, scrollbarRect) = UIHelpers.Create("Scrollbar", scrollObj.transform);
+            scrollbarRect.SetAnchor(1, 1, 0, 1);
+            scrollbarRect.pivot = new Vector2(1, 0.5f);
+            scrollbarRect.sizeDelta = new Vector2(8, 0);
+            UIHelpers.AddBackground(scrollbarObj, new Color(0.12f, 0.12f, 0.12f, 0.5f));
+
+            var (handleObj, handleRect) = UIHelpers.Create("Handle", scrollbarObj.transform);
+            handleRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(handleObj, new Color(0.5f, 0.5f, 0.5f, 0.6f));
+
+            var scrollbar = scrollbarObj.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handleRect;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.targetGraphic = handleObj.GetComponent<Image>();
+
             // Wire ScrollRect
             var scroll = scrollObj.AddComponent<ScrollRect>();
             scroll.viewport = viewportRect;
@@ -214,6 +230,9 @@ namespace WrathTactics.UI {
             scroll.horizontal = false;
             scroll.vertical = true;
             scroll.scrollSensitivity = 30f;
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+            scroll.verticalScrollbarSpacing = 2f;
 
             ruleListContent = content.transform;
         }
@@ -358,6 +377,14 @@ namespace WrathTactics.UI {
                 } else if (hudButtonRetrySeconds > 30f && hudButton == null) {
                     CreateFloatingHudButton(canvas);
                 }
+            }
+
+            // ESC closes panel when visible
+            if (isVisible && Input.GetKeyDown(KeyCode.Escape)) {
+                Toggle();
+                // Consume the input so the game menu doesn't also open
+                Input.ResetInputAxes();
+                return;
             }
 
             // Keyboard shortcut: Ctrl+T

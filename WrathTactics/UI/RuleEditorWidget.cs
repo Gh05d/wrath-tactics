@@ -24,6 +24,7 @@ namespace WrathTactics.UI {
 
         // The body container that holds conditions + action + target rows
         GameObject bodyContainer;
+        ScrollRect bodyScrollRect;
 
         // Spell/ability selector reference for refreshing
         PopupSelector spellSelector;
@@ -73,12 +74,13 @@ namespace WrathTactics.UI {
             var csf = body.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var scroll = scrollObj.AddComponent<ScrollRect>();
-            scroll.viewport = viewportRect;
-            scroll.content = bodyRt;
-            scroll.horizontal = false;
-            scroll.vertical = true;
-            scroll.scrollSensitivity = 30f;
+            bodyScrollRect = scrollObj.AddComponent<ScrollRect>();
+            bodyScrollRect.viewport = viewportRect;
+            bodyScrollRect.content = bodyRt;
+            bodyScrollRect.horizontal = false;
+            bodyScrollRect.vertical = true;
+            bodyScrollRect.scrollSensitivity = 30f;
+            bodyScrollRect.enabled = false; // only enabled when content overflows max height
 
             RebuildBody();
         }
@@ -619,6 +621,8 @@ namespace WrathTactics.UI {
                 + Mathf.Max(0, childEstimate - 1) * bodySpacing
                 + 12f;          // VLG padding
             layoutElement.preferredHeight = Mathf.Clamp(height, 160f, 500f);
+            if (bodyScrollRect != null)
+                bodyScrollRect.enabled = height > 500f;
         }
 
         void MoveRule(int direction) {
