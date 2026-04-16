@@ -59,7 +59,6 @@ namespace WrathTactics.UI {
                 };
                 PresetRegistry.Save(preset);
                 expandedIds.Add(preset.Id);
-                onPresetsChanged?.Invoke();
                 Rebuild();
             });
 
@@ -105,7 +104,6 @@ namespace WrathTactics.UI {
                 if (string.IsNullOrEmpty(trimmed) || trimmed == preset.Name) return;
                 preset.Name = trimmed;
                 PresetRegistry.Save(preset);
-                onPresetsChanged?.Invoke();
                 // Defer — Rebuild destroys the TMP_InputField and its teardown must not
                 // race with the onEndEdit callback still on the stack.
                 StartCoroutine(DeferredRebuild());
@@ -136,7 +134,6 @@ namespace WrathTactics.UI {
                 PresetRegistry.Delete(preset.Id, ConfigManager.Current);
                 ConfigManager.Save();
                 expandedIds.Remove(preset.Id);
-                onPresetsChanged?.Invoke();
                 Rebuild();
             });
 
@@ -148,7 +145,6 @@ namespace WrathTactics.UI {
                 var solo = new List<TacticsRule> { preset };
                 widget.Init(preset, 0, solo, () => {
                     PresetRegistry.Save(preset);
-                    onPresetsChanged?.Invoke();
                 }, unitId: null, hideHeader: true);
             }
         }
@@ -161,10 +157,12 @@ namespace WrathTactics.UI {
         void Rebuild() {
             for (int i = transform.childCount - 1; i >= 0; i--)
                 Destroy(transform.GetChild(i).gameObject);
+            // DestroyImmediate for layout components — deferred Destroy leaves duplicates
+            // that fight over sizing for one frame, causing broken layout.
             var vlg = GetComponent<VerticalLayoutGroup>();
-            if (vlg != null) Destroy(vlg);
+            if (vlg != null) DestroyImmediate(vlg);
             var csf = GetComponent<ContentSizeFitter>();
-            if (csf != null) Destroy(csf);
+            if (csf != null) DestroyImmediate(csf);
             BuildUI();
         }
     }

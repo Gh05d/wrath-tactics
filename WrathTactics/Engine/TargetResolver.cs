@@ -2,11 +2,23 @@ using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
+using UnityEngine;
+using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class TargetResolver {
         public static UnitEntityData Resolve(TargetDef target, UnitEntityData owner) {
+            var result = ResolveInternal(target, owner);
+            if (result != null) {
+                float dist = (result.Position - owner.Position).magnitude;
+                Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> {result.CharacterName} " +
+                    $"(type={target.Type}, dist={dist:F1}, inCombat={result.IsInCombat}, visible={result.IsVisibleForPlayer})");
+            }
+            return result;
+        }
+
+        static UnitEntityData ResolveInternal(TargetDef target, UnitEntityData owner) {
             switch (target.Type) {
                 case TargetType.Self:               return owner;
                 case TargetType.AllyLowestHp:       return GetAllyLowestHp(owner);
@@ -142,7 +154,7 @@ namespace WrathTactics.Engine {
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
             return Game.Instance.State.Units
-                .Where(u => u.IsInGame && u.HPLeft > 0 && u.IsPlayersEnemy && u.IsVisibleForPlayer);
+                .Where(u => u.IsInGame && u.HPLeft > 0 && u.IsPlayersEnemy && u.IsInCombat);
         }
     }
 }

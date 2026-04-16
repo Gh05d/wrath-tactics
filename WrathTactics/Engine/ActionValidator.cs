@@ -23,7 +23,7 @@ namespace WrathTactics.Engine {
                 case ActionType.UseItem:
                     return CanUseItem(action.AbilityId, owner, target);
                 case ActionType.ToggleActivatable:
-                    return CanToggleActivatable(action.AbilityId, owner);
+                    return CanToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                 case ActionType.AttackTarget:
                     return target != null && target.HPLeft > 0;
                 case ActionType.Heal:
@@ -70,9 +70,11 @@ namespace WrathTactics.Engine {
             return true;
         }
 
-        static bool CanToggleActivatable(string abilityGuid, UnitEntityData owner) {
+        static bool CanToggleActivatable(string abilityGuid, UnitEntityData owner, ToggleMode mode) {
             var activatable = FindActivatable(owner, abilityGuid);
             if (activatable == null) return false;
+            if (mode == ToggleMode.Off)
+                return activatable.IsOn;
             return !activatable.IsOn && activatable.IsAvailable;
         }
 
@@ -84,28 +86,35 @@ namespace WrathTactics.Engine {
         /// Returns ability and whether it's synthetic (variant/not in owner's fact list).
         /// Synthetic abilities must use Rulebook.Trigger — CreateCastCommand silently rejects them.
         /// </summary>
-        public static AbilityData FindAbilityEx(UnitEntityData owner, string abilityGuid, out bool isSynthetic) {
+        public static AbilityData FindAbilityEx(UnitEntityData owner, string abilityKey, out bool isSynthetic) {
             isSynthetic = false;
-            if (string.IsNullOrEmpty(abilityGuid)) return null;
+            if (string.IsNullOrEmpty(abilityKey)) return null;
+
+            // Parse compound key: "guid" or "guid#metamagicMask"
+            UI.SpellDropdownProvider.ParseKey(abilityKey, out string guid, out int metamagicMask);
 
             foreach (var book in owner.Spellbooks) {
                 for (int level = 0; level <= 10; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        if (spell.Blueprint.AssetGuid.ToString() == abilityGuid)
+                        if (spell.Blueprint.AssetGuid.ToString() == guid && metamagicMask == 0)
                             return spell;
                     }
                     foreach (var spell in book.GetCustomSpells(level)) {
-                        if (spell.Blueprint.AssetGuid.ToString() == abilityGuid)
+                        if (spell.Blueprint.AssetGuid.ToString() != guid) continue;
+                        int spellMask = (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
+                            ? (int)spell.MetamagicData.MetamagicMask : 0;
+                        if (spellMask == metamagicMask)
                             return spell;
                     }
                 }
             }
 
+            // Non-spellbook abilities (only match plain GUID keys)
             foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
 
                 // Direct match — real ability, not synthetic
-                if (ability.Blueprint.AssetGuid.ToString() == abilityGuid)
+                if (ability.Blueprint.AssetGuid.ToString() == guid && metamagicMask == 0)
                     return ability.Data;
 
                 // Check variants (e.g. Evil Eye - AC).
@@ -114,7 +123,7 @@ namespace WrathTactics.Engine {
                 var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
                 if (variants != null && variants.m_Variants != null) {
                     foreach (var variant in variants.Variants) {
-                        if (variant != null && variant.AssetGuid.ToString() == abilityGuid) {
+                        if (variant != null && variant.AssetGuid.ToString() == guid && metamagicMask == 0) {
                             isSynthetic = true;
                             return new AbilityData(ability.Data, variant);
                         }

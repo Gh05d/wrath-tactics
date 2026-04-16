@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Items.Equipment;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.UnitLogic.Abilities;
 using UnityEngine;
 
 namespace WrathTactics.UI {
@@ -16,17 +18,77 @@ namespace WrathTactics.UI {
             }
         }
 
+        /// <summary>
+        /// Builds a compound key for an AbilityData. Normal spells use the blueprint GUID;
+        /// metamagic variants use "guid#metamagicMask" so each variant is uniquely identifiable.
+        /// </summary>
+        public static string MakeKey(AbilityData spell) {
+            var guid = spell.Blueprint.AssetGuid.ToString();
+            if (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
+                return $"{guid}#{(int)spell.MetamagicData.MetamagicMask}";
+            return guid;
+        }
+
+        /// <summary>
+        /// Parses a compound key. Returns the blueprint GUID and metamagic mask (0 if none).
+        /// </summary>
+        public static void ParseKey(string key, out string guid, out int metamagicMask) {
+            int sep = key.IndexOf('#');
+            if (sep < 0) {
+                guid = key;
+                metamagicMask = 0;
+            } else {
+                guid = key.Substring(0, sep);
+                int.TryParse(key.Substring(sep + 1), out metamagicMask);
+            }
+        }
+
+        static string BuildMetamagicTag(AbilityData spell) {
+            if (spell.MetamagicData == null || !spell.MetamagicData.NotEmpty)
+                return "";
+            var tag = "";
+            foreach (Metamagic flag in Enum.GetValues(typeof(Metamagic))) {
+                if (flag == 0) continue;
+                if (!spell.MetamagicData.Has(flag)) continue;
+                switch (flag) {
+                    case Metamagic.Empower: tag += "E"; break;
+                    case Metamagic.Maximize: tag += "M"; break;
+                    case Metamagic.Quicken: tag += "Q"; break;
+                    case Metamagic.Extend: tag += "X"; break;
+                    case Metamagic.Heighten: tag += "H"; break;
+                    case Metamagic.Reach: tag += "R"; break;
+                    case Metamagic.CompletelyNormal: tag += "N"; break;
+                    case Metamagic.Persistent: tag += "P"; break;
+                    case Metamagic.Selective: tag += "S"; break;
+                    case Metamagic.Bolstered: tag += "B"; break;
+                    default: tag += "?"; break;
+                }
+            }
+            return tag.Length > 0 ? $"[{tag}]" : "";
+        }
+
         public static List<SpellEntry> GetSpells(UnitEntityData unit) {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
 
-            // Spellbook spells only (max level 9)
             foreach (var book in unit.Spellbooks) {
                 for (int level = 0; level <= 9; level++) {
+                    // Base known spells
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        var guid = spell.Blueprint.AssetGuid.ToString();
-                        if (seen.Add(guid))
-                            result.Add(new SpellEntry($"[L{level}] {spell.Name}", guid, spell.Blueprint.Icon));
+                        var key = spell.Blueprint.AssetGuid.ToString();
+                        if (seen.Add(key))
+                            result.Add(new SpellEntry($"[L{level}] {spell.Name}", key, spell.Blueprint.Icon));
+                    }
+                    // Custom spells (metamagic variants, fused spells)
+                    foreach (var spell in book.GetCustomSpells(level)) {
+                        var key = MakeKey(spell);
+                        if (seen.Add(key)) {
+                            var tag = BuildMetamagicTag(spell);
+                            var name = tag.Length > 0
+                                ? $"[L{level}] {spell.Name} {tag}"
+                                : $"[L{level}] {spell.Name}";
+                            result.Add(new SpellEntry(name, key, spell.Blueprint.Icon));
+                        }
                     }
                 }
             }

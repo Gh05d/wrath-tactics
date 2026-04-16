@@ -32,6 +32,7 @@ namespace WrathTactics.Models {
         [JsonProperty] public string AbilityId { get; set; } = "";
         [JsonProperty] public HealMode HealMode { get; set; } = HealMode.Any;
         [JsonProperty] public ThrowSplashMode SplashMode { get; set; } = ThrowSplashMode.Any;
+        [JsonProperty] public ToggleMode ToggleMode { get; set; } = ToggleMode.On;
     }
 
     public class TargetDef {

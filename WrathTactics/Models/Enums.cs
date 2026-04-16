@@ -70,6 +70,11 @@ namespace WrathTactics.Models {
         Cheapest    // Use the lowest-cost splash item
     }
 
+    public enum ToggleMode {
+        On,
+        Off
+    }
+
     public enum TargetType {
         Self,
         AllyLowestHp,

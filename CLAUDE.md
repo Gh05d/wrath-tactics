@@ -31,6 +31,7 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 - `UnitUseAbility.CreateCastCommand` rejects synthetic AbilityData — only works for real spellbook spells
 - Newtonsoft.Json is old (game-bundled) — no generic JsonConverter<T>, use non-generic base class
 - .NET 4.8.1 missing APIs: no Dictionary.GetValueOrDefault(), no Index/Range syntax
+- **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in Rebuild() methods to avoid duplicate layout calculators for one frame
 
 ## Game API Gotchas
 
@@ -40,6 +41,7 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 - **Enemy enumeration**: `Game.Instance.State.Units` returns ALL units in scene (80+). Filter on `IsInCombat` to get only actively engaging enemies, else companions chase non-combat targets.
 - **CreatureType detection**: Many vanilla units (e.g. all swarms) have `Blueprint.Type = null`. Match via the unit's feature list (`SwarmDiminutiveFeature`, `SwarmTinyFeature`) instead of `Blueprint.Type.name`.
 - **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`. No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
+- **ActivatableAbility API**: Has `TryStart()` but NO `TryStop()`. Deactivate via `IsOn = false` only.
 
 ## Build & Logs
 

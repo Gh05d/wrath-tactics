@@ -23,6 +23,15 @@ namespace WrathTactics.UI {
             BuildUI();
         }
 
+        void Rebuild() {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+                Destroy(transform.GetChild(i).gameObject);
+            var le = GetComponent<LayoutElement>();
+            if (le != null) Destroy(le);
+            propertySelector = null;
+            BuildUI();
+        }
+
         void BuildUI() {
             var root = gameObject;
 
@@ -33,9 +42,12 @@ namespace WrathTactics.UI {
             PopupSelector.Create(root, "Subject", 0f, 0.15f, subjectNames,
                 (int)condition.Subject, v => {
                     condition.Subject = (ConditionSubject)v;
-                    RefreshPropertySelector();
+                    // Reset property to first valid for new subject
+                    var validProps = GetPropertiesForSubject(condition.Subject);
+                    if (!validProps.Contains(condition.Property) && validProps.Count > 0)
+                        condition.Property = validProps[0];
                     ConfigManager.Save();
-                    onChanged?.Invoke();
+                    Rebuild();
                 });
 
             // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
@@ -48,7 +60,7 @@ namespace WrathTactics.UI {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
                     if (v < currentProps.Count) condition.Property = currentProps[v];
                     ConfigManager.Save();
-                    onChanged?.Invoke();
+                    Rebuild();
                 });
 
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
@@ -112,7 +124,12 @@ namespace WrathTactics.UI {
                         ConfigManager.Save();
                     });
                 } else if (condition.Property == ConditionProperty.CreatureType) {
-                    condition.Operator = ConditionOperator.Equal;
+                    var ctOpNames = new List<string> { "=", "!=" };
+                    int ctOpIdx = condition.Operator == ConditionOperator.NotEqual ? 1 : 0;
+                    PopupSelector.Create(root, "CountCtOp", 0.58f, 0.64f, ctOpNames, ctOpIdx, v => {
+                        condition.Operator = v == 1 ? ConditionOperator.NotEqual : ConditionOperator.Equal;
+                        ConfigManager.Save();
+                    });
                     var creatureTypes = new List<string> {
                         "Aberration", "Animal", "Construct", "Dragon", "Fey",
                         "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
@@ -120,7 +137,7 @@ namespace WrathTactics.UI {
                     };
                     int ctIdx = creatureTypes.IndexOf(condition.Value);
                     if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
-                    PopupSelector.Create(root, "CountCreatureType", 0.58f, 0.88f, creatureTypes, ctIdx, v => {
+                    PopupSelector.Create(root, "CountCreatureType", 0.65f, 0.88f, creatureTypes, ctIdx, v => {
                         condition.Value = creatureTypes[v];
                         ConfigManager.Save();
                     });
@@ -187,8 +204,14 @@ namespace WrathTactics.UI {
                             condition.Operator = (ConditionOperator)v;
                             ConfigManager.Save();
                         });
+                } else if (isCreatureType) {
+                    var ctOpNames = new List<string> { "=", "!=" };
+                    int ctOpIdx = condition.Operator == ConditionOperator.NotEqual ? 1 : 0;
+                    PopupSelector.Create(root, "CtOperator", 0.38f, 0.44f, ctOpNames, ctOpIdx, v => {
+                        condition.Operator = v == 1 ? ConditionOperator.NotEqual : ConditionOperator.Equal;
+                        ConfigManager.Save();
+                    });
                 } else {
-                    // Use Equal for dropdown matches
                     condition.Operator = ConditionOperator.Equal;
                 }
 
@@ -200,7 +223,7 @@ namespace WrathTactics.UI {
                     };
                     int ctIdx = creatureTypes.IndexOf(condition.Value);
                     if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
-                    PopupSelector.Create(root, "CreatureTypeValue", 0.38f, 0.88f, creatureTypes, ctIdx, v => {
+                    PopupSelector.Create(root, "CreatureTypeValue", 0.45f, 0.88f, creatureTypes, ctIdx, v => {
                         condition.Value = creatureTypes[v];
                         ConfigManager.Save();
                     });
@@ -302,16 +325,6 @@ namespace WrathTactics.UI {
                 if (v < buffs.Count) condition.Value = buffs[v].Guid;
                 ConfigManager.Save();
             });
-        }
-
-        void RefreshPropertySelector() {
-            if (propertySelector == null) return;
-            var props = GetPropertiesForSubject(condition.Subject);
-            var propNames = props.Select(p => p.ToString()).ToList();
-            int idx = props.IndexOf(condition.Property);
-            if (idx < 0) idx = 0;
-            if (idx < props.Count) condition.Property = props[idx];
-            propertySelector.SetOptions(propNames, idx);
         }
 
         static List<ConditionProperty> GetPropertiesForSubject(ConditionSubject subject) {

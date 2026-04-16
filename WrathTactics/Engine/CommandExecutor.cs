@@ -24,7 +24,7 @@ namespace WrathTactics.Engine {
                     case ActionType.UseItem:
                         return ExecuteUseItem(action.AbilityId, owner, target);
                     case ActionType.ToggleActivatable:
-                        return ExecuteToggleActivatable(action.AbilityId, owner);
+                        return ExecuteToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                     case ActionType.AttackTarget:
                         return ExecuteAttack(owner, target);
                     case ActionType.Heal:
@@ -99,18 +99,22 @@ namespace WrathTactics.Engine {
             return true;
         }
 
-        static bool ExecuteToggleActivatable(string abilityGuid, UnitEntityData owner) {
+        static bool ExecuteToggleActivatable(string abilityGuid, UnitEntityData owner, ToggleMode mode) {
             var activatable = ActionValidator.FindActivatable(owner, abilityGuid);
             if (activatable == null) {
                 Log.Engine.Warn($"Activatable {abilityGuid} not found on {owner.CharacterName}");
                 return false;
             }
 
-            activatable.IsOn = true;
-            if (!activatable.IsStarted)
-                activatable.TryStart();
-
-            Log.Engine.Info($"Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
+            if (mode == ToggleMode.Off) {
+                activatable.IsOn = false;
+                Log.Engine.Info($"Toggled {activatable.Blueprint.name} OFF for {owner.CharacterName}");
+            } else {
+                activatable.IsOn = true;
+                if (!activatable.IsStarted)
+                    activatable.TryStart();
+                Log.Engine.Info($"Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
+            }
             return true;
         }
 

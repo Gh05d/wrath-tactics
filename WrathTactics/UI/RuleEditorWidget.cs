@@ -379,6 +379,37 @@ namespace WrathTactics.UI {
                 return;
             }
 
+            // ToggleActivatable: mode dropdown (On/Off) + ability picker side by side
+            if (rule.Action.Type == ActionType.ToggleActivatable) {
+                var toggleModeNames = Enum.GetNames(typeof(ToggleMode)).ToList();
+                PopupSelector.Create(row, "ToggleMode", 0.39f, 0.52f, toggleModeNames,
+                    (int)rule.Action.ToggleMode, idx => {
+                        rule.Action.ToggleMode = (ToggleMode)idx;
+                        ConfigManager.Save();
+                    });
+
+                var tEntries = GetSpellEntries(rule.Action.Type);
+                currentSpellEntries = tEntries;
+                var tOptions = tEntries.Select(e => e.Name).ToList();
+                var tIcons = tEntries.Select(e => e.Icon).ToList();
+                int tInitialIndex = 0;
+                if (!string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                    int idx = tEntries.FindIndex(e => e.Guid == rule.Action.AbilityId);
+                    if (idx >= 0) tInitialIndex = idx;
+                }
+                if (tEntries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                    rule.Action.AbilityId = tEntries[tInitialIndex].Guid;
+                    ConfigManager.Save();
+                }
+                spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.53f, 1.0f,
+                    tOptions, tIcons, tInitialIndex, idx => {
+                        if (idx < currentSpellEntries.Count)
+                            rule.Action.AbilityId = currentSpellEntries[idx].Guid;
+                        ConfigManager.Save();
+                    });
+                return;
+            }
+
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
             var options = entries.Select(e => e.Name).ToList();
@@ -411,7 +442,7 @@ namespace WrathTactics.UI {
 
         void RefreshSpellSelector(ActionType actionType) {
             // For Heal/ThrowSplash, rebuild body to show mode selector instead
-            if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash) {
+            if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash || actionType == ActionType.ToggleActivatable) {
                 RebuildBody();
                 return;
             }

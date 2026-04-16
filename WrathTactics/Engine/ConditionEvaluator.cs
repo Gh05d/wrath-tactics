@@ -242,7 +242,8 @@ namespace WrathTactics.Engine {
                     return HasResource(unit, condition.Value);
 
                 case ConditionProperty.CreatureType:
-                    return CheckCreatureType(unit, condition.Value);
+                    bool ctMatch = CheckCreatureType(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !ctMatch : ctMatch;
 
                 default:
                     return false;
@@ -302,7 +303,8 @@ namespace WrathTactics.Engine {
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
 
                 case ConditionProperty.CreatureType:
-                    return CheckCreatureType(unit, condition.Value);
+                    bool ctMatch2 = CheckCreatureType(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !ctMatch2 : ctMatch2;
 
                 default:
                     return false;
