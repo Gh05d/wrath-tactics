@@ -32,6 +32,7 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 - Newtonsoft.Json is old (game-bundled) — no generic JsonConverter<T>, use non-generic base class
 - .NET 4.8.1 missing APIs: no Dictionary.GetValueOrDefault(), no Index/Range syntax
 - **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in Rebuild() methods to avoid duplicate layout calculators for one frame
+- **Nested ScrollRects**: Inner ScrollRect steals scroll events from outer. Disable inner `ScrollRect.enabled` unless content actually overflows; re-enable conditionally in `UpdateHeight()`
 
 ## Game API Gotchas
 
@@ -39,6 +40,7 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 - **Item consumption**: `IsSpendCharges=True` is per-instance for stacked Utility items (Alchemist's Fire etc.) where `Charges=1`. Decrementing underflows. Only `UsableItemType.Wand` should use `Charges--`; Potion/Scroll/Other use `Game.Instance.Player.Inventory.Remove(item, 1)`.
 - **Synthetic AbilityData fallback**: Inventory items have synthetic AbilityData → `CreateCastCommand` silently drops them. Use `Rulebook.Trigger<RuleCastSpell>` — fires effect FX at target but no throw/drink animation. For animation, item must be in a quickslot (then it's registered in `owner.Abilities.RawFacts` with `SourceItem != null`).
 - **Enemy enumeration**: `Game.Instance.State.Units` returns ALL units in scene (80+). Filter on `IsInCombat` to get only actively engaging enemies, else companions chase non-combat targets.
+- **Enemy filter consistency**: Both `ConditionEvaluator.GetVisibleEnemies` AND `TargetResolver.GetVisibleEnemies` must use the same filter (`IsInCombat`). Mismatch causes companions to target non-combat enemies.
 - **CreatureType detection**: Many vanilla units (e.g. all swarms) have `Blueprint.Type = null`. Match via the unit's feature list (`SwarmDiminutiveFeature`, `SwarmTinyFeature`) instead of `Blueprint.Type.name`.
 - **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`. No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
 - **ActivatableAbility API**: Has `TryStart()` but NO `TryStop()`. Deactivate via `IsOn = false` only.
