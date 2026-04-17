@@ -5,6 +5,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Logging;
 
 namespace WrathTactics.UI {
     static class UIHelpers {
@@ -163,14 +164,23 @@ namespace WrathTactics.UI {
         float blinkTimer;
         bool caretShown = true;
 
+        // Diagnostics — logged once each so we can trace what's happening without flooding logs.
+        bool loggedFirstFocus;
+        bool loggedFirstPosition;
+        int frameCounter;
+
         public void Init(TMP_InputField field, TextMeshProUGUI text, RectTransform textRect) {
             this.field = field;
             this.textComponent = text;
             this.textRect = textRect;
+            Log.UI.Info($"ManualInputCaret.Init: field={field?.name}, textRect={textRect?.name}, textRect.parent={textRect?.parent?.name}, font={(text?.font != null ? text.font.name : "<null>")}");
         }
 
         void Start() {
-            if (textRect == null || textComponent == null) return;
+            if (textRect == null || textComponent == null) {
+                Log.UI.Warn($"ManualInputCaret.Start: null refs (textRect={(textRect == null ? "null" : "ok")}, textComponent={(textComponent == null ? "null" : "ok")})");
+                return;
+            }
 
             // Parent to the VIEWPORT (textRect.parent), not to the text GO itself —
             // avoids TMP_Text's sub-mesh child management interfering with us.
@@ -195,16 +205,33 @@ namespace WrathTactics.UI {
             caretText.enableWordWrapping = false;
             caretText.raycastTarget = false;
             caretText.overflowMode = TextOverflowModes.Overflow;
+
+            Log.UI.Info($"ManualInputCaret.Start: caret GO created under {parent?.name}, caretText.font={(caretText.font != null ? caretText.font.name : "<null>")}, caretText.enabled={caretText.enabled}");
         }
 
         void Update() {
             if (field == null || caretText == null || textComponent == null) return;
-            if (!field.isFocused) {
+            frameCounter++;
+
+            bool focused = field.isFocused;
+            if (focused && !loggedFirstFocus) {
+                loggedFirstFocus = true;
+                Log.UI.Info($"ManualInputCaret: first focus detected on frame {frameCounter} — caretText activeInHierarchy={caretText.gameObject.activeInHierarchy}, enabled={caretText.enabled}, canvasRenderer.cull={(caretText.canvasRenderer != null ? caretText.canvasRenderer.cull.ToString() : "<no renderer>")}");
+            }
+
+            if (!focused) {
                 if (caretText.enabled) caretText.enabled = false;
                 return;
             }
 
-            caretRect.anchoredPosition = new Vector2(GetCaretX() - 2f, 0);
+            float x = GetCaretX() - 2f;
+            caretRect.anchoredPosition = new Vector2(x, 0);
+
+            if (!loggedFirstPosition) {
+                loggedFirstPosition = true;
+                var parentRect = (caretRect.parent as RectTransform);
+                Log.UI.Info($"ManualInputCaret: first position set x={x}, caretRect.rect={caretRect.rect}, parent.rect={(parentRect != null ? parentRect.rect.ToString() : "<null>")}, caretText.color={caretText.color}, fontSize={caretText.fontSize}");
+            }
 
             blinkTimer += Time.unscaledDeltaTime;
             if (blinkTimer >= 0.53f) {
