@@ -120,12 +120,12 @@ namespace WrathTactics.UI {
             inputField.text = initialText;
             inputField.contentType = contentType;
 
-            // Visible caret — TMP's default uses the text color at 0 alpha on dark
-            // backgrounds, which makes it invisible. Force white, 2px, slow blink.
-            inputField.customCaretColor = true;
-            inputField.caretColor = Color.white;
-            inputField.caretWidth = 2;
-            inputField.caretBlinkRate = 0.85f;
+            // Built-in TMP caret doesn't render reliably in our custom input fields
+            // (suspected font-material issue with the game's TMP setup). Attach a
+            // ManualInputCaret component that renders its own blinking Image caret
+            // positioned at the end of the visible text.
+            var manual = obj.AddComponent<ManualInputCaret>();
+            manual.Init(inputField, textTmp, textRect);
 
             // Set the background image as the target graphic for click detection
             var bgImage = obj.GetComponent<Image>();
@@ -135,6 +135,68 @@ namespace WrathTactics.UI {
             textTmp.text = initialText;
 
             return inputField;
+        }
+    }
+
+    /// <summary>
+    /// Renders a blinking "|" caret at the end of a TMP_InputField's visible text
+    /// while the field is focused. Works around cases where TMP's built-in caret
+    /// doesn't render in modded input fields due to font-material quirks.
+    /// Caret shows at text-end only — does not reflect mid-string cursor position.
+    /// For search/value inputs where typing is append-only, this is sufficient UX.
+    /// </summary>
+    public class ManualInputCaret : MonoBehaviour {
+        TMP_InputField field;
+        TextMeshProUGUI textComponent;
+        RectTransform textRect;
+        Image caretImage;
+        RectTransform caretRect;
+        float blinkTimer;
+        bool caretShown = true;
+
+        public void Init(TMP_InputField field, TextMeshProUGUI text, RectTransform textRect) {
+            this.field = field;
+            this.textComponent = text;
+            this.textRect = textRect;
+        }
+
+        void Start() {
+            if (textRect == null) return;
+            var caretObj = new GameObject("ManualCaret", typeof(RectTransform));
+            caretObj.transform.SetParent(textRect, false);
+            caretRect = (RectTransform)caretObj.transform;
+            caretRect.anchorMin = new Vector2(0, 0.15f);
+            caretRect.anchorMax = new Vector2(0, 0.85f);
+            caretRect.pivot = new Vector2(0, 0.5f);
+            caretRect.sizeDelta = new Vector2(2, 0);
+            caretRect.anchoredPosition = Vector2.zero;
+            caretImage = caretObj.AddComponent<Image>();
+            caretImage.color = Color.white;
+            caretImage.raycastTarget = false;
+            caretImage.enabled = false;
+        }
+
+        void Update() {
+            if (field == null || caretImage == null || textComponent == null) return;
+            if (!field.isFocused) {
+                if (caretImage.enabled) caretImage.enabled = false;
+                return;
+            }
+
+            float endX = 2f;
+            var raw = textComponent.text;
+            if (!string.IsNullOrEmpty(raw)) {
+                textComponent.ForceMeshUpdate();
+                endX = textComponent.preferredWidth + 2f;
+            }
+            caretRect.anchoredPosition = new Vector2(endX, 0);
+
+            blinkTimer += Time.unscaledDeltaTime;
+            if (blinkTimer >= 0.53f) {
+                blinkTimer = 0;
+                caretShown = !caretShown;
+            }
+            caretImage.enabled = caretShown;
         }
     }
 
