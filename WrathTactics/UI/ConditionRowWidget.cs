@@ -337,8 +337,9 @@ namespace WrathTactics.UI {
 
         void CreateBuffSelector(GameObject root, float xMin, float xMax) {
             var buffs = BuffBlueprintProvider.GetBuffs();
+
+            // Fallback to text input if blueprint cache is empty (e.g. main-menu state).
             if (buffs.Count == 0) {
-                // Fallback to text input if no buffs are in cache yet
                 var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
                     xMin, xMax, condition.Value ?? "", 16f);
                 valueInput.onEndEdit.AddListener(v => {
@@ -348,13 +349,31 @@ namespace WrathTactics.UI {
                 return;
             }
 
-            var names = buffs.Select(b => b.Name).ToList();
-            int idx = buffs.FindIndex(b => b.Guid == condition.Value);
-            if (idx < 0) { idx = 0; condition.Value = buffs[0].Guid; }
+            // Button showing the current selection, click opens BuffPickerOverlay.
+            var (btnObj, btnRect) = UIHelpers.Create("BuffPickerButton", root.transform);
+            btnRect.SetAnchor(xMin, xMax, 0, 1);
+            btnRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(btnObj, new Color(0.22f, 0.22f, 0.22f, 1f));
 
-            PopupSelector.Create(root, "BuffValue", (float)xMin, (float)xMax, names, idx, v => {
-                if (v < buffs.Count) condition.Value = buffs[v].Guid;
-                ConfigManager.Save();
+            string currentLabel = BuffBlueprintProvider.GetName(condition.Value);
+            if (string.IsNullOrEmpty(currentLabel) || currentLabel == condition.Value)
+                currentLabel = string.IsNullOrEmpty(condition.Value) ? "(pick a buff)" : currentLabel;
+            var label = UIHelpers.AddLabel(btnObj, currentLabel, 14f, TextAlignmentOptions.MidlineLeft);
+            label.margin = new Vector4(6, 0, 20, 0);
+
+            var (arrow, arrowRect) = UIHelpers.Create("Arrow", btnObj.transform);
+            arrowRect.SetAnchor(0.88, 1, 0, 1);
+            arrowRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddLabel(arrow, "v", 14f, TextAlignmentOptions.Midline,
+                new Color(0.6f, 0.6f, 0.6f));
+
+            var subjectForPicker = condition.Subject;
+            btnObj.AddComponent<Button>().onClick.AddListener(() => {
+                BuffPickerOverlay.Open(condition.Value, subjectForPicker, guid => {
+                    condition.Value = guid;
+                    ConfigManager.Save();
+                    label.text = BuffBlueprintProvider.GetName(guid);
+                });
             });
         }
 
