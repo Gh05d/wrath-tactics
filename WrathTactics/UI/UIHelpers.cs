@@ -120,10 +120,14 @@ namespace WrathTactics.UI {
             inputField.text = initialText;
             inputField.contentType = contentType;
 
+            // Clicking into a field should place the cursor at the click point,
+            // not select-all. Select-all means backspace wipes the whole text.
+            inputField.onFocusSelectAll = false;
+
             // Built-in TMP caret doesn't render reliably in our custom input fields
             // (suspected font-material issue with the game's TMP setup). Attach a
             // ManualInputCaret component that renders its own blinking Image caret
-            // positioned at the end of the visible text.
+            // at the real caret position.
             var manual = obj.AddComponent<ManualInputCaret>();
             manual.Init(inputField, textTmp, textRect);
 
@@ -139,11 +143,11 @@ namespace WrathTactics.UI {
     }
 
     /// <summary>
-    /// Renders a blinking "|" caret at the end of a TMP_InputField's visible text
+    /// Renders a blinking "|" caret at the real TMP_InputField caret position
     /// while the field is focused. Works around cases where TMP's built-in caret
     /// doesn't render in modded input fields due to font-material quirks.
-    /// Caret shows at text-end only — does not reflect mid-string cursor position.
-    /// For search/value inputs where typing is append-only, this is sufficient UX.
+    /// Position is derived from TMP_Text.textInfo.characterInfo[i].xAdvance, so
+    /// arrow keys / clicks / home/end all track correctly.
     /// </summary>
     public class ManualInputCaret : MonoBehaviour {
         TMP_InputField field;
@@ -183,13 +187,7 @@ namespace WrathTactics.UI {
                 return;
             }
 
-            float endX = 2f;
-            var raw = textComponent.text;
-            if (!string.IsNullOrEmpty(raw)) {
-                textComponent.ForceMeshUpdate();
-                endX = textComponent.preferredWidth + 2f;
-            }
-            caretRect.anchoredPosition = new Vector2(endX, 0);
+            caretRect.anchoredPosition = new Vector2(GetCaretX(), 0);
 
             blinkTimer += Time.unscaledDeltaTime;
             if (blinkTimer >= 0.53f) {
@@ -197,6 +195,22 @@ namespace WrathTactics.UI {
                 caretShown = !caretShown;
             }
             caretImage.enabled = caretShown;
+        }
+
+        float GetCaretX() {
+            int idx = field.caretPosition;
+            if (idx <= 0) return 2f;
+
+            textComponent.ForceMeshUpdate();
+            var info = textComponent.textInfo;
+            if (info == null || info.characterInfo == null) return 2f;
+
+            // Clamp to the last rendered character; textInfo.characterCount is the
+            // number of characters the mesh actually holds (0-based indices).
+            int lastIdx = System.Math.Min(idx, info.characterCount) - 1;
+            if (lastIdx < 0 || lastIdx >= info.characterInfo.Length) return 2f;
+
+            return info.characterInfo[lastIdx].xAdvance + 2f;
         }
     }
 
