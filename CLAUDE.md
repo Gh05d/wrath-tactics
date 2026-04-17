@@ -2,20 +2,75 @@
 
 ## Overview
 
-Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteous. UMM mod that lets players define priorisierte Regeln pro Companion (und global) die im Echtzeit-Kampf automatisch ausgewertet und als Aktionen ausgefuehrt werden.
+Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteous. UMM mod that lets players define prioritized rules per companion (and globally) that are evaluated in real-time combat and executed as actions.
 
 ## Build
 
+```bash
 ~/.dotnet/dotnet build WrathTactics/WrathTactics.csproj -p:SolutionDir=$(pwd)/
+```
 
-- `dotnet` is not on PATH — always use `~/.dotnet/dotnet`
-- `-p:SolutionDir` is required on Linux — without it, GamePath.props import fails silently
+**Release build** (produces zip for distribution):
+```bash
+~/.dotnet/dotnet build WrathTactics/WrathTactics.csproj -c Release -p:SolutionDir=$(pwd)/
+```
+
+`CreateZip` target only runs in Release config — output: `bin/WrathTactics-<version>.zip`.
 
 ## Deploy
 
+```bash
 ./deploy.sh
+```
 
 Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias.
+
+## Architecture
+
+```
+WrathTactics/
+  Main.cs              # UMM entry point, Harmony init, Update() tick loop
+  Engine/              # Combat AI logic
+    TacticsEvaluator   # Main tick loop — evaluates rules per companion each interval
+    ConditionEvaluator # Evaluates rule conditions (HP%, buffs, saves, creature type)
+    TargetResolver     # Resolves target selection (lowest HP, nearest, creature type)
+    CommandExecutor    # Executes actions (cast spell, use item, toggle, attack)
+    ActionValidator    # Pre-checks action validity (range, resources, cooldown)
+    ThreatCalculator   # Computes per-enemy threat scores
+    BuffBlueprintProvider # Provides buff blueprint data for condition checks
+    PresetRegistry     # Built-in rule presets (heal, buff, attack patterns)
+    SplashItemRegistry # Tracks throwable splash weapons (Alchemist's Fire, etc.)
+    SplashItemResolver # Resolves which splash item to use based on ThrowSplashMode
+  Models/              # Data structures
+    TacticsRule        # Single rule: conditions → action → target
+    TacticsConfig      # Per-save config (rules per unit + global rules)
+    Enums              # ConditionSubject, ConditionProperty, ActionType, TargetType
+  Persistence/         # Save/load
+    ConfigManager      # Per-save JSON at {ModPath}/UserSettings/tactics-{GameId}.json
+    PresetManager      # Manages user-created and built-in presets
+  UI/                  # Unity UI
+    TacticsPanel       # Main panel (Ctrl+T toggle), HUD button
+    RuleEditorWidget   # Rule editing: conditions, action, target dropdowns
+    ConditionRowWidget # Single condition row in the rule editor
+    PresetPanel        # Preset selection/management sub-panel
+    SpellDropdownProvider # Populates spell/ability dropdowns from unit's spellbooks
+    UIHelpers          # Shared UI utilities
+  Compatibility/       # Cross-mod compat
+    BubbleBuffsCompat  # Integration with Buff It 2 The Limit
+  Logging/             # Structured logging
+    Logger/Log/DebugLog # Category-based logging (Engine, Game, Persistence, UI)
+```
+
+### Core Data Flow
+
+```
+Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
+  → for each party member with enabled rules:
+    → evaluate rules by priority (ConditionEvaluator)
+    → first matching rule → resolve target (TargetResolver)
+    → validate action (ActionValidator)
+    → execute (CommandExecutor: CastSpell/UseItem/Toggle/Attack)
+```
 
 ## UI
 
@@ -26,11 +81,8 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 
 - `GameInstall/` is a symlink to `../wrath-epic-buffing/GameInstall` — do not commit
 - `GamePath.props` is machine-specific — gitignored
-- `findstr` warnings from build are normal on Linux — ignore
-- No per-round EventBus events in RTWP mode — use Game.Instance.Player.GameTime in Update()
+- No per-round EventBus events in RTWP mode — use `Game.Instance.Player.GameTime` in `Update()`
 - `UnitUseAbility.CreateCastCommand` rejects synthetic AbilityData — only works for real spellbook spells
-- Newtonsoft.Json is old (game-bundled) — no generic JsonConverter<T>, use non-generic base class
-- .NET 4.8.1 missing APIs: no Dictionary.GetValueOrDefault(), no Index/Range syntax
 - **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in Rebuild() methods to avoid duplicate layout calculators for one frame
 - **Nested ScrollRects**: Inner ScrollRect steals scroll events from outer. Disable inner `ScrollRect.enabled` unless content actually overflows; re-enable conditionally in `UpdateHeight()`
 
@@ -44,10 +96,11 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 - **CreatureType detection**: Many vanilla units (e.g. all swarms) have `Blueprint.Type = null`. Match via the unit's feature list (`SwarmDiminutiveFeature`, `SwarmTinyFeature`) instead of `Blueprint.Type.name`.
 - **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`. No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
 - **ActivatableAbility API**: Has `TryStart()` but NO `TryStop()`. Deactivate via `IsOn = false` only.
+- **Alignment API**: `UnitDescriptor.Alignment` is a `Kingmaker.UnitLogic.Alignments.UnitAlignment` object; the actual alignment value is `.ValueRaw` of type `Kingmaker.Enums.Alignment` (9-value enum: LawfulGood..ChaoticEvil, NOT a flag). Don't confuse with `Kingmaker.UnitLogic.Alignments.AlignmentMaskType` which is a flag enum but is NOT what `UnitAlignment` exposes. For component matching (Good/Evil/Lawful/Chaotic), enumerate the 3 member values explicitly.
+- **Post-combat evaluation**: `TacticsEvaluator.Tick` early-returns when `!Player.IsInCombat`. To let rules fire on the combat-end transition, `RunPostCombatCleanup()` runs a single evaluation pass with `ConditionEvaluator.IsPostCombatPass = true`, which makes `Combat.IsInCombat == false` conditions match regardless of transient game state. Cooldowns are skipped in this pass and cleared immediately after.
 
-## Build & Logs
+## Logs
 
-- **Zip output requires Release config**: `CreateZip` target is `Condition="'$(Configuration)' == 'Release'"`. Use `~/.dotnet/dotnet build ... -c Release` to produce `bin/WrathTactics-<version>.zip` for GitHub release upload.
 - **Mod session logs**: `<game>/Mods/WrathTactics/Logs/wrath-tactics-YYYY-MM-DD-HHMMSS.log` (separate from `Player.log`). Latest: `ssh deck-direct "ls -t '<game>/Mods/WrathTactics/Logs/' | head -1"`.
 
 ## Code Style
