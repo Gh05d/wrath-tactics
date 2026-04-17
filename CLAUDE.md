@@ -17,6 +17,8 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 
 `CreateZip` target only runs in Release config — output: `bin/WrathTactics-<version>.zip`.
 
+**Version bump** requires TWO files: `WrathTactics/Info.json` (UMM reads this) and `WrathTactics/WrathTactics.csproj` `<Version>` (drives the release zip filename). Bumping only one ships a zip with the stale version in its name.
+
 ## Deploy
 
 ```bash
