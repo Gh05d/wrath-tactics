@@ -143,17 +143,22 @@ namespace WrathTactics.UI {
     }
 
     /// <summary>
-    /// Renders a blinking "|" caret at the real TMP_InputField caret position
-    /// while the field is focused. Works around cases where TMP's built-in caret
-    /// doesn't render in modded input fields due to font-material quirks.
-    /// Position is derived from TMP_Text.textInfo.characterInfo[i].xAdvance, so
-    /// arrow keys / clicks / home/end all track correctly.
+    /// Renders a blinking "|" glyph (via TextMeshProUGUI) at the real
+    /// TMP_InputField caret position while the field is focused. Works around
+    /// Image-based caret rendering glitches seen when the caret GameObject is
+    /// parented under a TMP_Text GO (TMP's dynamic sub-mesh child management
+    /// appears to interfere). The caret is now parented to the viewport
+    /// (sibling of the text GO), and uses the text component's own FontAsset
+    /// so the "|" glyph is guaranteed to render with the same pipeline that
+    /// renders the user's typed text.
+    /// Position is derived from TMP_Text.textInfo.characterInfo[i].xAdvance,
+    /// so arrow keys / clicks / home/end all track correctly.
     /// </summary>
     public class ManualInputCaret : MonoBehaviour {
         TMP_InputField field;
         TextMeshProUGUI textComponent;
         RectTransform textRect;
-        Image caretImage;
+        TextMeshProUGUI caretText;
         RectTransform caretRect;
         float blinkTimer;
         bool caretShown = true;
@@ -165,52 +170,64 @@ namespace WrathTactics.UI {
         }
 
         void Start() {
-            if (textRect == null) return;
+            if (textRect == null || textComponent == null) return;
+
+            // Parent to the VIEWPORT (textRect.parent), not to the text GO itself —
+            // avoids TMP_Text's sub-mesh child management interfering with us.
+            var parent = textRect.parent as RectTransform;
+            if (parent == null) parent = textRect;
+
             var caretObj = new GameObject("ManualCaret", typeof(RectTransform));
-            caretObj.transform.SetParent(textRect, false);
+            caretObj.transform.SetParent(parent, false);
             caretRect = (RectTransform)caretObj.transform;
-            caretRect.anchorMin = new Vector2(0, 0.15f);
-            caretRect.anchorMax = new Vector2(0, 0.85f);
+            caretRect.anchorMin = new Vector2(0, 0);
+            caretRect.anchorMax = new Vector2(0, 1);
             caretRect.pivot = new Vector2(0, 0.5f);
-            caretRect.sizeDelta = new Vector2(2, 0);
+            caretRect.sizeDelta = new Vector2(10, 0);
             caretRect.anchoredPosition = Vector2.zero;
-            caretImage = caretObj.AddComponent<Image>();
-            caretImage.color = Color.white;
-            caretImage.raycastTarget = false;
-            caretImage.enabled = false;
+
+            caretText = caretObj.AddComponent<TextMeshProUGUI>();
+            caretText.font = textComponent.font;
+            caretText.fontSize = textComponent.fontSize;
+            caretText.text = "|";
+            caretText.color = Color.white;
+            caretText.alignment = TextAlignmentOptions.MidlineLeft;
+            caretText.enableWordWrapping = false;
+            caretText.raycastTarget = false;
+            caretText.overflowMode = TextOverflowModes.Overflow;
         }
 
         void Update() {
-            if (field == null || caretImage == null || textComponent == null) return;
+            if (field == null || caretText == null || textComponent == null) return;
             if (!field.isFocused) {
-                if (caretImage.enabled) caretImage.enabled = false;
+                if (caretText.enabled) caretText.enabled = false;
                 return;
             }
 
-            caretRect.anchoredPosition = new Vector2(GetCaretX(), 0);
+            caretRect.anchoredPosition = new Vector2(GetCaretX() - 2f, 0);
 
             blinkTimer += Time.unscaledDeltaTime;
             if (blinkTimer >= 0.53f) {
                 blinkTimer = 0;
                 caretShown = !caretShown;
             }
-            caretImage.enabled = caretShown;
+            caretText.enabled = caretShown;
         }
 
         float GetCaretX() {
             int idx = field.caretPosition;
-            if (idx <= 0) return 2f;
+            if (idx <= 0) return 0f;
 
             textComponent.ForceMeshUpdate();
             var info = textComponent.textInfo;
-            if (info == null || info.characterInfo == null) return 2f;
+            if (info == null || info.characterInfo == null) return 0f;
 
             // Clamp to the last rendered character; textInfo.characterCount is the
             // number of characters the mesh actually holds (0-based indices).
             int lastIdx = System.Math.Min(idx, info.characterCount) - 1;
-            if (lastIdx < 0 || lastIdx >= info.characterInfo.Length) return 2f;
+            if (lastIdx < 0 || lastIdx >= info.characterInfo.Length) return 0f;
 
-            return info.characterInfo[lastIdx].xAdvance + 2f;
+            return info.characterInfo[lastIdx].xAdvance;
         }
     }
 
