@@ -16,6 +16,13 @@ namespace WrathTactics.Engine {
         public static UnitEntityData LastMatchedEnemy { get; private set; }
         public static UnitEntityData LastMatchedAlly { get; private set; }
 
+        /// <summary>
+        /// Set to true during TacticsEvaluator.RunPostCombatCleanup() so that
+        /// `Combat.IsInCombat` evaluates to false during the one-shot cleanup pass,
+        /// regardless of transient game state.
+        /// </summary>
+        public static bool IsPostCombatPass { get; set; }
+
         public static void ClearMatchedEntities() {
             LastMatchedEnemy = null;
             LastMatchedAlly = null;
@@ -172,6 +179,13 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateCombat(Condition condition) {
+            if (condition.Property == ConditionProperty.IsInCombat) {
+                bool inCombat = !IsPostCombatPass && Game.Instance.Player.IsInCombat;
+                bool wanted = ParseBoolValue(condition.Value);
+                bool match = inCombat == wanted;
+                return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+            }
+
             if (condition.Property != ConditionProperty.CombatRounds) return false;
 
             float threshold;
@@ -182,6 +196,19 @@ namespace WrathTactics.Engine {
             float gameTimeSec = (float)Game.Instance.Player.GameTime.TotalSeconds;
             float combatRounds = TacticsEvaluator.GetCombatRoundsElapsed(gameTimeSec);
             return CompareFloat(combatRounds, condition.Operator, threshold);
+        }
+
+        static bool ParseBoolValue(string raw) {
+            if (string.IsNullOrEmpty(raw)) return false;
+            switch (raw.Trim().ToLowerInvariant()) {
+                case "true":
+                case "1":
+                case "yes":
+                case "ja":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         static bool EvaluateUnitProperty(Condition condition, UnitEntityData unit) {
