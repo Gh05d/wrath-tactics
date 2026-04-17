@@ -22,8 +22,9 @@ namespace WrathTactics.Engine {
             if (!Game.Instance.Player.IsInCombat) {
                 if (wasInCombat) {
                     wasInCombat = false;
+                    RunPostCombatCleanup(gameTimeSec);
                     cooldowns.Clear();
-                    Log.Engine.Info("Combat ended, cooldowns cleared");
+                    Log.Engine.Info("Combat ended, post-combat cleanup ran, cooldowns cleared");
                 }
                 return;
             }
@@ -118,6 +119,56 @@ namespace WrathTactics.Engine {
                 // Execute!
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     cooldowns[cooldownKey] = gameTimeSec;
+                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static void RunPostCombatCleanup(float gameTimeSec) {
+            var config = ConfigManager.Current;
+            ConditionEvaluator.IsPostCombatPass = true;
+            try {
+                foreach (var unit in Game.Instance.Player.Party) {
+                    if (!unit.IsInGame || unit.HPLeft <= 0) continue;
+                    if (!config.IsEnabled(unit.UniqueId)) continue;
+
+                    var globalRules = config.GlobalRules;
+                    var charRules = config.GetRulesForCharacter(unit.UniqueId);
+
+                    // Same ordering as combat tick: globals first, then character rules.
+                    // Cooldowns are skipped here — this is a one-shot pass, and we clear
+                    // cooldowns immediately after.
+                    if (TryExecuteRulesIgnoringCooldown(globalRules, unit, "post-combat:global", gameTimeSec))
+                        continue;
+                    TryExecuteRulesIgnoringCooldown(charRules, unit, "post-combat:" + unit.CharacterName, gameTimeSec);
+                }
+            } catch (Exception ex) {
+                Log.Engine.Error(ex, "RunPostCombatCleanup failed");
+            } finally {
+                ConditionEvaluator.IsPostCombatPass = false;
+            }
+        }
+
+        static bool TryExecuteRulesIgnoringCooldown(List<TacticsRule> rules, UnitEntityData unit,
+            string source, float gameTimeSec) {
+            for (int i = 0; i < rules.Count; i++) {
+                var entry = rules[i];
+                if (!entry.Enabled) continue;
+
+                var rule = PresetRegistry.Resolve(entry);
+                ConditionEvaluator.ClearMatchedEntities();
+
+                if (!ConditionEvaluator.Evaluate(rule, unit)) continue;
+
+                var target = TargetResolver.Resolve(rule.Target, unit);
+                if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
+                    Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    continue;
+                }
+
+                if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
                     return true;
                 }
