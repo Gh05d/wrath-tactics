@@ -85,6 +85,8 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - `UnitUseAbility.CreateCastCommand` rejects synthetic AbilityData — only works for real spellbook spells
 - **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in Rebuild() methods to avoid duplicate layout calculators for one frame
 - **Nested ScrollRects**: Inner ScrollRect steals scroll events from outer. Disable inner `ScrollRect.enabled` unless content actually overflows; re-enable conditionally in `UpdateHeight()`
+- **Validator strictness is load-bearing**: `CommandExecutor.Execute` returns `true` as soon as the command is queued — the game may silently drop the cast later (no slot, no resource). `TryExecuteRules` then returns `true` and blocks fall-through to backup rules. Any new `ActionType` MUST validate resources/availability in `ActionValidator.CanExecute` up front — downstream silent-fail produces infinite loops.
+- **Input fields**: Always use `UIHelpers.CreateTMPInputField` — it auto-attaches `ManualInputCaret` (TMP_Text-based blinking cursor positioned via `xAdvance + parent.width/2`) and sets `onFocusSelectAll = false`. Rolling a fresh `TMP_InputField` will resurrect the invisible-caret and wipe-on-click bugs.
 
 ## Game API Gotchas
 
@@ -96,8 +98,12 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - **CreatureType detection**: Many vanilla units (e.g. all swarms) have `Blueprint.Type = null`. Match via the unit's feature list (`SwarmDiminutiveFeature`, `SwarmTinyFeature`) instead of `Blueprint.Type.name`.
 - **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`. No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
 - **ActivatableAbility API**: Has `TryStart()` but NO `TryStop()`. Deactivate via `IsOn = false` only.
+- **Spellbook slot counts**: `GetSpellsPerDay(level)` is MAX per-day capacity (never decrements) — wrong for "can I still cast?" checks. Use `GetAvailableForCastSpellCount(ability)` — handles prepared (memorized+Available), spontaneous (`GetSpontaneousSlots`), Arcanist-hybrid, and opposition schools/descriptors.
+- **Ability resource cost**: Use `AbilityResourceLogic.CalculateCost(ability)` not `.Amount` — honors `OverrideRequiredResource`, `IsSpendResource`, `ResourceCostIncreasing/DecreasingFacts`, and custom `IAbilityResourceCostCalculator` components. Matches the game's internal `Spend()` path.
 - **Alignment API**: `UnitDescriptor.Alignment` is a `Kingmaker.UnitLogic.Alignments.UnitAlignment` object; the actual alignment value is `.ValueRaw` of type `Kingmaker.Enums.Alignment` (9-value enum: LawfulGood..ChaoticEvil, NOT a flag). Don't confuse with `Kingmaker.UnitLogic.Alignments.AlignmentMaskType` which is a flag enum but is NOT what `UnitAlignment` exposes. For component matching (Good/Evil/Lawful/Chaotic), enumerate the 3 member values explicitly.
 - **Post-combat evaluation**: `TacticsEvaluator.Tick` early-returns when `!Player.IsInCombat`. To let rules fire on the combat-end transition, `RunPostCombatCleanup()` runs a single evaluation pass with `ConditionEvaluator.IsPostCombatPass = true`, which makes `Combat.IsInCombat == false` conditions match regardless of transient game state. Cooldowns are skipped in this pass and cleared immediately after.
+- **Buff blueprint filtering**: `BuffBlueprintProvider.IsCrusadeOnlyBuff` skips `Army*`-prefixed names (crusade/tactical-combat mini-game). Warpriest Blessings (`AirBlessingMinorBuff`, `ArtificeBlessingMinorBuff`, etc.) are REAL roleplay buffs — do NOT blanket-filter by "Blessing".
+- **Buff picker search ranking**: `BuffPickerOverlay.RenderFilteredLayout` sorts by (prefix-match first, shorter-name first). Pure alphabetical puts `AirBlessingMajorBuff` ahead of `BlessBuff` when searching "bless" — keep the custom sort.
 
 ## Logs
 
