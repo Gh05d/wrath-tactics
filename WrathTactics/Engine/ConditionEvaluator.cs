@@ -5,8 +5,10 @@ using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic;
+using Kingmaker.Enums;
 using WrathTactics.Logging;
 using WrathTactics.Models;
+using KmAlignment = Kingmaker.Enums.Alignment;
 
 namespace WrathTactics.Engine {
     public static class ConditionEvaluator {
@@ -245,6 +247,10 @@ namespace WrathTactics.Engine {
                     bool ctMatch = CheckCreatureType(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !ctMatch : ctMatch;
 
+                case ConditionProperty.Alignment:
+                    bool alignMatch = CheckAlignment(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !alignMatch : alignMatch;
+
                 default:
                     return false;
             }
@@ -306,6 +312,10 @@ namespace WrathTactics.Engine {
                     bool ctMatch2 = CheckCreatureType(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !ctMatch2 : ctMatch2;
 
+                case ConditionProperty.Alignment:
+                    bool alignMatch2 = CheckAlignment(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !alignMatch2 : alignMatch2;
+
                 default:
                     return false;
             }
@@ -346,6 +356,38 @@ namespace WrathTactics.Engine {
 
             Log.Engine.Trace($"CreatureType NO MATCH for {unit.CharacterName} (Blueprint.Type='{bpTypeName}', looking for '{target}')");
             return false;
+        }
+
+        static bool CheckAlignment(UnitEntityData unit, string component) {
+            if (string.IsNullOrEmpty(component)) return false;
+            var align = unit.Descriptor.Alignment.ValueRaw;
+            switch (component.ToLowerInvariant()) {
+                case "good":
+                    return align == KmAlignment.LawfulGood
+                        || align == KmAlignment.NeutralGood
+                        || align == KmAlignment.ChaoticGood;
+                case "evil":
+                    return align == KmAlignment.LawfulEvil
+                        || align == KmAlignment.NeutralEvil
+                        || align == KmAlignment.ChaoticEvil;
+                case "lawful":
+                    return align == KmAlignment.LawfulGood
+                        || align == KmAlignment.LawfulNeutral
+                        || align == KmAlignment.LawfulEvil;
+                case "chaotic":
+                    return align == KmAlignment.ChaoticGood
+                        || align == KmAlignment.ChaoticNeutral
+                        || align == KmAlignment.ChaoticEvil;
+                case "neutral":
+                    // "Weder Good noch Evil": matches LN / TN / CN. Unaligned creatures
+                    // (default = TrueNeutral) also match Neutral here — consistent with
+                    // Pathfinder Detect Evil semantics (they don't match Good or Evil).
+                    return align == KmAlignment.LawfulNeutral
+                        || align == KmAlignment.TrueNeutral
+                        || align == KmAlignment.ChaoticNeutral;
+                default:
+                    return false;
+            }
         }
 
         public static bool HasConditionByName(UnitEntityData unit, string conditionName) {
