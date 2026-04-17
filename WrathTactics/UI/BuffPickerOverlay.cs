@@ -66,11 +66,16 @@ namespace WrathTactics.UI {
         }
 
         void BuildUI(GameObject popup) {
-            // Header: search input
+            const float headerHeight = 40f;
+
+            // Header: pinned to the top, 40px tall. Pivot at top-center so
+            // anchoredPosition (0,0) puts its top edge flush with the popup's top edge.
             var (header, headerRect) = UIHelpers.Create("Header", popup.transform);
-            headerRect.SetAnchor(0, 1, 1, 1);
-            headerRect.sizeDelta = new Vector2(0, 40);
-            headerRect.anchoredPosition = new Vector2(0, -20);
+            headerRect.anchorMin = new Vector2(0, 1);
+            headerRect.anchorMax = new Vector2(1, 1);
+            headerRect.pivot = new Vector2(0.5f, 1f);
+            headerRect.sizeDelta = new Vector2(0, headerHeight);
+            headerRect.anchoredPosition = Vector2.zero;
             UIHelpers.AddBackground(header, new Color(0.18f, 0.18f, 0.18f, 1f));
 
             searchInput = UIHelpers.CreateTMPInputField(header, "Search",
@@ -86,11 +91,14 @@ namespace WrathTactics.UI {
             // EventSystem picks up the new object).
             StartCoroutine(FocusSearchNextFrame());
 
-            // Body: scroll view
+            // Body: scroll view fills the area BELOW the header. Anchor stretched on
+            // both axes, then inset `headerHeight` off the top via offsetMax.y.
             var (scrollObj, scrollRect) = UIHelpers.Create("Scroll", popup.transform);
-            scrollRect.SetAnchor(0, 1, 0, 1);
-            scrollRect.sizeDelta = new Vector2(0, -40);
-            scrollRect.anchoredPosition = new Vector2(0, 0);
+            scrollRect.anchorMin = new Vector2(0, 0);
+            scrollRect.anchorMax = new Vector2(1, 1);
+            scrollRect.pivot = new Vector2(0.5f, 0.5f);
+            scrollRect.offsetMin = Vector2.zero;
+            scrollRect.offsetMax = new Vector2(0, -headerHeight);
 
             var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
             viewportRect.FillParent();
