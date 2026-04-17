@@ -79,7 +79,7 @@ namespace WrathTactics.Engine {
             cachedEnemyGuids = null;
         }
 
-        static bool IsEnemySubject(ConditionSubject subject) {
+        public static bool IsEnemySubject(ConditionSubject subject) {
             switch (subject) {
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyCount:

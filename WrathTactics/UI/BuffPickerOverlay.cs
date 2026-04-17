@@ -26,6 +26,7 @@ namespace WrathTactics.UI {
         TMP_InputField searchInput;
         GameObject rowsContainer;
         string currentQuery = "";
+        bool closed;
 
         public static GameObject Open(string currentGuid, ConditionSubject subject,
             Action<string> onSelected) {
@@ -51,6 +52,8 @@ namespace WrathTactics.UI {
             var controller = popup.AddComponent<BuffPickerOverlay>();
             controller.subject = subject;
             controller.onSelected = guid => {
+                if (controller.closed) return;
+                controller.closed = true;
                 RecordRecent(guid);
                 onSelected?.Invoke(guid);
                 Destroy(overlay);
@@ -127,7 +130,9 @@ namespace WrathTactics.UI {
         }
 
         void Update() {
+            if (closed) return;
             if (Input.GetKeyDown(KeyCode.Escape)) {
+                closed = true;
                 var overlay = transform.parent != null ? transform.parent.gameObject : gameObject;
                 Destroy(overlay);
             }
@@ -162,7 +167,7 @@ namespace WrathTactics.UI {
             }
 
             if (dedupedDefaults.Count > 0) {
-                string label = IsEnemySubjectLocal(subject) ? "Common Enemy Buffs" : "Common Ally Buffs";
+                string label = CommonBuffRegistry.IsEnemySubject(subject) ? "Common Enemy Buffs" : "Common Ally Buffs";
                 AddSectionHeader(label);
                 foreach (var e in dedupedDefaults) AddRow(e);
             }
@@ -245,27 +250,6 @@ namespace WrathTactics.UI {
             row.AddComponent<Button>().onClick.AddListener(() => onSelected?.Invoke(guid));
         }
 
-        static bool IsEnemySubjectLocal(ConditionSubject subject) {
-            switch (subject) {
-                case ConditionSubject.Enemy:
-                case ConditionSubject.EnemyCount:
-                case ConditionSubject.EnemyBiggestThreat:
-                case ConditionSubject.EnemyLowestThreat:
-                case ConditionSubject.EnemyHighestHp:
-                case ConditionSubject.EnemyLowestHp:
-                case ConditionSubject.EnemyLowestAC:
-                case ConditionSubject.EnemyHighestAC:
-                case ConditionSubject.EnemyLowestFort:
-                case ConditionSubject.EnemyHighestFort:
-                case ConditionSubject.EnemyLowestReflex:
-                case ConditionSubject.EnemyHighestReflex:
-                case ConditionSubject.EnemyLowestWill:
-                case ConditionSubject.EnemyHighestWill:
-                    return true;
-                default:
-                    return false;
-            }
-        }
 
         static void RecordRecent(string guid) {
             if (string.IsNullOrEmpty(guid)) return;
