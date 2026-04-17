@@ -35,7 +35,8 @@ namespace WrathTactics.Models {
         IsDead,
         SaveFortitude,
         SaveReflex,
-        SaveWill
+        SaveWill,
+        Alignment
     }
 
     public enum ConditionOperator {
