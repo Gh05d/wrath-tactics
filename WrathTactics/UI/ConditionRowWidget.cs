@@ -204,7 +204,8 @@ namespace WrathTactics.UI {
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff
                     || condition.Property == ConditionProperty.MissingBuff;
-                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType && !isBuffProp && !isAlignment;
+                bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
+                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType && !isBuffProp && !isAlignment && !isInCombat;
 
                 // Operator popup selector (hidden for dropdown-based properties)
                 if (needsOperator) {
@@ -304,6 +305,16 @@ namespace WrathTactics.UI {
                 } else if (condition.Property == ConditionProperty.HasBuff
                     || condition.Property == ConditionProperty.MissingBuff) {
                     CreateBuffSelector(root, 0.38f, 0.88f);
+                } else if (condition.Property == ConditionProperty.IsInCombat) {
+                    var yesNo = new List<string> { "Ja", "Nein" };
+                    // Map: "true" -> index 0 (Ja), anything else -> index 1 (Nein)
+                    int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
+                        ? 0 : 1;
+                    if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
+                    PopupSelector.Create(root, "IsInCombatValue", 0.51f, 0.88f, yesNo, yIdx, v => {
+                        condition.Value = v == 0 ? "true" : "false";
+                        ConfigManager.Save();
+                    });
                 } else {
                     // Normal single value input
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
@@ -395,7 +406,10 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.Combat:
-                    return new List<ConditionProperty> { ConditionProperty.CombatRounds };
+                    return new List<ConditionProperty> {
+                        ConditionProperty.CombatRounds,
+                        ConditionProperty.IsInCombat
+                    };
                 default:
                     return new List<ConditionProperty>();
             }
