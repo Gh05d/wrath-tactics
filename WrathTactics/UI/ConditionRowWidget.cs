@@ -137,7 +137,8 @@ namespace WrathTactics.UI {
                         valueOptions = new List<string> {
                             "Aberration", "Animal", "Construct", "Dragon", "Fey",
                             "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
-                            "Outsider", "Plant", "Swarm", "Undead", "Vermin"
+                            "Outsider", "Plant", "Swarm", "Undead", "Vermin",
+                            "Incorporeal"
                         };
                     } else {
                         valueOptions = new List<string> {
@@ -230,7 +231,8 @@ namespace WrathTactics.UI {
                     var creatureTypes = new List<string> {
                         "Aberration", "Animal", "Construct", "Dragon", "Fey",
                         "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
-                        "Outsider", "Plant", "Swarm", "Undead", "Vermin"
+                        "Outsider", "Plant", "Swarm", "Undead", "Vermin",
+                        "Incorporeal"
                     };
                     int ctIdx = creatureTypes.IndexOf(condition.Value);
                     if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }

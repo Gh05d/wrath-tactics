@@ -189,14 +189,29 @@ namespace WrathTactics.UI {
         void RenderFilteredLayout(string query) {
             var all = BuffBlueprintProvider.GetBuffs();
             string needle = query.ToLowerInvariant();
-            var matches = new List<BuffBlueprintProvider.BuffEntry>();
+
+            // Collect all substring matches, then rank so that prefix matches float
+            // to the top. Tier-1: name starts with query. Tier-2: contains query.
+            // Within each tier, shorter names first (plain "BlessBuff" beats
+            // "BlessedScriptBaneWeaponBuff"), then alphabetical.
+            var all_matches = new List<BuffBlueprintProvider.BuffEntry>();
             foreach (var entry in all) {
                 if (string.IsNullOrEmpty(entry.Name)) continue;
                 if (entry.Name.ToLowerInvariant().Contains(needle)) {
-                    matches.Add(entry);
-                    if (matches.Count >= MaxFilterResults) break;
+                    all_matches.Add(entry);
                 }
             }
+
+            all_matches.Sort((a, b) => {
+                int ap = a.Name.ToLowerInvariant().StartsWith(needle) ? 0 : 1;
+                int bp = b.Name.ToLowerInvariant().StartsWith(needle) ? 0 : 1;
+                if (ap != bp) return ap - bp;
+                if (a.Name.Length != b.Name.Length) return a.Name.Length - b.Name.Length;
+                return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            });
+
+            bool capped = all_matches.Count > MaxFilterResults;
+            var matches = capped ? all_matches.GetRange(0, MaxFilterResults) : all_matches;
 
             if (matches.Count == 0) {
                 AddInfoLabel($"No matches for \"{query}\"");
@@ -205,7 +220,7 @@ namespace WrathTactics.UI {
 
             foreach (var entry in matches) AddRow(entry);
 
-            if (matches.Count == MaxFilterResults) {
+            if (capped) {
                 AddInfoLabel($"(showing first {MaxFilterResults} matches — refine your search for more)");
             }
         }

@@ -120,6 +120,13 @@ namespace WrathTactics.UI {
             inputField.text = initialText;
             inputField.contentType = contentType;
 
+            // Visible caret — TMP's default uses the text color at 0 alpha on dark
+            // backgrounds, which makes it invisible. Force white, 2px, slow blink.
+            inputField.customCaretColor = true;
+            inputField.caretColor = Color.white;
+            inputField.caretWidth = 2;
+            inputField.caretBlinkRate = 0.85f;
+
             // Set the background image as the target graphic for click detection
             var bgImage = obj.GetComponent<Image>();
             if (bgImage != null) inputField.targetGraphic = bgImage;
