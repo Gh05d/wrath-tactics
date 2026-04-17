@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 
@@ -113,6 +112,11 @@ namespace WrathTactics.Engine {
             return result;
         }
 
+        // Substring match with shortest-name tiebreak. Assumes curated preferred names
+        // are the "plain" variant (e.g. "Haste") — shorter matches are preferred over
+        // decorated forms like "HasteGreater" / "HasteMass". If a curated name has no
+        // plain variant in the blueprint DB, this heuristic may pick the next-shortest
+        // decoration; drop problematic names from the curated list in that case.
         static string FindBestMatch(List<BuffBlueprintProvider.BuffEntry> buffs, string preferred) {
             // Normalize: strip spaces + apostrophes for matching, but keep the original
             // cache entry's Name for the comparison target (we normalize both sides).
