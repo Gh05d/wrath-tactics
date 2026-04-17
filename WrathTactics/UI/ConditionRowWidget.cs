@@ -311,7 +311,7 @@ namespace WrathTactics.UI {
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
                     if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
-                    PopupSelector.Create(root, "IsInCombatValue", 0.51f, 0.88f, yesNo, yIdx, v => {
+                    PopupSelector.Create(root, "IsInCombatValue", 0.38f, 0.88f, yesNo, yIdx, v => {
                         condition.Value = v == 0 ? "true" : "false";
                         ConfigManager.Save();
                     });
