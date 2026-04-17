@@ -206,7 +206,13 @@ namespace WrathTactics.Engine {
                 case "yes":
                 case "ja":
                     return true;
+                case "false":
+                case "0":
+                case "no":
+                case "nein":
+                    return false;
                 default:
+                    Log.Engine.Warn($"ParseBoolValue: unrecognized value '{raw}', defaulting to false");
                     return false;
             }
         }
