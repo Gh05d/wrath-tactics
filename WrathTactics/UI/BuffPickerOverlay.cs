@@ -46,8 +46,9 @@ namespace WrathTactics.UI {
             popupRect.sizeDelta = new Vector2(420f, 500f);
 
             // Prevent clicks on the popup from bubbling to the overlay (which would close it).
-            // AddBackground above already attached an Image; Button uses it as its target graphic.
-            popup.AddComponent<Button>(); // swallow clicks
+            // Bind the Button's targetGraphic to the background Image that AddBackground attached.
+            var swallow = popup.AddComponent<Button>();
+            swallow.targetGraphic = popup.GetComponent<Image>();
 
             var controller = popup.AddComponent<BuffPickerOverlay>();
             controller.subject = subject;
