@@ -49,10 +49,33 @@ namespace WrathTactics.Engine {
             }
             Log.Engine.Trace($"FindAbility OK: {ability.Name} for {owner.CharacterName}");
 
+            // Spellbook check: GetAvailableForCastSpellCount handles prepared (memorized+Available),
+            // spontaneous (GetSpontaneousSlots), and Arcanist-hybrid correctly. GetSpellsPerDay is
+            // the MAX per-day capacity and never decrements — using it here lets exhausted casters
+            // loop-queue the same spell forever.
             if (ability.Spellbook != null) {
-                int level = ability.Spellbook.GetSpellLevel(ability);
-                if (ability.Spellbook.GetSpellsPerDay(level) <= 0)
+                if (ability.Spellbook.GetAvailableForCastSpellCount(ability) <= 0) {
+                    Log.Engine.Trace($"CanCastSpell: {owner.CharacterName} has no remaining slots for {ability.Name}");
                     return false;
+                }
+            }
+
+            // Resource check for class abilities (Lay on Hands, Channel Energy, Bloodline powers,
+            // bardic performance, etc.) — these have AbilityResourceLogic and no Spellbook.
+            // Mirrors AbilityResourceLogic.Spend: honors OverrideRequiredResource, skips when
+            // IsSpendResource is false (display-only resources).
+            var resource = ability.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
+            if (resource != null && resource.IsSpendResource) {
+                var required = (Kingmaker.Blueprints.BlueprintScriptableObject)ability.OverrideRequiredResource
+                    ?? resource.RequiredResource;
+                if (required != null) {
+                    int available = owner.Resources.GetResourceAmount(required);
+                    int cost = resource.CalculateCost(ability);
+                    if (available < cost) {
+                        Log.Engine.Trace($"CanCastSpell: {owner.CharacterName} short on {required.name} for {ability.Name} ({available}/{cost})");
+                        return false;
+                    }
+                }
             }
 
             if (target != null && !ability.CanTarget(new TargetWrapper(target)))
