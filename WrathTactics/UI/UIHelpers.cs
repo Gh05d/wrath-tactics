@@ -242,6 +242,13 @@ namespace WrathTactics.UI {
         }
 
         float GetCaretX() {
+            // TMP xAdvance is in mesh-local coords anchored at the text rect's
+            // CENTER (pivot 0.5). Our caretRect is anchored to the parent's LEFT
+            // edge, so we must add half the parent width to translate.
+            float leftEdgeOffset = 0f;
+            if (caretRect != null && caretRect.parent is RectTransform pr)
+                leftEdgeOffset = pr.rect.width * 0.5f;
+
             int idx = field.caretPosition;
             if (idx <= 0) return 0f;
 
@@ -254,7 +261,7 @@ namespace WrathTactics.UI {
             int lastIdx = System.Math.Min(idx, info.characterCount) - 1;
             if (lastIdx < 0 || lastIdx >= info.characterInfo.Length) return 0f;
 
-            return info.characterInfo[lastIdx].xAdvance;
+            return info.characterInfo[lastIdx].xAdvance + leftEdgeOffset;
         }
     }
 
