@@ -104,6 +104,21 @@ namespace WrathTactics.UI {
             foreach (var preset in presets) {
                 CreatePresetEntry(root.transform, preset);
             }
+
+            // Open Presets folder (manual file-based sharing / backup)
+            var (folderBtn, _folder) = UIHelpers.Create("FolderBtn", root.transform);
+            folderBtn.AddComponent<LayoutElement>().preferredHeight = 32;
+            UIHelpers.AddBackground(folderBtn, new Color(0.25f, 0.25f, 0.3f, 1f));
+            UIHelpers.AddLabel(folderBtn, "Open Presets Folder", 14f, TextAlignmentOptions.Midline);
+            folderBtn.AddComponent<Button>().onClick.AddListener(() => {
+                var dir = System.IO.Path.Combine(Main.ModPath, "Presets");
+                try {
+                    System.IO.Directory.CreateDirectory(dir);
+                    Application.OpenURL("file://" + dir);
+                } catch (Exception ex) {
+                    Log.UI.Warn($"Could not open presets folder '{dir}': {ex.Message}");
+                }
+            });
         }
 
         void CreatePresetEntry(Transform parent, TacticsRule preset) {
