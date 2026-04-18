@@ -131,5 +131,30 @@ namespace WrathTactics.Engine {
             }
             rule.PresetId = null;
         }
+
+        /// <summary>
+        /// Promotes a standalone rule into a new preset and links the original rule to it.
+        /// The original rule's body (ConditionGroups / Action / Target) is cleared — all
+        /// future reads go through Resolve() to the preset. Caller must ConfigManager.Save
+        /// and rebuild the affected UI after this returns.
+        /// </summary>
+        public static TacticsRule PromoteRuleToPreset(TacticsRule rule) {
+            if (rule == null) return null;
+            if (!string.IsNullOrEmpty(rule.PresetId)) {
+                Log.Persistence.Warn("PromoteRuleToPreset called on an already-linked rule — ignored");
+                return Get(rule.PresetId);
+            }
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(rule);
+            var preset = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
+            preset.Id = System.Guid.NewGuid().ToString();
+            preset.PresetId = null;
+            Save(preset);
+
+            rule.PresetId = preset.Id;
+            rule.ConditionGroups = new System.Collections.Generic.List<Models.ConditionGroup>();
+            rule.Action = new Models.ActionDef();
+            rule.Target = new Models.TargetDef();
+            return preset;
+        }
     }
 }
