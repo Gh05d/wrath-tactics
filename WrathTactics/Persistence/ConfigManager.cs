@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Kingmaker;
 using Newtonsoft.Json;
@@ -42,10 +43,13 @@ namespace WrathTactics.Persistence {
                     Log.Persistence.Warn("Some rules referenced removed condition properties — saving cleaned config.");
                     Save();
                 }
-            } catch (Exception ex) {
-                Log.Persistence.Error(ex, "Failed to load config — resetting to defaults and overwriting file.");
+            } catch (JsonException ex) {
+                Log.Persistence.Error(ex, "Failed to deserialize config — resetting to defaults and overwriting file.");
                 current = new TacticsConfig();
                 Save();
+            } catch (Exception ex) {
+                Log.Persistence.Error(ex, "Failed to read config file — using defaults for this session, NOT overwriting.");
+                current = new TacticsConfig();
             }
         }
 
@@ -59,6 +63,7 @@ namespace WrathTactics.Persistence {
             bool changed = false;
 
             foreach (var rule in EnumerateAllRules(config)) {
+                if (rule == null) continue;
                 if (rule.ConditionGroups == null) continue;
                 for (int g = rule.ConditionGroups.Count - 1; g >= 0; g--) {
                     var grp = rule.ConditionGroups[g];
@@ -81,7 +86,7 @@ namespace WrathTactics.Persistence {
             return changed;
         }
 
-        static System.Collections.Generic.IEnumerable<TacticsRule> EnumerateAllRules(TacticsConfig config) {
+        static IEnumerable<TacticsRule> EnumerateAllRules(TacticsConfig config) {
             if (config.GlobalRules != null)
                 foreach (var r in config.GlobalRules) yield return r;
             if (config.CharacterRules != null)
