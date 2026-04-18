@@ -120,10 +120,11 @@ namespace WrathTactics.Engine {
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
                     new Condition {
-                        Subject = ConditionSubject.Enemy,
+                        Subject = ConditionSubject.EnemyCount,
                         Property = ConditionProperty.CreatureType,
                         Operator = ConditionOperator.Equal,
                         Value = "Undead",
+                        Value2 = "3",
                     },
                 }},
             },

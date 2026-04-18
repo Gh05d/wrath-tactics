@@ -4,7 +4,7 @@
 	<PropertyGroup>
 		<TargetFramework>net481</TargetFramework>
 		<AssemblyName>WrathTactics</AssemblyName>
-		<Version>0.6.1</Version>
+		<Version>0.6.2</Version>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>WrathTactics</RootNamespace>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
