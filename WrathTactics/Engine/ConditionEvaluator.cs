@@ -51,6 +51,8 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateCondition(Condition condition, UnitEntityData owner) {
+            // If Core throws and the catch returns false, Negate will flip that to true.
+            // Accepted: a misconfigured condition still short-circuits to "not matching" in both polarities.
             bool result = EvaluateConditionCore(condition, owner);
             return condition.Negate ? !result : result;
         }
