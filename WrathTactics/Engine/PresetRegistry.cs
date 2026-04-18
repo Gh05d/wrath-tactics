@@ -19,19 +19,44 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
-        /// Writes any DefaultPresets whose ID is not already present on disk. Idempotent:
-        /// user-deleted or user-edited defaults are left alone because the check is
-        /// per-ID, and SeedDefaults only runs on fresh installs for missing IDs.
+        /// Writes any DefaultPresets whose ID has never been seeded before. Uses a sentinel
+        /// file {ModPath}/Presets/.seeded-defaults to track seeded IDs persistently, so:
+        ///   - First install: all defaults written, all IDs added to sentinel.
+        ///   - User deletes a default: ID is still in sentinel → skip on next load.
+        ///   - New mod version adds default #7: ID not in sentinel → seed once.
+        ///   - User edits a default: file still present, ID in sentinel → skip.
         /// </summary>
         static void SeedDefaults() {
-            int seeded = 0;
-            foreach (var preset in DefaultPresets.Build()) {
-                if (presets.ContainsKey(preset.Id)) continue;
-                PresetManager.Save(preset);
-                presets[preset.Id] = preset;
-                seeded++;
+            var presetDir = System.IO.Path.Combine(Main.ModPath, "Presets");
+            var sentinelPath = System.IO.Path.Combine(presetDir, ".seeded-defaults");
+
+            var seeded = new System.Collections.Generic.HashSet<string>();
+            if (System.IO.File.Exists(sentinelPath)) {
+                foreach (var line in System.IO.File.ReadAllLines(sentinelPath)) {
+                    var id = line?.Trim();
+                    if (!string.IsNullOrEmpty(id)) seeded.Add(id);
+                }
             }
-            if (seeded > 0) Log.Persistence.Info($"Seeded {seeded} default preset(s)");
+
+            int newSeeds = 0;
+            foreach (var preset in DefaultPresets.Build()) {
+                if (seeded.Contains(preset.Id)) continue;
+                if (!presets.ContainsKey(preset.Id)) {
+                    PresetManager.Save(preset);
+                    presets[preset.Id] = preset;
+                    newSeeds++;
+                }
+                seeded.Add(preset.Id);
+            }
+
+            try {
+                System.IO.Directory.CreateDirectory(presetDir);
+                System.IO.File.WriteAllLines(sentinelPath, seeded);
+            } catch (System.Exception ex) {
+                Log.Persistence.Error(ex, $"Failed to write default-seed sentinel at {sentinelPath}");
+            }
+
+            if (newSeeds > 0) Log.Persistence.Info($"Seeded {newSeeds} default preset(s)");
         }
 
         static Dictionary<string, TacticsRule> GetPresets() {
