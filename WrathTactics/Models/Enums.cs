@@ -64,6 +64,20 @@ namespace WrathTactics.Models {
         Weakest         // Use the lowest-level heal (conserve resources)
     }
 
+    /// <summary>
+    /// Which classes of heal source the engine may draw from. Flag-based so combinations
+    /// (e.g. Spell+Potion to skip scrolls when UMD is bad) are expressible. Default is All.
+    /// Spell covers spellbook casts, class abilities (Channel, Lay on Hands), and wands/staves.
+    /// </summary>
+    [System.Flags]
+    public enum HealSourceMask {
+        None   = 0,
+        Spell  = 1,
+        Scroll = 2,
+        Potion = 4,
+        All    = Spell | Scroll | Potion,
+    }
+
     public enum ThrowSplashMode {
         Any,        // Use whatever splash item is first in inventory
         Strongest,  // Use the highest-damage splash item

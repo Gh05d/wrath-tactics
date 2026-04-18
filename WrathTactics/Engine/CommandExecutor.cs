@@ -120,7 +120,7 @@ namespace WrathTactics.Engine {
 
         static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
             ItemEntity inventorySource;
-            var ability = ActionValidator.FindBestHealEx(owner, action.HealMode, out inventorySource);
+            var ability = ActionValidator.FindBestHealEx(owner, action.HealMode, action.HealSources, out inventorySource);
             if (ability == null) {
                 Log.Engine.Warn($"FindBestHeal returned null for {owner.CharacterName}");
                 return false;

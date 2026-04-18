@@ -379,14 +379,35 @@ namespace WrathTactics.UI {
         }
 
         void SetupSpellSelector(GameObject row) {
-            // For Heal action, show HealMode selector instead of spell picker
+            // For Heal action, show HealMode + HealSources selectors instead of spell picker
             if (rule.Action.Type == ActionType.Heal) {
                 var healModeNames = Enum.GetNames(typeof(HealMode)).ToList();
-                PopupSelector.Create(row, "HealMode", 0.39f, 0.7f, healModeNames,
+                PopupSelector.Create(row, "HealMode", 0.39f, 0.53f, healModeNames,
                     (int)rule.Action.HealMode, idx => {
                         rule.Action.HealMode = (HealMode)idx;
                         ConfigManager.Save();
                     });
+
+                // Source mask selector — 7 curated combinations (2^3 - "None" sentinel).
+                var sourceLabels = new List<string> {
+                    "All sources", "Spell only", "Scroll only", "Potion only",
+                    "Spell + Scroll", "Spell + Potion", "Scroll + Potion",
+                };
+                var sourceValues = new List<HealSourceMask> {
+                    HealSourceMask.All,
+                    HealSourceMask.Spell,
+                    HealSourceMask.Scroll,
+                    HealSourceMask.Potion,
+                    HealSourceMask.Spell  | HealSourceMask.Scroll,
+                    HealSourceMask.Spell  | HealSourceMask.Potion,
+                    HealSourceMask.Scroll | HealSourceMask.Potion,
+                };
+                int srcIdx = sourceValues.IndexOf(rule.Action.HealSources);
+                if (srcIdx < 0) srcIdx = 0;
+                PopupSelector.Create(row, "HealSources", 0.54f, 0.88f, sourceLabels, srcIdx, idx => {
+                    rule.Action.HealSources = sourceValues[idx];
+                    ConfigManager.Save();
+                });
                 return;
             }
 

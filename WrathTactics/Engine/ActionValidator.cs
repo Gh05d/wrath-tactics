@@ -27,7 +27,7 @@ namespace WrathTactics.Engine {
                 case ActionType.AttackTarget:
                     return target != null && target.HPLeft > 0;
                 case ActionType.Heal:
-                    return FindBestHeal(owner, action.HealMode) != null;
+                    return FindBestHeal(owner, action.HealMode, action.HealSources) != null;
                 case ActionType.ThrowSplash:
                     return target != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.DoNothing:
@@ -195,8 +195,8 @@ namespace WrathTactics.Engine {
                 .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid);
         }
 
-        public static AbilityData FindBestHeal(UnitEntityData owner, HealMode mode = HealMode.Any) {
-            return FindBestHealEx(owner, mode, out _);
+        public static AbilityData FindBestHeal(UnitEntityData owner, HealMode mode = HealMode.Any, HealSourceMask sources = HealSourceMask.All) {
+            return FindBestHealEx(owner, mode, sources, out _);
         }
 
         /// <summary>
@@ -204,19 +204,26 @@ namespace WrathTactics.Engine {
         /// spellbook spells, class abilities, and quickslot/equipped wands). Caller must
         /// consume the item via Inventory.Remove after casting — synthesized AbilityData
         /// from inventory doesn't auto-consume through Rulebook.Trigger.
+        ///
+        /// `sources` masks which classes of heal are eligible. Spell covers spellbook casts,
+        /// class abilities, and wand/staff activations (all character-driven). Scroll and
+        /// Potion are inventory consumables. Default All keeps the legacy behaviour.
         /// </summary>
-        public static AbilityData FindBestHealEx(UnitEntityData owner, HealMode mode, out ItemEntity inventorySource) {
+        public static AbilityData FindBestHealEx(UnitEntityData owner, HealMode mode, HealSourceMask sources, out ItemEntity inventorySource) {
             inventorySource = null;
-            var heals = new List<(AbilityData ability, int priority, ItemEntity source)>();
+            var heals = new List<(AbilityData ability, int priority, ItemEntity source, HealSourceMask category)>();
+            bool wantSpell  = (sources & HealSourceMask.Spell)  != 0;
+            bool wantScroll = (sources & HealSourceMask.Scroll) != 0;
+            bool wantPotion = (sources & HealSourceMask.Potion) != 0;
 
             // Search spellbooks for cure/heal spells
-            foreach (var book in owner.Spellbooks) {
+            if (wantSpell) foreach (var book in owner.Spellbooks) {
                 int maxLevel = book.MaxSpellLevel;
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (IsHealingSpell(spell.Blueprint)) {
                             if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)
-                                heals.Add((spell, 100 + level * 10, null)); // highest priority: spellbook spells
+                                heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell)); // highest priority: spellbook spells
                         }
                     }
                 }
@@ -224,7 +231,7 @@ namespace WrathTactics.Engine {
 
             // Class abilities (Lay on Hands, Channel Positive Energy)
             // Must check resource availability — some abilities are per-day
-            foreach (var ability in owner.Abilities.RawFacts) {
+            if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
                 if (!IsHealingSpell(ability.Blueprint)) continue;
 
@@ -238,15 +245,15 @@ namespace WrathTactics.Engine {
                     }
                 }
 
-                heals.Add((ability.Data, 80, null)); // next priority: class features
+                heals.Add((ability.Data, 80, null, HealSourceMask.Spell)); // next priority: class features
             }
 
             // Item-backed abilities (wands, staves, equipped healing items)
-            foreach (var ability in owner.Abilities.RawFacts) {
+            if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
                 if (ability.Data.SourceItem.Charges <= 0) continue;
                 if (IsHealingSpell(ability.Blueprint))
-                    heals.Add((ability.Data, 30, null)); // lower priority: wands/staves (real SourceItem, auto-consumed)
+                    heals.Add((ability.Data, 30, null, HealSourceMask.Spell)); // wands/staves — character-driven
             }
 
             // Healing potions/scrolls from inventory
@@ -255,8 +262,8 @@ namespace WrathTactics.Engine {
             // Scrolls the user can't reliably activate (UMD < DC - 10 AND no native cast)
             // are collected here and only folded into the final candidate list if nothing
             // better is available — risky scroll beats no heal at all.
-            var fallbackScrolls = new List<(AbilityData ability, int priority, ItemEntity source)>();
-            if (inventory != null) {
+            var fallbackScrolls = new List<(AbilityData ability, int priority, ItemEntity source, HealSourceMask category)>();
+            if (inventory != null && (wantScroll || wantPotion)) {
                 foreach (var item in inventory) {
                     if (item == null || item.Count <= 0) continue;
                     invTotal++;
@@ -271,35 +278,41 @@ namespace WrathTactics.Engine {
                     }
                     invHealing++;
 
+                    bool isPotion = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion;
+                    bool isScroll = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll;
+                    if (isPotion && !wantPotion) continue;
+                    if (isScroll && !wantScroll) continue;
+                    if (!isPotion && !isScroll) continue; // ignore other inventory-usable types for heal
+
                     // Synthesize AbilityData with item's caster/spell level overrides
                     var itemAbility = new AbilityData(usable.Ability, owner.Descriptor) {
                         OverrideCasterLevel = usable.CasterLevel,
                         OverrideSpellLevel = usable.SpellLevel,
                     };
 
-                    // Lower priority: potions before scrolls (conserve scrolls)
-                    int priority = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion ? 10 : 20;
+                    int priority = isPotion ? 10 : 20;
+                    var category = isPotion ? HealSourceMask.Potion : HealSourceMask.Scroll;
 
                     // UMD gate for scrolls: d20 + UMD vs DC 20 + scroll.CasterLevel. Ten outcomes
                     // (11..20) clear threshold when UMD + 11 >= DC, so UMD + 11 < DC is < 50% success.
                     // Bypass the check only when the character can cast this spell right now from
                     // their own spellbook (known + available slot) — mere spell-list membership
                     // isn't enough, because running out of slots is common in long fights.
-                    if (usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll) {
+                    if (isScroll) {
                         bool canCastNatively = CanCastSpellFromSpellbook(owner, usable.Ability);
                         if (!canCastNatively) {
                             int dc = 20 + usable.CasterLevel;
                             int umd = owner.Stats.SkillUseMagicDevice.ModifiedValue;
                             if (umd + 11 < dc) {
                                 Log.Engine.Trace($"  inventory item {itemName}: deferring scroll — UMD {umd} vs DC {dc} (< 50% success), last-resort only");
-                                fallbackScrolls.Add((itemAbility, priority, item));
+                                fallbackScrolls.Add((itemAbility, priority, item, category));
                                 continue;
                             }
                         }
                     }
 
                     Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): IS heal — added");
-                    heals.Add((itemAbility, priority, item));
+                    heals.Add((itemAbility, priority, item, category));
                 }
             }
 
@@ -311,7 +324,7 @@ namespace WrathTactics.Engine {
             Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: total inventory items={invTotal}, usable={invUsable}, healing={invHealing}, heals candidates total={heals.Count}");
             if (heals.Count == 0) return null;
 
-            (AbilityData ability, int priority, ItemEntity source) pick;
+            (AbilityData ability, int priority, ItemEntity source, HealSourceMask category) pick;
             switch (mode) {
                 case HealMode.Weakest:
                     pick = heals.OrderBy(h => h.priority).First();
