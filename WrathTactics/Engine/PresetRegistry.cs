@@ -41,6 +41,9 @@ namespace WrathTactics.Engine {
             int newSeeds = 0;
             foreach (var preset in DefaultPresets.Build()) {
                 if (seeded.Contains(preset.Id)) continue;
+                // If ID isn't in the sentinel but the file is already on disk (upgrade from
+                // pre-sentinel version), we skip Save and just mark it seeded. One-time risk:
+                // a default the user deleted before the sentinel existed will re-seed once.
                 if (!presets.ContainsKey(preset.Id)) {
                     PresetManager.Save(preset);
                     presets[preset.Id] = preset;
