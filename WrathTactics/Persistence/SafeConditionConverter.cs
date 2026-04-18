@@ -27,7 +27,7 @@ namespace WrathTactics.Persistence {
             JObject obj;
             try {
                 obj = JObject.Load(reader);
-            } catch (Exception ex) {
+            } catch (JsonException ex) {
                 Log.Persistence.Warn($"Skipping condition — could not parse JSON object: {ex.Message}");
                 return null;
             }
@@ -36,7 +36,11 @@ namespace WrathTactics.Persistence {
             try {
                 // Populate via a nested serializer pass without this converter, so
                 // enum-parse failures here throw instead of recursing.
-                var inner = new JsonSerializer();
+                var inner = new JsonSerializer {
+                    ContractResolver = serializer.ContractResolver,
+                    NullValueHandling = serializer.NullValueHandling,
+                    MissingMemberHandling = serializer.MissingMemberHandling
+                };
                 foreach (var c in serializer.Converters) {
                     if (!(c is SafeConditionConverter)) inner.Converters.Add(c);
                 }
