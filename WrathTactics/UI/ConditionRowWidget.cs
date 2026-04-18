@@ -82,8 +82,8 @@ namespace WrathTactics.UI {
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
 
             if (isCountSubject) {
-                // Layout: [Subject 0→0.15] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
-                //         [Property 0.38→0.58] ["<" 0.59→0.63] [value 0.64→0.78] [X 0.9→1.0]
+                // Layout: [Subject 0→0.13] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
+                //         [NOT 0.38→0.41] [Property 0.42→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
                 // Reads: "AllyCount >= 2 with HpPercent < 60"
 
                 // ">=" label
@@ -109,11 +109,19 @@ namespace WrathTactics.UI {
                 UIHelpers.AddLabel(withLbl, "with", 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
-                // Property selector already placed at 0.21→0.42 above — move it to 0.38→0.58
+                // Reposition NOT toggle for count layout: between "with" and Property
+                var notBtnTransform = root.transform.Find("NegateBtn");
+                if (notBtnTransform != null) {
+                    var notBtnCountRect = notBtnTransform.GetComponent<RectTransform>();
+                    notBtnCountRect.SetAnchor(0.38, 0.41, 0, 1);
+                    notBtnCountRect.sizeDelta = Vector2.zero;
+                }
+
+                // Property selector already placed at 0.21→0.42 above — move it to 0.42→0.58
                 // (propertySelector was created before this block, so we reposition it)
                 if (propertySelector != null) {
                     var psRect = propertySelector.GetComponent<RectTransform>();
-                    if (psRect != null) psRect.SetAnchor(0.38, 0.58, 0, 1);
+                    if (psRect != null) psRect.SetAnchor(0.42, 0.58, 0, 1);
                 }
 
                 // Determine which value widget to show based on property type
