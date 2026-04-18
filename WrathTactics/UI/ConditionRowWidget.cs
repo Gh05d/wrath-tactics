@@ -50,7 +50,7 @@ namespace WrathTactics.UI {
                     Rebuild();
                 });
 
-            // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
+            // Property popup selector (for non-count: 0.19→0.38; repositioned below for count)
             var props = GetPropertiesForSubject(condition.Subject);
             var propNames = props.Select(p => p.ToString()).ToList();
             int propIdx = props.IndexOf(condition.Property);
@@ -117,7 +117,7 @@ namespace WrathTactics.UI {
                     notBtnCountRect.sizeDelta = Vector2.zero;
                 }
 
-                // Property selector already placed at 0.21→0.42 above — move it to 0.42→0.58
+                // Property selector already placed at 0.19→0.38 above — move it to 0.42→0.58
                 // (propertySelector was created before this block, so we reposition it)
                 if (propertySelector != null) {
                     var psRect = propertySelector.GetComponent<RectTransform>();
