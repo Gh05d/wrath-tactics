@@ -39,7 +39,7 @@ namespace WrathTactics.UI {
 
             // Subject popup selector — narrow enough to leave room for count layout
             var subjectNames = Enum.GetNames(typeof(ConditionSubject)).ToList();
-            PopupSelector.Create(root, "Subject", 0f, 0.15f, subjectNames,
+            PopupSelector.Create(root, "Subject", 0f, 0.13f, subjectNames,
                 (int)condition.Subject, v => {
                     condition.Subject = (ConditionSubject)v;
                     // Reset property to first valid for new subject
@@ -55,13 +55,27 @@ namespace WrathTactics.UI {
             var propNames = props.Select(p => p.ToString()).ToList();
             int propIdx = props.IndexOf(condition.Property);
             if (propIdx < 0) propIdx = 0;
-            propertySelector = PopupSelector.Create(root, "Property", 0.16f, 0.37f,
+            propertySelector = PopupSelector.Create(root, "Property", 0.19f, 0.38f,
                 propNames, propIdx, v => {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
                     if (v < currentProps.Count) condition.Property = currentProps[v];
                     ConfigManager.Save();
                     Rebuild();
                 });
+
+            // NOT toggle — inverts the final result of this condition
+            var notColor = condition.Negate
+                ? new Color(0.55f, 0.15f, 0.15f, 1f)
+                : new Color(0.20f, 0.20f, 0.20f, 1f);
+            var notLabel = condition.Negate ? "nicht" : "";
+            var notBtn = UIHelpers.MakeButton(root.transform, "NegateBtn", notLabel, 13f, notColor, () => {
+                condition.Negate = !condition.Negate;
+                ConfigManager.Save();
+                Rebuild();
+            });
+            var notRect = notBtn.GetComponent<RectTransform>();
+            notRect.SetAnchor(0.14, 0.18, 0, 1);
+            notRect.sizeDelta = Vector2.zero;
 
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
