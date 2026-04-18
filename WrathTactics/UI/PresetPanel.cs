@@ -63,9 +63,10 @@ namespace WrathTactics.UI {
             UIHelpers.AddBackground(importBtn, new Color(0.2f, 0.45f, 0.3f, 1f));
             UIHelpers.AddLabel(importBtn, "Import Presets from Clipboard Paste", 15f, TextAlignmentOptions.Midline);
             importBtn.AddComponent<Button>().onClick.AddListener(() => {
-                // Parent the modal on the top canvas so it overlays everything else
-                var canvas = UnityEngine.GameObject.FindObjectOfType<Canvas>()?.transform ?? root.transform.root;
-                ImportPresetOverlay.Show(canvas, () => {
+                // Parent the modal on the game's main UI canvas so it overlays everything.
+                // FindObjectOfType<Canvas>() is non-deterministic and tends to return the
+                // quickslot canvas (bottom-left) — that's where the modal appeared in alpha.
+                ImportPresetOverlay.Show(Kingmaker.Game.Instance.UI.Canvas.transform, () => {
                     onPresetsChanged?.Invoke();
                     Rebuild();
                 });
