@@ -113,43 +113,59 @@ namespace WrathTactics.Engine {
             isSynthetic = false;
             if (string.IsNullOrEmpty(abilityKey)) return null;
 
-            // Parse compound key: "guid" or "guid#metamagicMask"
-            UI.SpellDropdownProvider.ParseKey(abilityKey, out string guid, out int metamagicMask);
+            var parsed = UI.SpellDropdownProvider.ParseKey(abilityKey);
 
             foreach (var book in owner.Spellbooks) {
-                for (int level = 0; level <= 10; level++) {
+                int minLvl = parsed.Level >= 0 ? parsed.Level : 0;
+                int maxLvl = parsed.Level >= 0 ? parsed.Level : book.MaxSpellLevel;
+                for (int level = minLvl; level <= maxLvl; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        if (spell.Blueprint.AssetGuid.ToString() == guid && metamagicMask == 0)
-                            return spell;
+                        if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                        if (parsed.MetamagicMask != 0) continue; // metamagic → custom spells path only
+
+                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
+                            var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
+                            if (variants?.m_Variants == null) continue;
+                            foreach (var variant in variants.Variants) {
+                                if (variant == null) continue;
+                                if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
+                                isSynthetic = true;
+                                return new AbilityData(spell, variant);
+                            }
+                            continue;
+                        }
+                        return spell;
                     }
                     foreach (var spell in book.GetCustomSpells(level)) {
-                        if (spell.Blueprint.AssetGuid.ToString() != guid) continue;
+                        if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
                         int spellMask = (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
                             ? (int)spell.MetamagicData.MetamagicMask : 0;
-                        if (spellMask == metamagicMask)
+                        if (spellMask == parsed.MetamagicMask)
                             return spell;
                     }
                 }
             }
 
-            // Non-spellbook abilities (only match plain GUID keys)
+            // Non-spellbook abilities (class abilities: key is variant-guid-as-primary for legacy compatibility)
             foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
 
-                // Direct match — real ability, not synthetic
-                if (ability.Blueprint.AssetGuid.ToString() == guid && metamagicMask == 0)
+                if (ability.Blueprint.AssetGuid.ToString() == parsed.BlueprintGuid && parsed.MetamagicMask == 0)
                     return ability.Data;
 
-                // Check variants (e.g. Evil Eye - AC).
-                // Use the two-param AbilityData(parent, variant) constructor so the
-                // variant inherits spellbook context and CreateCastCommand accepts it (with animation).
+                // Variants: legacy keys store the variant GUID as primary; new keys use BlueprintGuid=parent + VariantGuid=variant.
                 var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
-                if (variants != null && variants.m_Variants != null) {
-                    foreach (var variant in variants.Variants) {
-                        if (variant != null && variant.AssetGuid.ToString() == guid && metamagicMask == 0) {
-                            isSynthetic = true;
-                            return new AbilityData(ability.Data, variant);
-                        }
+                if (variants?.m_Variants == null) continue;
+                foreach (var variant in variants.Variants) {
+                    if (variant == null || parsed.MetamagicMask != 0) continue;
+                    bool legacyMatch = string.IsNullOrEmpty(parsed.VariantGuid)
+                        && variant.AssetGuid.ToString() == parsed.BlueprintGuid;
+                    bool explicitMatch = !string.IsNullOrEmpty(parsed.VariantGuid)
+                        && ability.Blueprint.AssetGuid.ToString() == parsed.BlueprintGuid
+                        && variant.AssetGuid.ToString() == parsed.VariantGuid;
+                    if (legacyMatch || explicitMatch) {
+                        isSynthetic = true;
+                        return new AbilityData(ability.Data, variant);
                     }
                 }
             }
@@ -195,7 +211,8 @@ namespace WrathTactics.Engine {
 
             // Search spellbooks for cure/heal spells
             foreach (var book in owner.Spellbooks) {
-                for (int level = 0; level <= 9; level++) {
+                int maxLevel = book.MaxSpellLevel;
+                for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (IsHealingSpell(spell.Blueprint)) {
                             if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)

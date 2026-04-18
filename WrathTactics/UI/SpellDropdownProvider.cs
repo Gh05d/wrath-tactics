@@ -19,28 +19,61 @@ namespace WrathTactics.UI {
         }
 
         /// <summary>
-        /// Builds a compound key for an AbilityData. Normal spells use the blueprint GUID;
-        /// metamagic variants use "guid#metamagicMask" so each variant is uniquely identifiable.
+        /// Parsed form of a compound ability key. Level=-1 means unspecified (legacy key).
+        /// VariantGuid=null means no variant. MetamagicMask=0 means no metamagic.
         /// </summary>
-        public static string MakeKey(AbilityData spell) {
-            var guid = spell.Blueprint.AssetGuid.ToString();
-            if (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
-                return $"{guid}#{(int)spell.MetamagicData.MetamagicMask}";
-            return guid;
+        public struct ParsedKey {
+            public string BlueprintGuid;
+            public int Level;
+            public string VariantGuid;
+            public int MetamagicMask;
         }
 
         /// <summary>
-        /// Parses a compound key. Returns the blueprint GUID and metamagic mask (0 if none).
+        /// Builds a compound ability key:
+        ///   guid[@L&lt;level&gt;][&gt;V&lt;variantGuid&gt;][#&lt;metamagicMask&gt;]
+        /// level &lt; 0 omits the level segment (for non-spellbook abilities). Metamagic is read from the AbilityData.
         /// </summary>
-        public static void ParseKey(string key, out string guid, out int metamagicMask) {
-            int sep = key.IndexOf('#');
-            if (sep < 0) {
-                guid = key;
-                metamagicMask = 0;
-            } else {
-                guid = key.Substring(0, sep);
-                int.TryParse(key.Substring(sep + 1), out metamagicMask);
+        public static string MakeKey(AbilityData spell, int level = -1, string variantGuid = null) {
+            var sb = new System.Text.StringBuilder(spell.Blueprint.AssetGuid.ToString());
+            if (level >= 0) sb.Append("@L").Append(level);
+            if (!string.IsNullOrEmpty(variantGuid)) sb.Append(">V").Append(variantGuid);
+            if (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
+                sb.Append("#").Append((int)spell.MetamagicData.MetamagicMask);
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Parses a compound ability key. Missing segments get defaults (Level=-1, VariantGuid=null, MetamagicMask=0).
+        /// Legacy keys (bare GUID, or guid#meta) parse cleanly as Level=-1.
+        /// </summary>
+        public static ParsedKey ParseKey(string key) {
+            var result = new ParsedKey { Level = -1 };
+            if (string.IsNullOrEmpty(key)) return result;
+
+            int end = key.Length;
+
+            int hash = key.LastIndexOf('#');
+            if (hash >= 0 && int.TryParse(key.Substring(hash + 1), out int mask)) {
+                result.MetamagicMask = mask;
+                end = hash;
             }
+
+            int vIdx = key.IndexOf(">V", StringComparison.Ordinal);
+            if (vIdx >= 0 && vIdx < end) {
+                result.VariantGuid = key.Substring(vIdx + 2, end - vIdx - 2);
+                end = vIdx;
+            }
+
+            int lIdx = key.IndexOf("@L", StringComparison.Ordinal);
+            if (lIdx >= 0 && lIdx < end) {
+                if (int.TryParse(key.Substring(lIdx + 2, end - lIdx - 2), out int lvl))
+                    result.Level = lvl;
+                end = lIdx;
+            }
+
+            result.BlueprintGuid = key.Substring(0, end);
+            return result;
         }
 
         static string BuildMetamagicTag(AbilityData spell) {
@@ -72,16 +105,27 @@ namespace WrathTactics.UI {
             var seen = new HashSet<string>();
 
             foreach (var book in unit.Spellbooks) {
-                for (int level = 0; level <= 9; level++) {
-                    // Base known spells
+                int maxLevel = book.MaxSpellLevel;
+                for (int level = 0; level <= maxLevel; level++) {
+                    // Base known spells — expand AbilityVariants (Command, Plague Storm, …) per variant
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        var key = spell.Blueprint.AssetGuid.ToString();
-                        if (seen.Add(key))
-                            result.Add(new SpellEntry($"[L{level}] {spell.Name}", key, spell.Blueprint.Icon));
+                        var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
+                        if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
+                            foreach (var variant in variants.Variants) {
+                                if (variant == null) continue;
+                                var key = MakeKey(spell, level, variant.AssetGuid.ToString());
+                                if (seen.Add(key))
+                                    result.Add(new SpellEntry($"[L{level}] {spell.Name}: {variant.Name}", key, variant.Icon));
+                            }
+                        } else {
+                            var key = MakeKey(spell, level);
+                            if (seen.Add(key))
+                                result.Add(new SpellEntry($"[L{level}] {spell.Name}", key, spell.Blueprint.Icon));
+                        }
                     }
                     // Custom spells (metamagic variants, fused spells)
                     foreach (var spell in book.GetCustomSpells(level)) {
-                        var key = MakeKey(spell);
+                        var key = MakeKey(spell, level);
                         if (seen.Add(key)) {
                             var tag = BuildMetamagicTag(spell);
                             var name = tag.Length > 0
