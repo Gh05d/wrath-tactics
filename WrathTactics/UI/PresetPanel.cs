@@ -80,7 +80,10 @@ namespace WrathTactics.UI {
                         new ConditionGroup { Conditions = { new Condition() } }
                     }
                 };
-                PresetRegistry.Save(preset);
+                if (!PresetRegistry.Save(preset)) {
+                    SetStatus("Save failed — check mod log: new preset", new Color(1f, 0.5f, 0.4f));
+                    return;
+                }
                 expandedIds.Add(preset.Id);
                 Rebuild();
             });
@@ -141,7 +144,10 @@ namespace WrathTactics.UI {
                 var trimmed = v?.Trim();
                 if (string.IsNullOrEmpty(trimmed) || trimmed == preset.Name) return;
                 preset.Name = trimmed;
-                PresetRegistry.Save(preset);
+                if (!PresetRegistry.Save(preset)) {
+                    SetStatus("Save failed — check mod log: rename", new Color(1f, 0.5f, 0.4f));
+                    return;
+                }
                 // Defer — Rebuild destroys the TMP_InputField and its teardown must not
                 // race with the onEndEdit callback still on the stack.
                 StartCoroutine(DeferredRebuild());
@@ -169,8 +175,9 @@ namespace WrathTactics.UI {
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f));
             UIHelpers.AddLabel(delBtn, "Delete", 15f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => {
-                PresetRegistry.Delete(preset.Id, ConfigManager.Current);
+                bool fileRemoved = PresetRegistry.Delete(preset.Id, ConfigManager.Current);
                 ConfigManager.Save();
+                if (!fileRemoved) SetStatus("Save failed — check mod log: delete", new Color(1f, 0.5f, 0.4f));
                 expandedIds.Remove(preset.Id);
                 Rebuild();
             });
@@ -182,7 +189,8 @@ namespace WrathTactics.UI {
                 var widget = editorObj.AddComponent<RuleEditorWidget>();
                 var solo = new List<TacticsRule> { preset };
                 widget.Init(preset, 0, solo, () => {
-                    PresetRegistry.Save(preset);
+                    if (!PresetRegistry.Save(preset))
+                        SetStatus("Save failed — check mod log: edit", new Color(1f, 0.5f, 0.4f));
                 }, unitId: null, hideHeader: true);
             }
         }
@@ -216,13 +224,14 @@ namespace WrathTactics.UI {
             var existingNames = new HashSet<string>(
                 PresetRegistry.All().Select(p => p.Name),
                 StringComparer.OrdinalIgnoreCase);
-            int imported = 0, renamed = 0;
+            int imported = 0, renamed = 0, failed = 0;
             foreach (var preset in parsed) {
                 if (preset == null) continue;
                 preset.Id = Guid.NewGuid().ToString();
                 preset.PresetId = null;
                 string baseName = string.IsNullOrEmpty(preset.Name) ? "Imported Preset" : preset.Name;
                 string finalName = baseName;
+                bool wasRenamed = false;
                 if (existingNames.Contains(finalName)) {
                     int n = 1;
                     finalName = $"{baseName} (imported)";
@@ -230,19 +239,27 @@ namespace WrathTactics.UI {
                         n++;
                         finalName = $"{baseName} (imported {n})";
                     }
-                    renamed++;
+                    wasRenamed = true;
                 }
                 preset.Name = finalName;
-                existingNames.Add(finalName);
-                PresetRegistry.Save(preset);
-                imported++;
+                if (PresetRegistry.Save(preset)) {
+                    existingNames.Add(finalName);
+                    imported++;
+                    if (wasRenamed) renamed++;
+                } else {
+                    failed++;
+                }
             }
-            Log.UI.Info($"Imported {imported} preset(s) ({renamed} renamed due to name conflicts)");
-            SetStatus(
-                renamed > 0
-                    ? $"Imported {imported} preset(s) — {renamed} renamed due to name conflicts."
-                    : $"Imported {imported} preset(s).",
-                new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Imported {imported} preset(s) ({renamed} renamed, {failed} failed)");
+            if (failed > 0) {
+                SetStatus($"Imported {imported} preset(s), {failed} failed — check mod log.", new Color(1f, 0.5f, 0.4f));
+            } else {
+                SetStatus(
+                    renamed > 0
+                        ? $"Imported {imported} preset(s) — {renamed} renamed due to name conflicts."
+                        : $"Imported {imported} preset(s).",
+                    new Color(0.6f, 0.85f, 0.6f));
+            }
             onPresetsChanged?.Invoke();
             Rebuild();
         }

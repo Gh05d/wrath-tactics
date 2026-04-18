@@ -90,18 +90,26 @@ namespace WrathTactics.Engine {
             return preset ?? rule;
         }
 
-        public static void Save(TacticsRule preset) {
-            if (preset == null || string.IsNullOrEmpty(preset.Id)) return;
-            PresetManager.Save(preset);
+        /// <summary>
+        /// Returns true on successful disk write. The in-memory dict is updated regardless so
+        /// the UI reflects what the user just typed even if the file write failed — callers
+        /// must surface a false return to the user so they know the change isn't persisted.
+        /// </summary>
+        public static bool Save(TacticsRule preset) {
+            if (preset == null || string.IsNullOrEmpty(preset.Id)) return false;
+            bool ok = PresetManager.Save(preset);
             GetPresets()[preset.Id] = preset;
+            return ok;
         }
 
         /// <summary>
-        /// Deletes the preset file and removes every linked rule referencing it from the active config.
+        /// Deletes the preset file and removes every linked rule referencing it from the active
+        /// config. Returns true iff the file removal succeeded — cascade cleanup runs either way
+        /// so the in-memory state is consistent even when the filesystem write failed.
         /// </summary>
-        public static void Delete(string presetId, TacticsConfig config) {
-            if (string.IsNullOrEmpty(presetId)) return;
-            PresetManager.Delete(presetId);
+        public static bool Delete(string presetId, TacticsConfig config) {
+            if (string.IsNullOrEmpty(presetId)) return false;
+            bool ok = PresetManager.Delete(presetId);
             GetPresets().Remove(presetId);
 
             int removed = 0;
@@ -111,6 +119,7 @@ namespace WrathTactics.Engine {
                     removed += kv.Value.RemoveAll(r => r.PresetId == presetId);
             }
             Log.Persistence.Info($"Cascade-removed {removed} linked rule(s) for preset id={presetId}");
+            return ok;
         }
 
         /// <summary>
@@ -148,7 +157,12 @@ namespace WrathTactics.Engine {
             var preset = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
             preset.Id = System.Guid.NewGuid().ToString();
             preset.PresetId = null;
-            Save(preset);
+            // Atomic: if the save fails we leave the source rule untouched rather than
+            // mutating it into a linked state pointing at a non-existent preset.
+            if (!Save(preset)) {
+                Log.Persistence.Error($"PromoteRuleToPreset: save failed for new preset id={preset.Id}, leaving source rule intact");
+                return null;
+            }
 
             rule.PresetId = preset.Id;
             rule.ConditionGroups = new System.Collections.Generic.List<Models.ConditionGroup>();

@@ -39,10 +39,16 @@ namespace WrathTactics.Persistence {
             return result.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        public static void Save(TacticsRule preset) {
+        /// <summary>
+        /// Writes the preset JSON via write-then-rename atomic pattern.
+        /// Returns true on successful disk write, false on any exception (already logged).
+        /// UI callers must surface a failure — otherwise users see a phantom-saved preset
+        /// that disappears on next mod reload.
+        /// </summary>
+        public static bool Save(TacticsRule preset) {
             if (preset == null || string.IsNullOrEmpty(preset.Id)) {
                 Log.Persistence.Warn("Save called with null preset or empty Id — ignored");
-                return;
+                return false;
             }
             try {
                 Directory.CreateDirectory(PresetDir);
@@ -54,21 +60,28 @@ namespace WrathTactics.Persistence {
                 if (File.Exists(path)) File.Delete(path);
                 File.Move(tmp, path);
                 Log.Persistence.Info($"Saved preset '{preset.Name}' (id={preset.Id})");
+                return true;
             } catch (Exception ex) {
                 Log.Persistence.Error(ex, $"Failed to save preset '{preset.Name}'");
+                return false;
             }
         }
 
-        public static void Delete(string presetId) {
-            if (string.IsNullOrEmpty(presetId)) return;
+        /// <summary>
+        /// Returns true if the file was removed (or never existed), false if deletion threw.
+        /// </summary>
+        public static bool Delete(string presetId) {
+            if (string.IsNullOrEmpty(presetId)) return false;
             try {
                 var path = Path.Combine(PresetDir, $"{presetId}.json");
                 if (File.Exists(path)) {
                     File.Delete(path);
                     Log.Persistence.Info($"Deleted preset id={presetId}");
                 }
+                return true;
             } catch (Exception ex) {
                 Log.Persistence.Error(ex, $"Failed to delete preset id={presetId}");
+                return false;
             }
         }
     }
