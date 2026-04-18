@@ -252,6 +252,15 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(copyObj, "Copy", 14f, TextAlignmentOptions.Midline);
             copyObj.AddComponent<Button>().onClick.AddListener(() => CloneRule());
 
+            // Export (clipboard) — wraps the resolved rule in a 1-element JSON array
+            var (exportObj, _4e) = UIHelpers.Create("Export", header.transform);
+            var exportLE = exportObj.AddComponent<LayoutElement>();
+            exportLE.preferredWidth = 56;
+            exportLE.flexibleWidth = 0;
+            UIHelpers.AddBackground(exportObj, new Color(0.3f, 0.3f, 0.5f, 1f));
+            UIHelpers.AddLabel(exportObj, "Export", 13f, TextAlignmentOptions.Midline);
+            exportObj.AddComponent<Button>().onClick.AddListener(() => ExportRuleToClipboard());
+
             // Promote to preset — only for unlinked character rules
             bool canPromote = !isLinked && !string.IsNullOrEmpty(unitId);
             if (canPromote) {
@@ -701,6 +710,14 @@ namespace WrathTactics.UI {
             if (preset == null) return;
             ConfigManager.Save();
             onChanged?.Invoke();
+        }
+
+        void ExportRuleToClipboard() {
+            var source = Engine.PresetRegistry.Resolve(rule);
+            var array = new System.Collections.Generic.List<TacticsRule> { source };
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(array, Newtonsoft.Json.Formatting.Indented);
+            UnityEngine.GUIUtility.systemCopyBuffer = json;
+            Logging.Log.UI.Info($"Copied rule '{source.Name}' to clipboard");
         }
     }
 }
