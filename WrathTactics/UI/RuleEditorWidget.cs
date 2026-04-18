@@ -252,6 +252,18 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(copyObj, "Copy", 14f, TextAlignmentOptions.Midline);
             copyObj.AddComponent<Button>().onClick.AddListener(() => CloneRule());
 
+            // Promote to preset — only for unlinked character rules
+            bool canPromote = !isLinked && !string.IsNullOrEmpty(unitId);
+            if (canPromote) {
+                var (promoteObj, _4p) = UIHelpers.Create("Promote", header.transform);
+                var promoteLE = promoteObj.AddComponent<LayoutElement>();
+                promoteLE.preferredWidth = 64;
+                promoteLE.flexibleWidth = 0;
+                UIHelpers.AddBackground(promoteObj, new Color(0.25f, 0.45f, 0.3f, 1f));
+                UIHelpers.AddLabel(promoteObj, "↥ Preset", 13f, TextAlignmentOptions.Midline);
+                promoteObj.AddComponent<Button>().onClick.AddListener(() => PromoteToPreset());
+            }
+
             // Delete
             var (delObj, _4) = UIHelpers.Create("Del", header.transform);
             var delLE = delObj.AddComponent<LayoutElement>();
@@ -680,6 +692,13 @@ namespace WrathTactics.UI {
             copy.Name = source.Name + " (copy)";
             copy.PresetId = null;  // standalone copy; never inherit the link
             ruleList.Insert(index + 1, copy);
+            ConfigManager.Save();
+            onChanged?.Invoke();
+        }
+
+        void PromoteToPreset() {
+            var preset = Engine.PresetRegistry.PromoteRuleToPreset(rule);
+            if (preset == null) return;
             ConfigManager.Save();
             onChanged?.Invoke();
         }
