@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +14,8 @@ namespace WrathTactics.UI {
     public class PresetPanel : MonoBehaviour {
         Action onPresetsChanged;
         readonly HashSet<string> expandedIds = new HashSet<string>();
+        string lastIOStatus;
+        Color lastIOStatusColor = Color.gray;
 
         public void Init(string _unusedCharacterId, Transform _unusedParent, Action onPresetsChanged) {
             this.onPresetsChanged = onPresetsChanged;
@@ -50,27 +53,20 @@ namespace WrathTactics.UI {
             exportAllBtn.AddComponent<LayoutElement>().preferredHeight = 36;
             UIHelpers.AddBackground(exportAllBtn, new Color(0.3f, 0.3f, 0.5f, 1f));
             UIHelpers.AddLabel(exportAllBtn, "Export All Presets to Clipboard", 15f, TextAlignmentOptions.Midline);
-            exportAllBtn.AddComponent<Button>().onClick.AddListener(() => {
-                var all = new System.Collections.Generic.List<TacticsRule>(PresetRegistry.All());
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(all, Newtonsoft.Json.Formatting.Indented);
-                UnityEngine.GUIUtility.systemCopyBuffer = json;
-                Log.UI.Info($"Copied {all.Count} preset(s) to clipboard");
-            });
+            exportAllBtn.AddComponent<Button>().onClick.AddListener(() => ExportAllToClipboard());
 
-            // Import Presets — opens the ImportPresetOverlay modal
+            // Import Presets — reads directly from clipboard and imports
             var (importBtn, _imp) = UIHelpers.Create("ImportBtn", root.transform);
             importBtn.AddComponent<LayoutElement>().preferredHeight = 36;
             UIHelpers.AddBackground(importBtn, new Color(0.2f, 0.45f, 0.3f, 1f));
-            UIHelpers.AddLabel(importBtn, "Import Presets from Clipboard Paste", 15f, TextAlignmentOptions.Midline);
-            importBtn.AddComponent<Button>().onClick.AddListener(() => {
-                // Parent the modal on the game's main UI canvas so it overlays everything.
-                // FindObjectOfType<Canvas>() is non-deterministic and tends to return the
-                // quickslot canvas (bottom-left) — that's where the modal appeared in alpha.
-                ImportPresetOverlay.Show(Kingmaker.Game.Instance.UI.Canvas.transform, () => {
-                    onPresetsChanged?.Invoke();
-                    Rebuild();
-                });
-            });
+            UIHelpers.AddLabel(importBtn, "Import Presets from Clipboard", 15f, TextAlignmentOptions.Midline);
+            importBtn.AddComponent<Button>().onClick.AddListener(() => ImportFromClipboard());
+
+            // Status line — shows success/error of the last Export or Import click
+            var (statusObj, _st) = UIHelpers.Create("IOStatus", root.transform);
+            statusObj.AddComponent<LayoutElement>().preferredHeight = 24;
+            var statusLabel = UIHelpers.AddLabel(statusObj, lastIOStatus ?? "", 13f,
+                TextAlignmentOptions.MidlineLeft, lastIOStatusColor);
 
             // New preset button
             var (newBtn, _n) = UIHelpers.Create("NewPresetBtn", root.transform);
@@ -189,6 +185,74 @@ namespace WrathTactics.UI {
                     PresetRegistry.Save(preset);
                 }, unitId: null, hideHeader: true);
             }
+        }
+
+        void ExportAllToClipboard() {
+            var all = new List<TacticsRule>(PresetRegistry.All());
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(all, Newtonsoft.Json.Formatting.Indented);
+            UnityEngine.GUIUtility.systemCopyBuffer = json;
+            SetStatus($"Copied {all.Count} preset(s) to clipboard.", new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Copied {all.Count} preset(s) to clipboard");
+        }
+
+        void ImportFromClipboard() {
+            var text = UnityEngine.GUIUtility.systemCopyBuffer?.Trim() ?? "";
+            if (string.IsNullOrEmpty(text)) {
+                SetStatus("Clipboard is empty. Copy a preset JSON array first.", new Color(1f, 0.5f, 0.4f));
+                return;
+            }
+            List<TacticsRule> parsed;
+            try {
+                parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<List<TacticsRule>>(text);
+            } catch (Newtonsoft.Json.JsonException ex) {
+                SetStatus($"Invalid JSON on clipboard: {ex.Message}", new Color(1f, 0.5f, 0.4f));
+                return;
+            }
+            if (parsed == null) {
+                SetStatus("Clipboard does not contain a JSON array of presets.", new Color(1f, 0.5f, 0.4f));
+                return;
+            }
+
+            var existingNames = new HashSet<string>(
+                PresetRegistry.All().Select(p => p.Name),
+                StringComparer.OrdinalIgnoreCase);
+            int imported = 0, renamed = 0;
+            foreach (var preset in parsed) {
+                if (preset == null) continue;
+                preset.Id = Guid.NewGuid().ToString();
+                preset.PresetId = null;
+                string baseName = string.IsNullOrEmpty(preset.Name) ? "Imported Preset" : preset.Name;
+                string finalName = baseName;
+                if (existingNames.Contains(finalName)) {
+                    int n = 1;
+                    finalName = $"{baseName} (imported)";
+                    while (existingNames.Contains(finalName)) {
+                        n++;
+                        finalName = $"{baseName} (imported {n})";
+                    }
+                    renamed++;
+                }
+                preset.Name = finalName;
+                existingNames.Add(finalName);
+                PresetRegistry.Save(preset);
+                imported++;
+            }
+            Log.UI.Info($"Imported {imported} preset(s) ({renamed} renamed due to name conflicts)");
+            SetStatus(
+                renamed > 0
+                    ? $"Imported {imported} preset(s) — {renamed} renamed due to name conflicts."
+                    : $"Imported {imported} preset(s).",
+                new Color(0.6f, 0.85f, 0.6f));
+            onPresetsChanged?.Invoke();
+            Rebuild();
+        }
+
+        void SetStatus(string text, Color color) {
+            lastIOStatus = text;
+            lastIOStatusColor = color;
+            // If we're not rebuilding immediately, reflect the change now.
+            var label = transform.Find("IOStatus/Label")?.GetComponent<TMP_Text>();
+            if (label != null) { label.text = text; label.color = color; }
         }
 
         IEnumerator DeferredRebuild() {
