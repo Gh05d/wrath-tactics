@@ -98,7 +98,8 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - **Enemy enumeration**: `Game.Instance.State.Units` returns ALL units in scene (80+). Filter on `IsInCombat` to get only actively engaging enemies, else companions chase non-combat targets.
 - **Enemy filter consistency**: Both `ConditionEvaluator.GetVisibleEnemies` AND `TargetResolver.GetVisibleEnemies` must use the same filter (`IsInCombat`). Mismatch causes companions to target non-combat enemies.
 - **CreatureType detection**: Many vanilla units (e.g. all swarms) have `Blueprint.Type = null`. Match via the unit's feature list (`SwarmDiminutiveFeature`, `SwarmTinyFeature`) instead of `Blueprint.Type.name`.
-- **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`. No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
+- **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`, **`(AbilityData parent, BlueprintAbility variant)`** for `AbilityVariants` (Command → Halt/Prone/Approach/Flee, Plague Storm → disease variants, Evil Eye → AC/Attack/Saves — works on both spellbook spells AND class abilities). No 3-param `(blueprint, descriptor, ItemEntity)` exists — use 2-param + `OverrideCasterLevel`/`OverrideSpellLevel`.
+- **Spellbook max level**: loop to `book.MaxSpellLevel` (instance prop). Regular books cap at 9, mythic at 10. Never hardcode.
 - **ActivatableAbility API**: Has `TryStart()` but NO `TryStop()`. Deactivate via `IsOn = false` only.
 - **Spellbook slot counts**: `GetSpellsPerDay(level)` is MAX per-day capacity (never decrements) — wrong for "can I still cast?" checks. Use `GetAvailableForCastSpellCount(ability)` — handles prepared (memorized+Available), spontaneous (`GetSpontaneousSlots`), Arcanist-hybrid, and opposition schools/descriptors.
 - **Ability resource cost**: Use `AbilityResourceLogic.CalculateCost(ability)` not `.Amount` — honors `OverrideRequiredResource`, `IsSpendResource`, `ResourceCostIncreasing/DecreasingFacts`, and custom `IAbilityResourceCostCalculator` components. Matches the game's internal `Spend()` path.
@@ -116,3 +117,5 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - K&R brace style (opening brace on same line)
 - 4-space indentation
 - `var` when type is apparent
+- UI strings are English-only. No mixed-language (no `"Ja"/"Nein"`, no `"nicht"`) — use `Yes`/`No`, `!=`, etc.
+- Equality conditions use inline `=`/`!=` operator dropdowns. Extend the operator pattern to new properties (HasBuff, HasCondition, CreatureType, Alignment) rather than adding a perpendicular Negate/NOT button or model flag.
