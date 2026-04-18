@@ -45,6 +45,18 @@ namespace WrathTactics.UI {
                 "Presets are reusable rules. Attach them on any character tab via \"+ From Preset\". Edits here propagate to every linked copy.",
                 13f, TextAlignmentOptions.TopLeft, new Color(0.7f, 0.7f, 0.7f));
 
+            // Export All Presets — copies the whole collection as a JSON array
+            var (exportAllBtn, _ea) = UIHelpers.Create("ExportAllBtn", root.transform);
+            exportAllBtn.AddComponent<LayoutElement>().preferredHeight = 36;
+            UIHelpers.AddBackground(exportAllBtn, new Color(0.3f, 0.3f, 0.5f, 1f));
+            UIHelpers.AddLabel(exportAllBtn, "Export All Presets to Clipboard", 15f, TextAlignmentOptions.Midline);
+            exportAllBtn.AddComponent<Button>().onClick.AddListener(() => {
+                var all = new System.Collections.Generic.List<TacticsRule>(PresetRegistry.All());
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(all, Newtonsoft.Json.Formatting.Indented);
+                UnityEngine.GUIUtility.systemCopyBuffer = json;
+                Log.UI.Info($"Copied {all.Count} preset(s) to clipboard");
+            });
+
             // New preset button
             var (newBtn, _n) = UIHelpers.Create("NewPresetBtn", root.transform);
             newBtn.AddComponent<LayoutElement>().preferredHeight = 40;
