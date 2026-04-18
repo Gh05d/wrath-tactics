@@ -39,7 +39,7 @@ namespace WrathTactics.UI {
 
             // Subject popup selector — narrow enough to leave room for count layout
             var subjectNames = Enum.GetNames(typeof(ConditionSubject)).ToList();
-            PopupSelector.Create(root, "Subject", 0f, 0.13f, subjectNames,
+            PopupSelector.Create(root, "Subject", 0f, 0.15f, subjectNames,
                 (int)condition.Subject, v => {
                     condition.Subject = (ConditionSubject)v;
                     // Reset property to first valid for new subject
@@ -50,12 +50,12 @@ namespace WrathTactics.UI {
                     Rebuild();
                 });
 
-            // Property popup selector (for non-count: 0.19→0.38; repositioned below for count)
+            // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
             var props = GetPropertiesForSubject(condition.Subject);
             var propNames = props.Select(p => p.ToString()).ToList();
             int propIdx = props.IndexOf(condition.Property);
             if (propIdx < 0) propIdx = 0;
-            propertySelector = PopupSelector.Create(root, "Property", 0.19f, 0.38f,
+            propertySelector = PopupSelector.Create(root, "Property", 0.16f, 0.37f,
                 propNames, propIdx, v => {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
                     if (v < currentProps.Count) condition.Property = currentProps[v];
@@ -63,26 +63,13 @@ namespace WrathTactics.UI {
                     Rebuild();
                 });
 
-            // NOT toggle — inverts the final result of this condition
-            var notColor = condition.Negate
-                ? new Color(0.55f, 0.15f, 0.15f, 1f)
-                : new Color(0.20f, 0.20f, 0.20f, 1f);
-            var notBtn = UIHelpers.MakeButton(root.transform, "NegateBtn", "!=", 14f, notColor, () => {
-                condition.Negate = !condition.Negate;
-                ConfigManager.Save();
-                Rebuild();
-            });
-            var notRect = notBtn.GetComponent<RectTransform>();
-            notRect.SetAnchor(0.14, 0.18, 0, 1);
-            notRect.sizeDelta = Vector2.zero;
-
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
 
             if (isCountSubject) {
-                // Layout: [Subject 0→0.13] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
-                //         [NOT 0.38→0.41] [Property 0.42→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
+                // Layout: [Subject 0→0.15] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
+                //         [Property 0.38→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
                 // Reads: "AllyCount >= 2 with HpPercent < 60"
 
                 // ">=" label
@@ -108,19 +95,11 @@ namespace WrathTactics.UI {
                 UIHelpers.AddLabel(withLbl, "with", 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
-                // Reposition NOT toggle for count layout: between "with" and Property
-                var notBtnTransform = root.transform.Find("NegateBtn");
-                if (notBtnTransform != null) {
-                    var notBtnCountRect = notBtnTransform.GetComponent<RectTransform>();
-                    notBtnCountRect.SetAnchor(0.38, 0.41, 0, 1);
-                    notBtnCountRect.sizeDelta = Vector2.zero;
-                }
-
-                // Property selector already placed at 0.19→0.38 above — move it to 0.42→0.58
+                // Property selector already placed at 0.16→0.37 above — move it to 0.38→0.58
                 // (propertySelector was created before this block, so we reposition it)
                 if (propertySelector != null) {
                     var psRect = propertySelector.GetComponent<RectTransform>();
-                    if (psRect != null) psRect.SetAnchor(0.42, 0.58, 0, 1);
+                    if (psRect != null) psRect.SetAnchor(0.38, 0.58, 0, 1);
                 }
 
                 // Determine which value widget to show based on property type
@@ -128,19 +107,13 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.AC;
 
                 if (propNeedsOperator) {
-                    // Operator selector where the "<" label was (!= handled by the NOT toggle)
-                    var opNames = new List<string> { "<", ">", "=", ">=", "<=" };
-                    var opEnums = new[] {
-                        ConditionOperator.LessThan, ConditionOperator.GreaterThan,
-                        ConditionOperator.Equal, ConditionOperator.GreaterOrEqual,
-                        ConditionOperator.LessOrEqual
-                    };
-                    int opIdx = System.Array.IndexOf(opEnums, condition.Operator);
-                    if (opIdx < 0) opIdx = 2;
-                    PopupSelector.Create(root, "CountOperator", 0.58f, 0.66f, opNames, opIdx, v => {
-                        condition.Operator = opEnums[v];
-                        ConfigManager.Save();
-                    });
+                    // Operator selector where the "<" label was
+                    var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                    PopupSelector.Create(root, "CountOperator", 0.58f, 0.66f, opNames,
+                        (int)condition.Operator, v => {
+                            condition.Operator = (ConditionOperator)v;
+                            ConfigManager.Save();
+                        });
 
                     // Value input on the right
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
@@ -150,44 +123,22 @@ namespace WrathTactics.UI {
                         ConfigManager.Save();
                     });
                 } else if (condition.Property == ConditionProperty.CreatureType
-                    || condition.Property == ConditionProperty.Alignment) {
-                    condition.Operator = ConditionOperator.Equal;
+                    || condition.Property == ConditionProperty.Alignment
+                    || condition.Property == ConditionProperty.HasBuff
+                    || condition.Property == ConditionProperty.HasCondition) {
+                    CreateEqOperator(root, 0.58f, 0.64f, "CountEqOp");
 
-                    List<string> valueOptions;
-                    if (condition.Property == ConditionProperty.CreatureType) {
-                        valueOptions = new List<string> {
-                            "Aberration", "Animal", "Construct", "Dragon", "Fey",
-                            "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
-                            "Outsider", "Plant", "Swarm", "Undead", "Vermin",
-                            "Incorporeal"
-                        };
+                    if (condition.Property == ConditionProperty.HasBuff) {
+                        CreateBuffSelector(root, 0.65f, 0.88f);
                     } else {
-                        valueOptions = new List<string> {
-                            "Good", "Evil", "Lawful", "Chaotic", "Neutral"
-                        };
+                        var valueOptions = GetValueOptionsForProperty(condition.Property);
+                        int valIdx = valueOptions.IndexOf(condition.Value);
+                        if (valIdx < 0) { valIdx = 0; condition.Value = valueOptions[0]; }
+                        PopupSelector.Create(root, "CountValueDropdown", 0.65f, 0.88f, valueOptions, valIdx, v => {
+                            condition.Value = valueOptions[v];
+                            ConfigManager.Save();
+                        });
                     }
-                    int valIdx = valueOptions.IndexOf(condition.Value);
-                    if (valIdx < 0) { valIdx = 0; condition.Value = valueOptions[0]; }
-                    PopupSelector.Create(root, "CountValueDropdown", 0.58f, 0.88f, valueOptions, valIdx, v => {
-                        condition.Value = valueOptions[v];
-                        ConfigManager.Save();
-                    });
-                } else if (condition.Property == ConditionProperty.HasCondition) {
-                    condition.Operator = ConditionOperator.Equal;
-                    var condNames = new List<string> {
-                        "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
-                        "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
-                        "Shaken", "Sickened", "Sleeping", "Petrified"
-                    };
-                    int cIdx = condNames.IndexOf(condition.Value);
-                    if (cIdx < 0) { cIdx = 0; condition.Value = condNames[0]; }
-                    PopupSelector.Create(root, "CountCondition", 0.58f, 0.88f, condNames, cIdx, v => {
-                        condition.Value = condNames[v];
-                        ConfigManager.Save();
-                    });
-                } else if (condition.Property == ConditionProperty.HasBuff) {
-                    condition.Operator = ConditionOperator.Equal;
-                    CreateBuffSelector(root, 0.58f, 0.88f);
                 } else {
                     // IsDead — fall back to text input
                     condition.Operator = ConditionOperator.Equal;
@@ -203,64 +154,49 @@ namespace WrathTactics.UI {
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
-                bool needsOperator = !isHasCondition && !isCreatureType && !isBuffProp && !isAlignment && !isInCombat;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment;
+                bool needsOperator = !usesEqOp && !isInCombat;
 
-                // Operator popup selector (hidden for dropdown-based properties; != handled by the NOT toggle)
+                // Operator popup selector
                 if (needsOperator) {
-                    var opNames = new List<string> { "<", ">", "=", ">=", "<=" };
-                    var opEnums = new[] {
-                        ConditionOperator.LessThan, ConditionOperator.GreaterThan,
-                        ConditionOperator.Equal, ConditionOperator.GreaterOrEqual,
-                        ConditionOperator.LessOrEqual
-                    };
-                    int opIdx = System.Array.IndexOf(opEnums, condition.Operator);
-                    if (opIdx < 0) opIdx = 2;
-                    PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames, opIdx, v => {
-                        condition.Operator = opEnums[v];
-                        ConfigManager.Save();
-                    });
+                    var opNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                    PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames,
+                        (int)condition.Operator, v => {
+                            condition.Operator = (ConditionOperator)v;
+                            ConfigManager.Save();
+                        });
+                } else if (usesEqOp) {
+                    CreateEqOperator(root, 0.38f, 0.44f, "EqOperator");
                 } else {
                     condition.Operator = ConditionOperator.Equal;
                 }
 
                 if (isCreatureType) {
-                    var creatureTypes = new List<string> {
-                        "Aberration", "Animal", "Construct", "Dragon", "Fey",
-                        "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
-                        "Outsider", "Plant", "Swarm", "Undead", "Vermin",
-                        "Incorporeal"
-                    };
+                    var creatureTypes = GetValueOptionsForProperty(ConditionProperty.CreatureType);
                     int ctIdx = creatureTypes.IndexOf(condition.Value);
                     if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
-                    PopupSelector.Create(root, "CreatureTypeValue", 0.38f, 0.88f, creatureTypes, ctIdx, v => {
+                    PopupSelector.Create(root, "CreatureTypeValue", 0.45f, 0.88f, creatureTypes, ctIdx, v => {
                         condition.Value = creatureTypes[v];
                         ConfigManager.Save();
                     });
                 } else if (isAlignment) {
-                    var alignmentValues = new List<string> {
-                        "Good", "Evil", "Lawful", "Chaotic", "Neutral"
-                    };
+                    var alignmentValues = GetValueOptionsForProperty(ConditionProperty.Alignment);
                     int aIdx = alignmentValues.IndexOf(condition.Value);
                     if (aIdx < 0) { aIdx = 0; condition.Value = alignmentValues[0]; }
-                    PopupSelector.Create(root, "AlignmentValue", 0.38f, 0.88f, alignmentValues, aIdx, v => {
+                    PopupSelector.Create(root, "AlignmentValue", 0.45f, 0.88f, alignmentValues, aIdx, v => {
                         condition.Value = alignmentValues[v];
                         ConfigManager.Save();
                     });
                 } else if (isHasCondition) {
-                    // Dropdown for known condition names
-                    var condNames = new List<string> {
-                        "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
-                        "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
-                        "Shaken", "Sickened", "Sleeping", "Petrified"
-                    };
+                    var condNames = GetValueOptionsForProperty(ConditionProperty.HasCondition);
                     int condIdx = condNames.IndexOf(condition.Value);
                     if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
-                    PopupSelector.Create(root, "CondValue", 0.38f, 0.88f, condNames, condIdx, v => {
+                    PopupSelector.Create(root, "CondValue", 0.45f, 0.88f, condNames, condIdx, v => {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
                 } else if (condition.Property == ConditionProperty.HasBuff) {
-                    CreateBuffSelector(root, 0.38f, 0.88f);
+                    CreateBuffSelector(root, 0.45f, 0.88f);
                 } else if (condition.Property == ConditionProperty.IsInCombat) {
                     var yesNo = new List<string> { "Yes", "No" };
                     // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
@@ -289,6 +225,37 @@ namespace WrathTactics.UI {
             UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f, 1f));
             UIHelpers.AddLabel(delBtn, "X", 16f, TextAlignmentOptions.Midline);
             delBtn.AddComponent<Button>().onClick.AddListener(() => onDelete?.Invoke());
+        }
+
+        void CreateEqOperator(GameObject root, float xMin, float xMax, string name) {
+            var eqOpNames = new List<string> { "=", "!=" };
+            int eqOpIdx = condition.Operator == ConditionOperator.NotEqual ? 1 : 0;
+            PopupSelector.Create(root, name, xMin, xMax, eqOpNames, eqOpIdx, v => {
+                condition.Operator = v == 1 ? ConditionOperator.NotEqual : ConditionOperator.Equal;
+                ConfigManager.Save();
+            });
+        }
+
+        static List<string> GetValueOptionsForProperty(ConditionProperty property) {
+            switch (property) {
+                case ConditionProperty.CreatureType:
+                    return new List<string> {
+                        "Aberration", "Animal", "Construct", "Dragon", "Fey",
+                        "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
+                        "Outsider", "Plant", "Swarm", "Undead", "Vermin",
+                        "Incorporeal"
+                    };
+                case ConditionProperty.Alignment:
+                    return new List<string> { "Good", "Evil", "Lawful", "Chaotic", "Neutral" };
+                case ConditionProperty.HasCondition:
+                    return new List<string> {
+                        "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
+                        "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
+                        "Shaken", "Sickened", "Sleeping", "Petrified"
+                    };
+                default:
+                    return new List<string>();
+            }
         }
 
         void CreateBuffSelector(GameObject root, float xMin, float xMax) {

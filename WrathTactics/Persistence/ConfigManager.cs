@@ -39,11 +39,8 @@ namespace WrathTactics.Persistence {
                 current = JsonConvert.DeserializeObject<TacticsConfig>(json, settings) ?? new TacticsConfig();
                 Log.Persistence.Info($"Loaded config from {path}");
 
-                bool cleaned = CleanupInvalidRules(current);
-                bool migrated = MigrateLegacyNotEqual(current);
-                if (cleaned || migrated) {
-                    if (cleaned) Log.Persistence.Warn("Some rules referenced removed condition properties — saving cleaned config.");
-                    if (migrated) Log.Persistence.Info("Migrated NotEqual operators to Equal + Negate.");
+                if (CleanupInvalidRules(current)) {
+                    Log.Persistence.Warn("Some rules referenced removed condition properties — saving cleaned config.");
                     Save();
                 }
             } catch (JsonException ex) {
@@ -86,30 +83,6 @@ namespace WrathTactics.Persistence {
             }
 
             RemoveRulesWithNoGroups(config, ref changed);
-            return changed;
-        }
-
-        /// <summary>
-        /// Migrates legacy conditions with `Operator = NotEqual` to `Operator = Equal` with `Negate` flipped.
-        /// The UI no longer exposes NotEqual; the single Negate toggle is the only inequality mechanism.
-        /// Returns true if any condition was migrated.
-        /// </summary>
-        static bool MigrateLegacyNotEqual(TacticsConfig config) {
-            if (config == null) return false;
-            bool changed = false;
-            foreach (var rule in EnumerateAllRules(config)) {
-                if (rule?.ConditionGroups == null) continue;
-                foreach (var grp in rule.ConditionGroups) {
-                    if (grp?.Conditions == null) continue;
-                    foreach (var c in grp.Conditions) {
-                        if (c != null && c.Operator == ConditionOperator.NotEqual) {
-                            c.Operator = ConditionOperator.Equal;
-                            c.Negate = !c.Negate;
-                            changed = true;
-                        }
-                    }
-                }
-            }
             return changed;
         }
 

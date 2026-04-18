@@ -51,13 +51,6 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateCondition(Condition condition, UnitEntityData owner) {
-            // If Core throws and the catch returns false, Negate will flip that to true.
-            // Accepted: a misconfigured condition still short-circuits to "not matching" in both polarities.
-            bool result = EvaluateConditionCore(condition, owner);
-            return condition.Negate ? !result : result;
-        }
-
-        static bool EvaluateConditionCore(Condition condition, UnitEntityData owner) {
             try {
                 switch (condition.Subject) {
                     case ConditionSubject.Self:                return EvaluateUnitProperty(condition, owner);
@@ -254,12 +247,16 @@ namespace WrathTactics.Engine {
                     bool wantDead = threshold > 0;
                     return isDead == wantDead;
 
-                case ConditionProperty.HasBuff:
-                    return unit.Buffs.RawFacts.Any(b =>
+                case ConditionProperty.HasBuff: {
+                    bool hasBuff = unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasBuff : hasBuff;
+                }
 
-                case ConditionProperty.HasCondition:
-                    return HasConditionByName(unit, condition.Value);
+                case ConditionProperty.HasCondition: {
+                    bool hasCond = HasConditionByName(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasCond : hasCond;
+                }
 
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
@@ -317,13 +314,17 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.IsDead:
                     return unit.HPLeft <= 0;
 
-                case ConditionProperty.HasCondition:
-                    return HasConditionByName(unit, condition.Value);
+                case ConditionProperty.HasCondition: {
+                    bool hasCond = HasConditionByName(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasCond : hasCond;
+                }
 
-                case ConditionProperty.HasBuff:
-                    return !string.IsNullOrEmpty(condition.Value) && unit.Buffs.RawFacts.Any(b =>
+                case ConditionProperty.HasBuff: {
+                    bool hasBuff = !string.IsNullOrEmpty(condition.Value) && unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value ||
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasBuff : hasBuff;
+                }
 
                 case ConditionProperty.CreatureType:
                     bool ctMatch2 = CheckCreatureType(unit, condition.Value);
