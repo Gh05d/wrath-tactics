@@ -222,7 +222,11 @@ namespace WrathTactics.Engine {
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (IsHealingSpell(spell.Blueprint)) {
-                            if (book.GetSpontaneousSlots(level) > 0 || book.GetSpellsPerDay(level) > 0)
+                            // GetSpellsPerDay is MAX capacity — always positive for a caster who
+                            // has ANY level-N slot, even if the specific spell isn't prepared.
+                            // GetAvailableForCastSpellCount is the correct per-spell "can I cast
+                            // this right now" check (handles prepared + spontaneous uniformly).
+                            if (book.GetAvailableForCastSpellCount(spell) > 0)
                                 heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell)); // highest priority: spellbook spells
                         }
                     }
