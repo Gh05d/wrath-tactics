@@ -252,6 +252,10 @@ namespace WrathTactics.Engine {
             // Healing potions/scrolls from inventory
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             int invTotal = 0, invUsable = 0, invHealing = 0;
+            // Scrolls the user can't reliably activate (UMD < DC - 10 AND no native cast)
+            // are collected here and only folded into the final candidate list if nothing
+            // better is available — risky scroll beats no heal at all.
+            var fallbackScrolls = new List<(AbilityData ability, int priority, ItemEntity source)>();
             if (inventory != null) {
                 foreach (var item in inventory) {
                     if (item == null || item.Count <= 0) continue;
@@ -267,27 +271,6 @@ namespace WrathTactics.Engine {
                     }
                     invHealing++;
 
-                    // UMD gate for scrolls: skip if the character lacks the spell on a known
-                    // class spell-list AND their UMD success rate is below 50%. Rolling 1d20 + UMD
-                    // against DC 20 + scroll.CasterLevel succeeds when the natural d20 is
-                    // >= (DC - UMD); ten of twenty outcomes (11..20) are >= 11, so UMD + 11 < DC
-                    // means fewer than half the rolls succeed.
-                    if (usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll) {
-                        bool knowsSpell = owner.Spellbooks.Any(b =>
-                            b.Blueprint.SpellList?.SpellsByLevel?.Any(lvl =>
-                                lvl.Spells.Any(s => s == usable.Ability)) == true);
-                        if (!knowsSpell) {
-                            int dc = 20 + usable.CasterLevel;
-                            int umd = owner.Stats.SkillUseMagicDevice.ModifiedValue;
-                            if (umd + 11 < dc) {
-                                Log.Engine.Trace($"  inventory item {itemName}: skipping scroll — UMD {umd} vs DC {dc} (< 50% success)");
-                                continue;
-                            }
-                        }
-                    }
-
-                    Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): IS heal — added");
-
                     // Synthesize AbilityData with item's caster/spell level overrides
                     var itemAbility = new AbilityData(usable.Ability, owner.Descriptor) {
                         OverrideCasterLevel = usable.CasterLevel,
@@ -296,8 +279,33 @@ namespace WrathTactics.Engine {
 
                     // Lower priority: potions before scrolls (conserve scrolls)
                     int priority = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion ? 10 : 20;
+
+                    // UMD gate for scrolls: d20 + UMD vs DC 20 + scroll.CasterLevel. Ten outcomes
+                    // (11..20) clear threshold when UMD + 11 >= DC, so UMD + 11 < DC is < 50% success.
+                    // Bypass the check only when the character can cast this spell right now from
+                    // their own spellbook (known + available slot) — mere spell-list membership
+                    // isn't enough, because running out of slots is common in long fights.
+                    if (usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll) {
+                        bool canCastNatively = CanCastSpellFromSpellbook(owner, usable.Ability);
+                        if (!canCastNatively) {
+                            int dc = 20 + usable.CasterLevel;
+                            int umd = owner.Stats.SkillUseMagicDevice.ModifiedValue;
+                            if (umd + 11 < dc) {
+                                Log.Engine.Trace($"  inventory item {itemName}: deferring scroll — UMD {umd} vs DC {dc} (< 50% success), last-resort only");
+                                fallbackScrolls.Add((itemAbility, priority, item));
+                                continue;
+                            }
+                        }
+                    }
+
+                    Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): IS heal — added");
                     heals.Add((itemAbility, priority, item));
                 }
+            }
+
+            if (heals.Count == 0 && fallbackScrolls.Count > 0) {
+                Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: no safe heal — falling back to {fallbackScrolls.Count} UMD-risky scroll(s)");
+                heals.AddRange(fallbackScrolls);
             }
 
             Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: total inventory items={invTotal}, usable={invUsable}, healing={invHealing}, heals candidates total={heals.Count}");
@@ -316,6 +324,27 @@ namespace WrathTactics.Engine {
             }
             inventorySource = pick.source;
             return pick.ability;
+        }
+
+        /// <summary>
+        /// True iff the unit has the given spell known/prepared in one of their spellbooks
+        /// AND still has a slot available to cast it right now. Used to bypass the UMD
+        /// check on scrolls — a character who can cast the spell themselves doesn't need
+        /// an activation check. GetAvailableForCastSpellCount handles prepared, spontaneous,
+        /// Arcanist-hybrid, and opposition-school cases uniformly.
+        /// </summary>
+        static bool CanCastSpellFromSpellbook(UnitEntityData owner, BlueprintAbility spell) {
+            if (spell == null || owner?.Spellbooks == null) return false;
+            foreach (var book in owner.Spellbooks) {
+                int maxLevel = book.MaxSpellLevel;
+                for (int level = 0; level <= maxLevel; level++) {
+                    foreach (var known in book.GetKnownSpells(level)) {
+                        if (known?.Blueprint != spell) continue;
+                        if (book.GetAvailableForCastSpellCount(known) > 0) return true;
+                    }
+                }
+            }
+            return false;
         }
 
         static bool IsHealingSpell(BlueprintAbility blueprint) {
