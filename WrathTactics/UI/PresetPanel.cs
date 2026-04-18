@@ -57,6 +57,20 @@ namespace WrathTactics.UI {
                 Log.UI.Info($"Copied {all.Count} preset(s) to clipboard");
             });
 
+            // Import Presets — opens the ImportPresetOverlay modal
+            var (importBtn, _imp) = UIHelpers.Create("ImportBtn", root.transform);
+            importBtn.AddComponent<LayoutElement>().preferredHeight = 36;
+            UIHelpers.AddBackground(importBtn, new Color(0.2f, 0.45f, 0.3f, 1f));
+            UIHelpers.AddLabel(importBtn, "Import Presets from Clipboard Paste", 15f, TextAlignmentOptions.Midline);
+            importBtn.AddComponent<Button>().onClick.AddListener(() => {
+                // Parent the modal on the top canvas so it overlays everything else
+                var canvas = UnityEngine.GameObject.FindObjectOfType<Canvas>()?.transform ?? root.transform.root;
+                ImportPresetOverlay.Show(canvas, () => {
+                    onPresetsChanged?.Invoke();
+                    Rebuild();
+                });
+            });
+
             // New preset button
             var (newBtn, _n) = UIHelpers.Create("NewPresetBtn", root.transform);
             newBtn.AddComponent<LayoutElement>().preferredHeight = 40;
