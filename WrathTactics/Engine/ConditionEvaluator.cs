@@ -258,19 +258,8 @@ namespace WrathTactics.Engine {
                     return unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value);
 
-                case ConditionProperty.MissingBuff:
-                    return !unit.Buffs.RawFacts.Any(b =>
-                        b.Blueprint.AssetGuid.ToString() == condition.Value);
-
                 case ConditionProperty.HasCondition:
                     return HasConditionByName(unit, condition.Value);
-
-                case ConditionProperty.HasDebuff:
-                    if (string.IsNullOrEmpty(condition.Value)) return false;
-                    string debuffSearch = condition.Value.ToLowerInvariant();
-                    return unit.Buffs.RawFacts.Any(b =>
-                        b.Blueprint.name != null &&
-                        b.Blueprint.name.ToLowerInvariant().Contains(debuffSearch));
 
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
@@ -331,20 +320,8 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.HasCondition:
                     return HasConditionByName(unit, condition.Value);
 
-                case ConditionProperty.HasDebuff:
-                    if (string.IsNullOrEmpty(condition.Value)) return false;
-                    string debuffMatch = condition.Value.ToLowerInvariant();
-                    return unit.Buffs.RawFacts.Any(b =>
-                        b.Blueprint.name != null &&
-                        b.Blueprint.name.ToLowerInvariant().Contains(debuffMatch));
-
                 case ConditionProperty.HasBuff:
                     return !string.IsNullOrEmpty(condition.Value) && unit.Buffs.RawFacts.Any(b =>
-                        b.Blueprint.AssetGuid.ToString() == condition.Value ||
-                        (b.Blueprint.name?.Contains(condition.Value) ?? false));
-
-                case ConditionProperty.MissingBuff:
-                    return !string.IsNullOrEmpty(condition.Value) && !unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value ||
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
 

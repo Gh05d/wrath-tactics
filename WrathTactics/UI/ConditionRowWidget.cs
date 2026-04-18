@@ -66,7 +66,6 @@ namespace WrathTactics.UI {
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
-            bool isHasDebuff = condition.Property == ConditionProperty.HasDebuff;
 
             if (isCountSubject) {
                 // Layout: [Subject 0→0.15] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
@@ -164,30 +163,7 @@ namespace WrathTactics.UI {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
-                } else if (condition.Property == ConditionProperty.HasDebuff) {
-                    condition.Operator = ConditionOperator.Equal;
-                    var debuffNames = new List<string> {
-                        "EvilEyeACBuff", "EvilEyeAttackBuff", "EvilEyeSavesBuff",
-                        "MisfortuneBuff", "VulnerabilityCurseBuff",
-                        "Shaken", "Sickened", "Frightened", "Dazzled",
-                        "Fatigued", "Exhausted", "Staggered",
-                        "DirgeOfDoom", "ProtectiveLuck", "FortuneHex"
-                    };
-                    var displayNames = new List<string> {
-                        "Evil Eye - AC", "Evil Eye - Attack", "Evil Eye - Saves",
-                        "Misfortune", "Vulnerability Curse",
-                        "Shaken", "Sickened", "Frightened", "Dazzled",
-                        "Fatigued", "Exhausted", "Staggered",
-                        "Dirge of Doom", "Protective Luck", "Fortune Hex"
-                    };
-                    int dIdx = debuffNames.IndexOf(condition.Value);
-                    if (dIdx < 0) { dIdx = 0; condition.Value = debuffNames[0]; }
-                    PopupSelector.Create(root, "CountDebuff", 0.58f, 0.88f, displayNames, dIdx, v => {
-                        condition.Value = debuffNames[v];
-                        ConfigManager.Save();
-                    });
-                } else if (condition.Property == ConditionProperty.HasBuff
-                    || condition.Property == ConditionProperty.MissingBuff) {
+                } else if (condition.Property == ConditionProperty.HasBuff) {
                     condition.Operator = ConditionOperator.Equal;
                     CreateBuffSelector(root, 0.58f, 0.88f);
                 } else {
@@ -203,10 +179,9 @@ namespace WrathTactics.UI {
             } else {
                 bool isCreatureType = condition.Property == ConditionProperty.CreatureType;
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
-                bool isBuffProp = condition.Property == ConditionProperty.HasBuff
-                    || condition.Property == ConditionProperty.MissingBuff;
+                bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
-                bool needsOperator = !isHasCondition && !isHasDebuff && !isCreatureType && !isBuffProp && !isAlignment && !isInCombat;
+                bool needsOperator = !isHasCondition && !isCreatureType && !isBuffProp && !isAlignment && !isInCombat;
 
                 // Operator popup selector (hidden for dropdown-based properties)
                 if (needsOperator) {
@@ -263,49 +238,7 @@ namespace WrathTactics.UI {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
-                } else if (isHasDebuff) {
-                    var debuffNames = new List<string> {
-                        "EvilEyeACBuff",
-                        "EvilEyeAttackBuff",
-                        "EvilEyeSavesBuff",
-                        "MisfortuneBuff",
-                        "VulnerabilityCurseBuff",
-                        "Shaken",
-                        "Sickened",
-                        "Frightened",
-                        "Dazzled",
-                        "Fatigued",
-                        "Exhausted",
-                        "Staggered",
-                        "DirgeOfDoom",
-                        "ProtectiveLuck",
-                        "FortuneHex"
-                    };
-                    var displayNames = new List<string> {
-                        "Evil Eye - AC",
-                        "Evil Eye - Attack",
-                        "Evil Eye - Saves",
-                        "Misfortune",
-                        "Vulnerability Curse",
-                        "Shaken",
-                        "Sickened",
-                        "Frightened",
-                        "Dazzled",
-                        "Fatigued",
-                        "Exhausted",
-                        "Staggered",
-                        "Dirge of Doom",
-                        "Protective Luck",
-                        "Fortune Hex"
-                    };
-                    int debuffIdx = debuffNames.IndexOf(condition.Value);
-                    if (debuffIdx < 0) { debuffIdx = 0; condition.Value = debuffNames[0]; }
-                    PopupSelector.Create(root, "DebuffValue", 0.38f, 0.88f, displayNames, debuffIdx, v => {
-                        condition.Value = debuffNames[v];
-                        ConfigManager.Save();
-                    });
-                } else if (condition.Property == ConditionProperty.HasBuff
-                    || condition.Property == ConditionProperty.MissingBuff) {
+                } else if (condition.Property == ConditionProperty.HasBuff) {
                     CreateBuffSelector(root, 0.38f, 0.88f);
                 } else if (condition.Property == ConditionProperty.IsInCombat) {
                     var yesNo = new List<string> { "Ja", "Nein" };
@@ -383,21 +316,21 @@ namespace WrathTactics.UI {
             switch (subject) {
                 case ConditionSubject.Self:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff, ConditionProperty.MissingBuff,
-                        ConditionProperty.HasCondition, ConditionProperty.HasDebuff,
+                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HasCondition,
                         ConditionProperty.SpellSlotsAtLevel, ConditionProperty.SpellSlotsAboveLevel,
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.Ally:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff, ConditionProperty.MissingBuff,
-                        ConditionProperty.HasCondition, ConditionProperty.HasDebuff, ConditionProperty.IsDead,
+                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff, ConditionProperty.MissingBuff,
-                        ConditionProperty.HasCondition, ConditionProperty.HasDebuff, ConditionProperty.IsDead,
+                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.Enemy:
@@ -417,13 +350,13 @@ namespace WrathTactics.UI {
                         ConditionProperty.HpPercent, ConditionProperty.AC,
                         ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,
                         ConditionProperty.HasBuff, ConditionProperty.HasCondition,
-                        ConditionProperty.HasDebuff, ConditionProperty.CreatureType,
+                        ConditionProperty.CreatureType,
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
-                        ConditionProperty.HasDebuff, ConditionProperty.HasCondition, ConditionProperty.CreatureType,
+                        ConditionProperty.HasCondition, ConditionProperty.CreatureType,
                         ConditionProperty.Alignment
                     };
                 case ConditionSubject.Combat:
