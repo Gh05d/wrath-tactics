@@ -15,6 +15,23 @@ namespace WrathTactics.Engine {
         public static void Reload() {
             presets = PresetManager.LoadAll().ToDictionary(r => r.Id, r => r);
             Log.Persistence.Info($"PresetRegistry loaded {presets.Count} presets");
+            SeedDefaults();
+        }
+
+        /// <summary>
+        /// Writes any DefaultPresets whose ID is not already present on disk. Idempotent:
+        /// user-deleted or user-edited defaults are left alone because the check is
+        /// per-ID, and SeedDefaults only runs on fresh installs for missing IDs.
+        /// </summary>
+        static void SeedDefaults() {
+            int seeded = 0;
+            foreach (var preset in DefaultPresets.Build()) {
+                if (presets.ContainsKey(preset.Id)) continue;
+                PresetManager.Save(preset);
+                presets[preset.Id] = preset;
+                seeded++;
+            }
+            if (seeded > 0) Log.Persistence.Info($"Seeded {seeded} default preset(s)");
         }
 
         static Dictionary<string, TacticsRule> GetPresets() {
