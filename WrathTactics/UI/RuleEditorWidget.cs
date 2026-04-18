@@ -126,12 +126,12 @@ namespace WrathTactics.UI {
                     var (rowObj, _) = UIHelpers.Create($"CondRow_G{gi}_C{ci}", bodyContainer.transform);
                     var widget = rowObj.AddComponent<ConditionRowWidget>();
                     widget.Init(condition,
-                        () => { ConfigManager.Save(); onChanged?.Invoke(); },
+                        () => { PersistEdit(); onChanged?.Invoke(); },
                         () => {
                             group.Conditions.RemoveAt(capturedCi);
                             if (group.Conditions.Count == 0)
                                 rule.ConditionGroups.RemoveAt(capturedGi);
-                            ConfigManager.Save();
+                            PersistEdit();
                             RebuildBody();
                         });
                 }
@@ -143,7 +143,7 @@ namespace WrathTactics.UI {
                 UIHelpers.AddLabel(addCondBtn, "+ Condition", 15f, TextAlignmentOptions.Midline);
                 addCondBtn.AddComponent<Button>().onClick.AddListener(() => {
                     group.Conditions.Add(new Condition());
-                    ConfigManager.Save();
+                    PersistEdit();
                     RebuildBody();
                 });
             }
@@ -156,7 +156,7 @@ namespace WrathTactics.UI {
                 UIHelpers.AddLabel(addFirstBtn, "+ Condition", 16f, TextAlignmentOptions.Midline);
                 addFirstBtn.AddComponent<Button>().onClick.AddListener(() => {
                     rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
-                    ConfigManager.Save();
+                    PersistEdit();
                     RebuildBody();
                 });
             }
@@ -168,7 +168,7 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(addOrBtn, "+ OR (new group)", 15f, TextAlignmentOptions.Midline);
             addOrBtn.AddComponent<Button>().onClick.AddListener(() => {
                 rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
-                ConfigManager.Save();
+                PersistEdit();
                 RebuildBody();
             });
 
@@ -222,7 +222,7 @@ namespace WrathTactics.UI {
                 rule.Enabled = !rule.Enabled;
                 enabledLabel.text = rule.Enabled ? "ON" : "OFF";
                 enabledLabel.color = rule.Enabled ? Color.green : Color.gray;
-                ConfigManager.Save();
+                PersistEdit();
             });
 
             // Move up
@@ -299,7 +299,7 @@ namespace WrathTactics.UI {
                 nameInput.onEndEdit.AddListener(v => {
                     string prefix = $"{index + 1}. ";
                     rule.Name = v.StartsWith(prefix) ? v.Substring(prefix.Length) : v;
-                    ConfigManager.Save();
+                    PersistEdit();
                 });
             }
         }
@@ -334,7 +334,7 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(unlinkBtn, "Unlink & Edit (break link)", 14f, TextAlignmentOptions.Midline);
             unlinkBtn.AddComponent<Button>().onClick.AddListener(() => {
                 Engine.PresetRegistry.BreakLink(rule);
-                ConfigManager.Save();
+                PersistEdit();
                 RebuildBody();
             });
         }
@@ -371,7 +371,7 @@ namespace WrathTactics.UI {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
                     RefreshSpellSelector((ActionType)idx);
-                    ConfigManager.Save();
+                    PersistEdit();
                 });
 
             // Spell/ability popup selector (right side)
@@ -385,7 +385,7 @@ namespace WrathTactics.UI {
                 PopupSelector.Create(row, "HealMode", 0.39f, 0.53f, healModeNames,
                     (int)rule.Action.HealMode, idx => {
                         rule.Action.HealMode = (HealMode)idx;
-                        ConfigManager.Save();
+                        PersistEdit();
                     });
 
                 // Source mask selector — 7 curated combinations (2^3 - "None" sentinel).
@@ -406,7 +406,7 @@ namespace WrathTactics.UI {
                 if (srcIdx < 0) srcIdx = 0;
                 PopupSelector.Create(row, "HealSources", 0.54f, 0.88f, sourceLabels, srcIdx, idx => {
                     rule.Action.HealSources = sourceValues[idx];
-                    ConfigManager.Save();
+                    PersistEdit();
                 });
                 return;
             }
@@ -416,7 +416,7 @@ namespace WrathTactics.UI {
                 PopupSelector.Create(row, "SplashMode", 0.39f, 0.7f, splashModeNames,
                     (int)rule.Action.SplashMode, idx => {
                         rule.Action.SplashMode = (ThrowSplashMode)idx;
-                        ConfigManager.Save();
+                        PersistEdit();
                     });
                 return;
             }
@@ -427,7 +427,7 @@ namespace WrathTactics.UI {
                 PopupSelector.Create(row, "ToggleMode", 0.39f, 0.52f, toggleModeNames,
                     (int)rule.Action.ToggleMode, idx => {
                         rule.Action.ToggleMode = (ToggleMode)idx;
-                        ConfigManager.Save();
+                        PersistEdit();
                     });
 
                 var tEntries = GetSpellEntries(rule.Action.Type);
@@ -441,13 +441,13 @@ namespace WrathTactics.UI {
                 }
                 if (tEntries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
                     rule.Action.AbilityId = tEntries[tInitialIndex].Guid;
-                    ConfigManager.Save();
+                    PersistEdit();
                 }
                 spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.53f, 1.0f,
                     tOptions, tIcons, tInitialIndex, idx => {
                         if (idx < currentSpellEntries.Count)
                             rule.Action.AbilityId = currentSpellEntries[idx].Guid;
-                        ConfigManager.Save();
+                        PersistEdit();
                     });
                 return;
             }
@@ -465,14 +465,14 @@ namespace WrathTactics.UI {
             // Auto-save the displayed selection so the AbilityId matches what the dropdown shows
             if (entries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
                 rule.Action.AbilityId = entries[initialIndex].Guid;
-                ConfigManager.Save();
+                PersistEdit();
             }
 
             spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.39f, 1.0f,
                 options, icons, initialIndex, idx => {
                     if (idx < currentSpellEntries.Count)
                         rule.Action.AbilityId = currentSpellEntries[idx].Guid;
-                    ConfigManager.Save();
+                    PersistEdit();
                 });
 
             // Hide if not applicable
@@ -507,7 +507,7 @@ namespace WrathTactics.UI {
             // Auto-save the first entry so AbilityId matches the displayed dropdown value
             if (entries.Count > 0) {
                 rule.Action.AbilityId = entries[0].Guid;
-                ConfigManager.Save();
+                PersistEdit();
             }
         }
 
@@ -599,7 +599,7 @@ namespace WrathTactics.UI {
             PopupSelector.Create(row, "TargetType", 0.11f, 0.5f, targetNames,
                 (int)rule.Target.Type, idx => {
                     rule.Target.Type = (TargetType)idx;
-                    ConfigManager.Save();
+                    PersistEdit();
                     RebuildBody();
                 });
 
@@ -623,7 +623,7 @@ namespace WrathTactics.UI {
                     0.66, 1.0, rule.Target.Filter ?? "", 15f);
                 filterInput.onEndEdit.AddListener(v => {
                     rule.Target.Filter = v;
-                    ConfigManager.Save();
+                    PersistEdit();
                 });
             }
         }
@@ -649,7 +649,7 @@ namespace WrathTactics.UI {
             cdInput.onEndEdit.AddListener(v => {
                 if (int.TryParse(v, out int rounds))
                     rule.CooldownRounds = Mathf.Max(0, rounds);
-                ConfigManager.Save();
+                PersistEdit();
             });
         }
 
@@ -703,13 +703,13 @@ namespace WrathTactics.UI {
             if (newIndex < 0 || newIndex >= ruleList.Count) return;
             ruleList.RemoveAt(index);
             ruleList.Insert(newIndex, rule);
-            ConfigManager.Save();
+            PersistEdit();
             onChanged?.Invoke();
         }
 
         void DeleteRule() {
             ruleList.Remove(rule);
-            ConfigManager.Save();
+            PersistEdit();
             onChanged?.Invoke();
         }
 
@@ -722,15 +722,35 @@ namespace WrathTactics.UI {
             copy.Name = source.Name + " (copy)";
             copy.PresetId = null;  // standalone copy; never inherit the link
             ruleList.Insert(index + 1, copy);
-            ConfigManager.Save();
+            PersistEdit();
             onChanged?.Invoke();
         }
 
         void PromoteToPreset() {
             var preset = Engine.PresetRegistry.PromoteRuleToPreset(rule);
             if (preset == null) return;
-            ConfigManager.Save();
+            PersistEdit();
             onChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Persists a field edit based on the widget's mode. When unitId is null the widget is
+        /// editing a preset directly (from PresetPanel), so the preset file must be saved via
+        /// PresetRegistry; ConfigManager.Save would write the character-rules config, which
+        /// doesn't contain the preset body. Without this split, preset edits silently reset
+        /// after a reload because only the character config got touched.
+        ///
+        /// In preset mode we also fire onChanged so the parent PresetPanel can re-save and
+        /// surface any write error in its status line. In character-rule mode we skip onChanged
+        /// to avoid rebuilding the rule list on every dropdown click.
+        /// </summary>
+        void PersistEdit() {
+            if (string.IsNullOrEmpty(unitId)) {
+                Engine.PresetRegistry.Save(rule);
+                onChanged?.Invoke();
+            } else {
+                PersistEdit();
+            }
         }
 
         void ExportRuleToClipboard() {
