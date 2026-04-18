@@ -51,6 +51,11 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateCondition(Condition condition, UnitEntityData owner) {
+            bool result = EvaluateConditionCore(condition, owner);
+            return condition.Negate ? !result : result;
+        }
+
+        static bool EvaluateConditionCore(Condition condition, UnitEntityData owner) {
             try {
                 switch (condition.Subject) {
                     case ConditionSubject.Self:                return EvaluateUnitProperty(condition, owner);
