@@ -266,6 +266,26 @@ namespace WrathTactics.Engine {
                         continue;
                     }
                     invHealing++;
+
+                    // UMD gate for scrolls: skip if the character lacks the spell on a known
+                    // class spell-list AND their UMD success rate is below 50%. Rolling 1d20 + UMD
+                    // against DC 20 + scroll.CasterLevel succeeds when the natural d20 is
+                    // >= (DC - UMD); ten of twenty outcomes (11..20) are >= 11, so UMD + 11 < DC
+                    // means fewer than half the rolls succeed.
+                    if (usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll) {
+                        bool knowsSpell = owner.Spellbooks.Any(b =>
+                            b.Blueprint.SpellList?.SpellsByLevel?.Any(lvl =>
+                                lvl.Spells.Any(s => s == usable.Ability)) == true);
+                        if (!knowsSpell) {
+                            int dc = 20 + usable.CasterLevel;
+                            int umd = owner.Stats.SkillUseMagicDevice.ModifiedValue;
+                            if (umd + 11 < dc) {
+                                Log.Engine.Trace($"  inventory item {itemName}: skipping scroll — UMD {umd} vs DC {dc} (< 50% success)");
+                                continue;
+                            }
+                        }
+                    }
+
                     Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): IS heal — added");
 
                     // Synthesize AbilityData with item's caster/spell level overrides
