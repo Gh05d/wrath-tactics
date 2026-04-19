@@ -123,6 +123,11 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - **Post-combat evaluation**: `TacticsEvaluator.Tick` early-returns when `!Player.IsInCombat`. To let rules fire on the combat-end transition, `RunPostCombatCleanup()` runs a single evaluation pass with `ConditionEvaluator.IsPostCombatPass = true`, which makes `Combat.IsInCombat == false` conditions match regardless of transient game state. Cooldowns are skipped in this pass and cleared immediately after.
 - **Buff blueprint filtering**: `BuffBlueprintProvider.IsCrusadeOnlyBuff` skips `Army*`-prefixed names (crusade/tactical-combat mini-game). Warpriest Blessings (`AirBlessingMinorBuff`, `ArtificeBlessingMinorBuff`, etc.) are REAL roleplay buffs — do NOT blanket-filter by "Blessing".
 - **Buff picker search ranking**: `BuffPickerOverlay.RenderFilteredLayout` sorts by (prefix-match first, shorter-name first). Pure alphabetical puts `AirBlessingMajorBuff` ahead of `BlessBuff` when searching "bless" — keep the custom sort.
+- **Class enumeration & tradition flags**: `Game.Instance.BlueprintRoot.Progression.AvailableCharacterClasses` / `AvailableCharacterMythics` are eager `IEnumerable<BlueprintCharacterClass>` — use these, not `BlueprintsCache.ForEachLoaded` (lazy, only returns in-memory blueprints). Per-class flags: `IsArcaneCaster`, `IsDivineCaster`, `IsMythic`. `BlueprintSpellbook.IsArcane` exists but there's NO symmetric `IsDivine` — derive divine from the class flag (`classes.Any(c => c.CharacterClass.IsDivineCaster)`), not the spellbook.
+
+## Release Process
+
+Override of parent `wrath-mods/CLAUDE.md` §Release Process step 5: this mod is NOT on Nexus and has no `.github/workflows/`. After `git tag -a vX.Y.Z` + `git push origin master && git push origin vX.Y.Z`, publish manually: `gh release create vX.Y.Z --title "..." --notes "..." WrathTactics/bin/WrathTactics-X.Y.Z.zip` (the Release build target produces the zip).
 
 ## Logs
 
