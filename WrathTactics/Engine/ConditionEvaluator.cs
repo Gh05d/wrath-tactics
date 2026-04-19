@@ -328,6 +328,10 @@ namespace WrathTactics.Engine {
                     bool alignMatch = CheckAlignment(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !alignMatch : alignMatch;
 
+                case ConditionProperty.HasClass:
+                    bool hasClassMatch = UnitExtensions.MatchesClassValue(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasClassMatch : hasClassMatch;
+
                 default:
                     return false;
             }
@@ -399,6 +403,10 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.Alignment:
                     bool alignMatch2 = CheckAlignment(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !alignMatch2 : alignMatch2;
+
+                case ConditionProperty.HasClass:
+                    bool hasClassMatch2 = UnitExtensions.MatchesClassValue(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasClassMatch2 : hasClassMatch2;
 
                 default:
                     return false;
