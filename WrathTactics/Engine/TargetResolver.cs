@@ -8,7 +8,24 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class TargetResolver {
+        // ~1 Pathfinder grid square (5 ft). Offsets the spawn point away from the anchor
+        // unit so summons don't spawn inside the unit's collision volume. Tune during
+        // smoke test if Wrath's internal scale differs.
+        const float SummonOffsetDistance = 1.5f;
+
         public static ResolvedTarget Resolve(TargetDef target, UnitEntityData owner) {
+            if (target.Type == TargetType.PointAtSelf
+                || target.Type == TargetType.PointAtConditionTarget) {
+                var resolved = ResolvePoint(target.Type, owner);
+                if (resolved.IsValid) {
+                    var p = resolved.Point.Value;
+                    Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> point({p.x:F1},{p.y:F1},{p.z:F1}) (type={target.Type})");
+                } else {
+                    Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> <no point> (type={target.Type})");
+                }
+                return resolved;
+            }
+
             var unit = ResolveInternal(target, owner);
             if (unit != null) {
                 float dist = (unit.Position - owner.Position).magnitude;
@@ -18,6 +35,29 @@ namespace WrathTactics.Engine {
             }
             Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> <none> (type={target.Type})");
             return ResolvedTarget.None;
+        }
+
+        static ResolvedTarget ResolvePoint(TargetType type, UnitEntityData owner) {
+            switch (type) {
+                case TargetType.PointAtSelf: {
+                    var forward = owner.OrientationDirection;
+                    return new ResolvedTarget(owner.Position + forward * SummonOffsetDistance);
+                }
+                case TargetType.PointAtConditionTarget: {
+                    var anchor = ConditionEvaluator.LastMatchedEnemy?.Position
+                               ?? ConditionEvaluator.LastMatchedAlly?.Position;
+                    if (!anchor.HasValue) return ResolvedTarget.None;
+
+                    var delta = owner.Position - anchor.Value;
+                    delta.y = 0;
+                    var offsetDir = delta.sqrMagnitude < 0.01f
+                        ? owner.OrientationDirection
+                        : delta.normalized;
+                    return new ResolvedTarget(anchor.Value + offsetDir * SummonOffsetDistance);
+                }
+                default:
+                    return ResolvedTarget.None;
+            }
         }
 
         static UnitEntityData ResolveInternal(TargetDef target, UnitEntityData owner) {
