@@ -17,7 +17,9 @@ namespace WrathTactics.Models {
         EnemyLowestReflex,   // the single enemy with lowest Reflex save
         EnemyHighestReflex,  // the single enemy with highest Reflex save
         EnemyLowestWill,     // the single enemy with lowest Will save
-        EnemyHighestWill     // the single enemy with highest Will save
+        EnemyHighestWill,    // the single enemy with highest Will save
+        EnemyHighestHD,      // the single enemy with highest HD
+        EnemyLowestHD        // the single enemy with lowest HD
     }
 
     public enum ConditionProperty {
@@ -35,7 +37,8 @@ namespace WrathTactics.Models {
         SaveReflex,
         SaveWill,
         Alignment,
-        IsInCombat
+        IsInCombat,
+        HitDice
     }
 
     public enum ConditionOperator {
@@ -107,6 +110,8 @@ namespace WrathTactics.Models {
         EnemyLowestWill,
         EnemyHighestThreat,
         EnemyCreatureType,
-        ConditionTarget    // the enemy/ally that matched the triggering condition
+        ConditionTarget,    // the enemy/ally that matched the triggering condition
+        EnemyHighestHD,
+        EnemyLowestHD
     }
 }
