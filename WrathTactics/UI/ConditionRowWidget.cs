@@ -104,7 +104,8 @@ namespace WrathTactics.UI {
 
                 // Determine which value widget to show based on property type
                 bool propNeedsOperator = condition.Property == ConditionProperty.HpPercent
-                    || condition.Property == ConditionProperty.AC;
+                    || condition.Property == ConditionProperty.AC
+                    || condition.Property == ConditionProperty.HitDice;
 
                 if (propNeedsOperator) {
                     // Operator selector where the "<" label was
@@ -334,18 +335,22 @@ namespace WrathTactics.UI {
                 case ConditionSubject.EnemyHighestReflex:
                 case ConditionSubject.EnemyLowestWill:
                 case ConditionSubject.EnemyHighestWill:
+                case ConditionSubject.EnemyHighestHD:
+                case ConditionSubject.EnemyLowestHD:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC,
                         ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,
                         ConditionProperty.HasBuff, ConditionProperty.HasCondition,
                         ConditionProperty.CreatureType,
-                        ConditionProperty.Alignment
+                        ConditionProperty.Alignment,
+                        ConditionProperty.HitDice
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.CreatureType,
-                        ConditionProperty.Alignment
+                        ConditionProperty.Alignment,
+                        ConditionProperty.HitDice
                     };
                 case ConditionSubject.Combat:
                     return new List<ConditionProperty> {
