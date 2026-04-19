@@ -15,6 +15,19 @@ namespace WrathTactics.Engine {
         public static bool CanExecute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
             if (!target.IsValid && RequiresValidTarget(action.Type))
                 return false;
+
+            if (target.IsPoint) {
+                switch (action.Type) {
+                    case ActionType.CastSpell:
+                    case ActionType.CastAbility:
+                        return CanCastAbilityAtPoint(action.AbilityId, owner);
+                    case ActionType.UseItem:
+                        return CanUseItemAtPoint(action.AbilityId, owner);
+                    default:
+                        return false;
+                }
+            }
+
             var unit = target.Unit;
             switch (action.Type) {
                 case ActionType.CastSpell:
@@ -42,6 +55,37 @@ namespace WrathTactics.Engine {
             return type != ActionType.ToggleActivatable
                 && type != ActionType.Heal
                 && type != ActionType.DoNothing;
+        }
+
+        static bool CanCastAbilityAtPoint(string abilityGuid, UnitEntityData owner) {
+            var ability = FindAbility(owner, abilityGuid);
+            if (ability == null) return false;
+            if (!ability.CanTargetPoint) {
+                Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} ability '{ability.Name}' is not point-castable");
+                return false;
+            }
+            if (ability.Spellbook != null
+                && ability.Spellbook.GetAvailableForCastSpellCount(ability) <= 0)
+                return false;
+            var resource = ability.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
+            if (resource != null && resource.IsSpendResource) {
+                var required = (Kingmaker.Blueprints.BlueprintScriptableObject)ability.OverrideRequiredResource
+                    ?? resource.RequiredResource;
+                if (required != null) {
+                    int available = owner.Resources.GetResourceAmount(required);
+                    int cost = resource.CalculateCost(ability);
+                    if (available < cost) return false;
+                }
+            }
+            return true;
+        }
+
+        static bool CanUseItemAtPoint(string abilityGuid, UnitEntityData owner) {
+            var ability = FindAbilityFromItem(owner, abilityGuid);
+            if (ability == null) return false;
+            if (!ability.CanTargetPoint) return false;
+            if (ability.SourceItem != null && ability.SourceItem.Charges <= 0) return false;
+            return true;
         }
 
         static bool CanCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {

@@ -15,23 +15,22 @@ using WrathTactics.Models;
 namespace WrathTactics.Engine {
     public static class CommandExecutor {
         public static bool Execute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
-            var unit = target.Unit;
             try {
                 switch (action.Type) {
                     case ActionType.CastSpell:
-                        return ExecuteCastSpell(action.AbilityId, owner, unit);
+                        return ExecuteCastSpell(action.AbilityId, owner, target);
                     case ActionType.CastAbility:
-                        return ExecuteCastSpell(action.AbilityId, owner, unit);
+                        return ExecuteCastSpell(action.AbilityId, owner, target);
                     case ActionType.UseItem:
-                        return ExecuteUseItem(action.AbilityId, owner, unit);
+                        return ExecuteUseItem(action.AbilityId, owner, target);
                     case ActionType.ToggleActivatable:
                         return ExecuteToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                     case ActionType.AttackTarget:
-                        return ExecuteAttack(owner, unit);
+                        return ExecuteAttack(owner, target.Unit);
                     case ActionType.Heal:
-                        return ExecuteHeal(action, owner, unit);
+                        return ExecuteHeal(action, owner, target.Unit);
                     case ActionType.ThrowSplash:
-                        return ExecuteThrowSplash(action, owner, unit);
+                        return ExecuteThrowSplash(action, owner, target.Unit);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -43,7 +42,13 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
+        static TargetWrapper BuildTargetWrapper(ResolvedTarget target, UnitEntityData owner) {
+            if (target.IsPoint) return new TargetWrapper(target.Point.Value);
+            if (target.Unit != null) return new TargetWrapper(target.Unit);
+            return new TargetWrapper(owner); // fallback preserves pre-refactor "no target = self" behavior
+        }
+
+        static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
             bool isSynthetic;
             var ability = ActionValidator.FindAbilityEx(owner, abilityGuid, out isSynthetic);
             if (ability == null) {
@@ -51,20 +56,18 @@ namespace WrathTactics.Engine {
                 return false;
             }
 
-            var targetWrapper = target != null
-                ? new TargetWrapper(target)
-                : new TargetWrapper(owner);
+            var targetWrapper = BuildTargetWrapper(target, owner);
 
-            // Try animated cast first (works for real abilities AND variants constructed
-            // via the two-param AbilityData(parent, variant) constructor)
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
-                Log.Engine.Debug($"Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
+                string tgtDesc = target.IsPoint
+                    ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
+                    : (target.Unit?.CharacterName ?? "self");
+                Log.Engine.Debug($"Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {tgtDesc}");
                 return true;
             }
 
-            // Fallback for edge cases: trigger rule directly (no animation)
             try {
                 Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
                 Log.Engine.Debug($"Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
@@ -75,7 +78,7 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
+        static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
             var ability = owner.Abilities.RawFacts
                 .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid && a.Data.SourceItem != null)
                 ?.Data;
@@ -85,9 +88,7 @@ namespace WrathTactics.Engine {
                 return false;
             }
 
-            var targetWrapper = target != null
-                ? new TargetWrapper(target)
-                : new TargetWrapper(owner);
+            var targetWrapper = BuildTargetWrapper(target, owner);
 
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command == null) {
