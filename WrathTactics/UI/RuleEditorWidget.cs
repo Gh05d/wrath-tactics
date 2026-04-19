@@ -26,8 +26,12 @@ namespace WrathTactics.UI {
         GameObject bodyContainer;
         ScrollRect bodyScrollRect;
 
-        // Spell/ability selector reference for refreshing
-        PopupSelector spellSelector;
+        // Spell/ability picker — search-overlay button. Rebuilt on ActionType change;
+        // icon/label refreshed when the user picks a new entry or when the entries list
+        // is re-resolved (e.g. after loading a save).
+        GameObject spellPickerButton;
+        Image spellPickerIcon;
+        TextMeshProUGUI spellPickerLabel;
         List<SpellDropdownProvider.SpellEntry> currentSpellEntries;
 
         public void Init(TacticsRule rule, int index, List<TacticsRule> ruleList, Action onChanged, string unitId = null, bool hideHeader = false) {
@@ -430,85 +434,118 @@ namespace WrathTactics.UI {
                         PersistEdit();
                     });
 
-                var tEntries = GetSpellEntries(rule.Action.Type);
-                currentSpellEntries = tEntries;
-                var tOptions = tEntries.Select(e => e.Name).ToList();
-                var tIcons = tEntries.Select(e => e.Icon).ToList();
-                int tInitialIndex = 0;
-                if (!string.IsNullOrEmpty(rule.Action.AbilityId)) {
-                    int idx = tEntries.FindIndex(e => e.Guid == rule.Action.AbilityId);
-                    if (idx >= 0) tInitialIndex = idx;
-                }
-                if (tEntries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
-                    rule.Action.AbilityId = tEntries[tInitialIndex].Guid;
-                    PersistEdit();
-                }
-                spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.53f, 1.0f,
-                    tOptions, tIcons, tInitialIndex, idx => {
-                        if (idx < currentSpellEntries.Count)
-                            rule.Action.AbilityId = currentSpellEntries[idx].Guid;
-                        PersistEdit();
-                    });
+                BuildSpellPickerButton(row, 0.53f, 1.0f);
                 return;
             }
 
-            var entries = GetSpellEntries(rule.Action.Type);
-            currentSpellEntries = entries;
-            var options = entries.Select(e => e.Name).ToList();
-            var icons = entries.Select(e => e.Icon).ToList();
-            int initialIndex = 0;
-            if (!string.IsNullOrEmpty(rule.Action.AbilityId)) {
-                int idx = entries.FindIndex(e => e.Guid == rule.Action.AbilityId);
-                if (idx >= 0) initialIndex = idx;
-            }
-
-            // Auto-save the displayed selection so the AbilityId matches what the dropdown shows
-            if (entries.Count > 0 && string.IsNullOrEmpty(rule.Action.AbilityId)) {
-                rule.Action.AbilityId = entries[initialIndex].Guid;
-                PersistEdit();
-            }
-
-            spellSelector = PopupSelector.CreateWithIcons(row, "SpellPick", 0.39f, 1.0f,
-                options, icons, initialIndex, idx => {
-                    if (idx < currentSpellEntries.Count)
-                        rule.Action.AbilityId = currentSpellEntries[idx].Guid;
-                    PersistEdit();
-                });
+            BuildSpellPickerButton(row, 0.39f, 1.0f);
 
             // Hide if not applicable
             bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
                                 rule.Action.Type != ActionType.DoNothing &&
                                 rule.Action.Type != ActionType.ThrowSplash;
-            spellSelector.gameObject.SetActive(showSelector);
+            if (spellPickerButton != null)
+                spellPickerButton.SetActive(showSelector);
+        }
+
+        // Builds the spell-picker button (icon + label + arrow) that opens SpellPickerOverlay
+        // on click. Resolves the current SpellEntry list for the rule's ActionType up front,
+        // and auto-persists the first entry when no AbilityId is set yet.
+        void BuildSpellPickerButton(GameObject row, float xMin, float xMax) {
+            var entries = GetSpellEntries(rule.Action.Type);
+            currentSpellEntries = entries;
+
+            SpellDropdownProvider.SpellEntry selected = default;
+            bool found = false;
+            if (!string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                foreach (var e in entries) {
+                    if (e.Guid == rule.Action.AbilityId) { selected = e; found = true; break; }
+                }
+            }
+            if (!found && entries.Count > 0) {
+                selected = entries[0];
+                if (string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                    rule.Action.AbilityId = selected.Guid;
+                    PersistEdit();
+                }
+            }
+
+            var (btnObj, btnRect) = UIHelpers.Create("SpellPick", row.transform);
+            btnRect.SetAnchor(xMin, xMax, 0, 1);
+            btnRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(btnObj, new Color(0.22f, 0.22f, 0.22f, 1f));
+
+            // Icon slot (left, 24x24) — added regardless so UpdateSpellPickerButton
+            // can toggle the sprite on/off without re-parenting.
+            var (iconGO, iconRect) = UIHelpers.Create("Icon", btnObj.transform);
+            iconRect.SetAnchor(0, 0, 0.5, 0.5);
+            iconRect.pivot = new Vector2(0, 0.5f);
+            iconRect.anchoredPosition = new Vector2(4, 0);
+            iconRect.sizeDelta = new Vector2(24, 24);
+            spellPickerIcon = iconGO.AddComponent<Image>();
+            spellPickerIcon.raycastTarget = false;
+
+            spellPickerLabel = UIHelpers.AddLabel(btnObj,
+                found || entries.Count > 0 ? selected.Name : "(none available)",
+                15f, TextAlignmentOptions.MidlineLeft);
+            spellPickerLabel.margin = new Vector4(32, 0, 20, 0);
+
+            var (arrow, arrowRect) = UIHelpers.Create("Arrow", btnObj.transform);
+            arrowRect.SetAnchor(0.88, 1, 0, 1);
+            arrowRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddLabel(arrow, "v", 14f, TextAlignmentOptions.Midline,
+                new Color(0.6f, 0.6f, 0.6f));
+
+            spellPickerButton = btnObj;
+            UpdateSpellPickerButton(selected, entries.Count > 0);
+
+            btnObj.AddComponent<Button>().onClick.AddListener(() => {
+                if (currentSpellEntries == null || currentSpellEntries.Count == 0) return;
+                SpellPickerOverlay.Open(currentSpellEntries, rule.Action.AbilityId, picked => {
+                    rule.Action.AbilityId = picked.Guid;
+                    UpdateSpellPickerButton(picked, true);
+                    PersistEdit();
+                });
+            });
+        }
+
+        void UpdateSpellPickerButton(SpellDropdownProvider.SpellEntry entry, bool haveEntries) {
+            if (spellPickerLabel != null)
+                spellPickerLabel.text = haveEntries ? entry.Name : "(none available)";
+            if (spellPickerIcon != null) {
+                spellPickerIcon.sprite = haveEntries ? entry.Icon : null;
+                spellPickerIcon.enabled = haveEntries && entry.Icon != null;
+            }
         }
 
         void RefreshSpellSelector(ActionType actionType) {
-            // For Heal/ThrowSplash, rebuild body to show mode selector instead
+            // Heal/ThrowSplash/ToggleActivatable need a full body rebuild (different row shape)
             if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash || actionType == ActionType.ToggleActivatable) {
                 RebuildBody();
                 return;
             }
 
-            if (spellSelector == null) return;
+            if (spellPickerButton == null) return;
 
             bool showSpell = actionType != ActionType.AttackTarget &&
                              actionType != ActionType.DoNothing &&
                              actionType != ActionType.ThrowSplash;
-            spellSelector.gameObject.SetActive(showSpell);
+            spellPickerButton.SetActive(showSpell);
 
             if (!showSpell) return;
 
             var entries = GetSpellEntries(actionType);
             currentSpellEntries = entries;
-            var options = entries.Select(e => e.Name).ToList();
-            var icons = entries.Select(e => e.Icon).ToList();
-            spellSelector.SetOptions(options, 0, icons);
 
-            // Auto-save the first entry so AbilityId matches the displayed dropdown value
+            SpellDropdownProvider.SpellEntry first = default;
             if (entries.Count > 0) {
-                rule.Action.AbilityId = entries[0].Guid;
+                first = entries[0];
+                rule.Action.AbilityId = first.Guid;
                 PersistEdit();
+            } else {
+                rule.Action.AbilityId = "";
             }
+            UpdateSpellPickerButton(first, entries.Count > 0);
         }
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
