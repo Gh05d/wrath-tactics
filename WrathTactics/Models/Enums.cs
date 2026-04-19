@@ -112,6 +112,8 @@ namespace WrathTactics.Models {
         EnemyCreatureType,
         ConditionTarget,    // the enemy/ally that matched the triggering condition
         EnemyHighestHD,
-        EnemyLowestHD
+        EnemyLowestHD,
+        PointAtSelf,            // ~1 square in front of caster
+        PointAtConditionTarget  // ~1 square toward caster from matched unit
     }
 }
