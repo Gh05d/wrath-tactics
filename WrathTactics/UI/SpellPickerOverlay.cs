@@ -58,7 +58,7 @@ namespace WrathTactics.UI {
         }
 
         void BuildUI(GameObject popup) {
-            const float headerHeight = 40f;
+            const float headerHeight = 52f;  // 40 felt cramped — overlay is 480x540 (BuffPicker's 420x500 used 40)
 
             var (header, headerRect) = UIHelpers.Create("Header", popup.transform);
             headerRect.anchorMin = new Vector2(0, 1);
@@ -71,8 +71,14 @@ namespace WrathTactics.UI {
             searchInput = UIHelpers.CreateTMPInputField(header, "Search",
                 0.02, 0.98, "", 16f);
             var inputRect = searchInput.GetComponent<RectTransform>();
-            inputRect.SetAnchor(0.02f, 0.98f, 0.1f, 0.9f);
-            inputRect.sizeDelta = Vector2.zero;
+            // Stretch full-width within the header's 0.02-0.98 slice, inset 8px top/bottom
+            // as absolute offsets (fractional y-anchors give inconsistent padding when
+            // header height changes).
+            inputRect.anchorMin = new Vector2(0.02f, 0f);
+            inputRect.anchorMax = new Vector2(0.98f, 1f);
+            inputRect.pivot = new Vector2(0.5f, 0.5f);
+            inputRect.offsetMin = new Vector2(0, 8);
+            inputRect.offsetMax = new Vector2(0, -8);
             searchInput.onValueChanged.AddListener(v => {
                 currentQuery = v ?? "";
                 RenderList();
@@ -84,7 +90,7 @@ namespace WrathTactics.UI {
             scrollRect.anchorMax = new Vector2(1, 1);
             scrollRect.pivot = new Vector2(0.5f, 0.5f);
             scrollRect.offsetMin = Vector2.zero;
-            scrollRect.offsetMax = new Vector2(0, -headerHeight);
+            scrollRect.offsetMax = new Vector2(0, -headerHeight);  // inset from top by header height
 
             var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
             viewportRect.FillParent();
