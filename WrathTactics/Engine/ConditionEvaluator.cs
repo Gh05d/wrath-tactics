@@ -23,6 +23,13 @@ namespace WrathTactics.Engine {
         /// </summary>
         public static bool IsPostCombatPass { get; set; }
 
+        // Rule-scoped ambient state — set in Evaluate(rule, owner), cleared in finally.
+        // Accessed by SpellDCMinusSave evaluation so the property helper stays one-arg
+        // (matches HpPercent/AC shape). A stray access outside an active Evaluate
+        // reads null and falls through to float.NaN → condition returns false.
+        static ActionDef CurrentAction;
+        static UnitEntityData CurrentOwner;
+
         public static void ClearMatchedEntities() {
             LastMatchedEnemy = null;
             LastMatchedAlly = null;
@@ -32,11 +39,18 @@ namespace WrathTactics.Engine {
             if (rule.ConditionGroups == null || rule.ConditionGroups.Count == 0)
                 return true;
 
-            foreach (var group in rule.ConditionGroups) {
-                if (EvaluateGroup(group, owner))
-                    return true;
+            CurrentAction = rule.Action;
+            CurrentOwner = owner;
+            try {
+                foreach (var group in rule.ConditionGroups) {
+                    if (EvaluateGroup(group, owner))
+                        return true;
+                }
+                return false;
+            } finally {
+                CurrentAction = null;
+                CurrentOwner = null;
             }
-            return false;
         }
 
         static bool EvaluateGroup(ConditionGroup group, UnitEntityData owner) {
@@ -121,6 +135,28 @@ namespace WrathTactics.Engine {
 
         static float UnitHD(UnitEntityData unit) {
             return UnitExtensions.GetHD(unit);
+        }
+
+        // Returns (currentSpellDC − target's matching save). Returns float.NaN for
+        // any disqualifying condition (non-cast action, unresolvable ability, spell
+        // with no save). Callers must check IsNaN before comparing.
+        static float ComputeDCMinusSave(UnitEntityData target) {
+            if (target == null || CurrentOwner == null || CurrentAction == null) return float.NaN;
+            if (CurrentAction.Type != ActionType.CastSpell && CurrentAction.Type != ActionType.CastAbility)
+                return float.NaN;
+
+            var ability = ActionValidator.FindAbility(CurrentOwner, CurrentAction.AbilityId);
+            if (ability == null) return float.NaN;
+
+            var runAction = ability.Blueprint
+                .GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityEffectRunAction>();
+            var saveType = runAction?.SavingThrowType
+                ?? Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown;
+            if (saveType == Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown) return float.NaN;
+
+            int dc = ability.CalculateParams().DC;
+            int save = UnitExtensions.GetSave(target, saveType);
+            return dc - save;
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
@@ -251,6 +287,12 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.HitDice:
                     return CompareFloat(UnitExtensions.GetHD(unit), condition.Operator, threshold);
 
+                case ConditionProperty.SpellDCMinusSave: {
+                    float margin = ComputeDCMinusSave(unit);
+                    if (float.IsNaN(margin)) return false;
+                    return CompareFloat(margin, condition.Operator, threshold);
+                }
+
                 case ConditionProperty.IsDead:
                     bool isDead = unit.HPLeft <= 0;
                     bool wantDead = threshold > 0;
@@ -325,6 +367,15 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out threshold))
                         return false;
                     return CompareFloat(UnitExtensions.GetHD(unit), condition.Operator, threshold);
+
+                case ConditionProperty.SpellDCMinusSave: {
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    float margin = ComputeDCMinusSave(unit);
+                    if (float.IsNaN(margin)) return false;
+                    return CompareFloat(margin, condition.Operator, threshold);
+                }
 
                 case ConditionProperty.IsDead:
                     return unit.HPLeft <= 0;
