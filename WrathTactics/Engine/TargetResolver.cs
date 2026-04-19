@@ -38,6 +38,8 @@ namespace WrathTactics.Engine {
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
                 case TargetType.ConditionTarget:    return GetConditionTarget(owner);
+                case TargetType.EnemyHighestHD:     return GetEnemyHighestHD(owner);
+                case TargetType.EnemyLowestHD:      return GetEnemyLowestHD(owner);
                 default:                            return null;
             }
         }
@@ -125,6 +127,18 @@ namespace WrathTactics.Engine {
         static UnitEntityData GetEnemyHighestWill(UnitEntityData owner) {
             return GetVisibleEnemies(owner)
                 .OrderByDescending(e => e.Stats.SaveWill.ModifiedValue)
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyHighestHD(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderByDescending(e => UnitExtensions.GetHD(e))
+                .FirstOrDefault();
+        }
+
+        static UnitEntityData GetEnemyLowestHD(UnitEntityData owner) {
+            return GetVisibleEnemies(owner)
+                .OrderBy(e => UnitExtensions.GetHD(e))
                 .FirstOrDefault();
         }
 
