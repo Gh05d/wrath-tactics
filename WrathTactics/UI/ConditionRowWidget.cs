@@ -309,19 +309,22 @@ namespace WrathTactics.UI {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition,
                         ConditionProperty.SpellSlotsAtLevel, ConditionProperty.SpellSlotsAboveLevel,
-                        ConditionProperty.Alignment
+                        ConditionProperty.Alignment,
+                        ConditionProperty.HasClass
                     };
                 case ConditionSubject.Ally:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
-                        ConditionProperty.Alignment
+                        ConditionProperty.Alignment,
+                        ConditionProperty.HasClass
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
-                        ConditionProperty.Alignment
+                        ConditionProperty.Alignment,
+                        ConditionProperty.HasClass
                     };
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyBiggestThreat:
@@ -345,7 +348,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.CreatureType,
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
-                        ConditionProperty.SpellDCMinusSave
+                        ConditionProperty.SpellDCMinusSave,
+                        ConditionProperty.HasClass
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
@@ -353,7 +357,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasCondition, ConditionProperty.CreatureType,
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
-                        ConditionProperty.SpellDCMinusSave
+                        ConditionProperty.SpellDCMinusSave,
+                        ConditionProperty.HasClass
                     };
                 case ConditionSubject.Combat:
                     return new List<ConditionProperty> {
