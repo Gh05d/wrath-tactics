@@ -70,6 +70,8 @@ namespace WrathTactics.Engine {
                     case ConditionSubject.EnemyHighestReflex: return EvaluateEnemyPick(condition, owner, UnitReflex, biggest: true);
                     case ConditionSubject.EnemyLowestWill:    return EvaluateEnemyPick(condition, owner, UnitWill, biggest: false);
                     case ConditionSubject.EnemyHighestWill:   return EvaluateEnemyPick(condition, owner, UnitWill, biggest: true);
+                    case ConditionSubject.EnemyHighestHD:     return EvaluateEnemyPick(condition, owner, UnitHD, biggest: true);
+                    case ConditionSubject.EnemyLowestHD:      return EvaluateEnemyPick(condition, owner, UnitHD, biggest: false);
                     case ConditionSubject.Combat:              return EvaluateCombat(condition);
                     default:                                   return false;
                 }
@@ -115,6 +117,10 @@ namespace WrathTactics.Engine {
 
         static float UnitWill(UnitEntityData unit) {
             return unit.Stats.SaveWill.ModifiedValue;
+        }
+
+        static float UnitHD(UnitEntityData unit) {
+            return UnitExtensions.GetHD(unit);
         }
 
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
@@ -242,6 +248,9 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.SaveWill:
                     return CompareFloat(unit.Stats.SaveWill.ModifiedValue, condition.Operator, threshold);
 
+                case ConditionProperty.HitDice:
+                    return CompareFloat(UnitExtensions.GetHD(unit), condition.Operator, threshold);
+
                 case ConditionProperty.IsDead:
                     bool isDead = unit.HPLeft <= 0;
                     bool wantDead = threshold > 0;
@@ -310,6 +319,12 @@ namespace WrathTactics.Engine {
                         : condition.Property == ConditionProperty.SaveReflex ? unit.Stats.SaveReflex.ModifiedValue
                         : unit.Stats.SaveWill.ModifiedValue;
                     return CompareFloat(saveVal, condition.Operator, threshold);
+
+                case ConditionProperty.HitDice:
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    return CompareFloat(UnitExtensions.GetHD(unit), condition.Operator, threshold);
 
                 case ConditionProperty.IsDead:
                     return unit.HPLeft <= 0;
