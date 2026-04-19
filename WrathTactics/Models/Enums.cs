@@ -39,7 +39,8 @@ namespace WrathTactics.Models {
         Alignment,
         IsInCombat,
         HitDice,
-        SpellDCMinusSave
+        SpellDCMinusSave,
+        HasClass
     }
 
     public enum ConditionOperator {
