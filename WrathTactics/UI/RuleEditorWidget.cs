@@ -749,7 +749,7 @@ namespace WrathTactics.UI {
                 Engine.PresetRegistry.Save(rule);
                 onChanged?.Invoke();
             } else {
-                PersistEdit();
+                ConfigManager.Save();
             }
         }
 

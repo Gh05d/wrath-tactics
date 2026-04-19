@@ -96,16 +96,21 @@ namespace WrathTactics.Persistence {
         }
 
         static void RemoveRulesWithNoGroups(TacticsConfig config, ref bool changed) {
+            // Linked rules (PresetId set) legitimately carry an empty body — their
+            // ConditionGroups/Action/Target are resolved from the preset at runtime.
+            // Only strip standalone rules with no groups.
             if (config.GlobalRules != null) {
                 int before = config.GlobalRules.Count;
-                config.GlobalRules.RemoveAll(r => r.ConditionGroups == null || r.ConditionGroups.Count == 0);
+                config.GlobalRules.RemoveAll(r => string.IsNullOrEmpty(r.PresetId) &&
+                    (r.ConditionGroups == null || r.ConditionGroups.Count == 0));
                 if (config.GlobalRules.Count != before) changed = true;
             }
             if (config.CharacterRules != null) {
                 foreach (var kv in config.CharacterRules) {
                     if (kv.Value == null) continue;
                     int before = kv.Value.Count;
-                    kv.Value.RemoveAll(r => r.ConditionGroups == null || r.ConditionGroups.Count == 0);
+                    kv.Value.RemoveAll(r => string.IsNullOrEmpty(r.PresetId) &&
+                        (r.ConditionGroups == null || r.ConditionGroups.Count == 0));
                     if (kv.Value.Count != before) changed = true;
                 }
             }
