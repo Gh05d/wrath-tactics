@@ -115,12 +115,16 @@ namespace WrathTactics.UI {
                                 if (variant == null) continue;
                                 var key = MakeKey(spell, level, variant.AssetGuid.ToString());
                                 if (seen.Add(key))
-                                    result.Add(new SpellEntry($"[L{level}] {spell.Name}: {variant.Name}", key, variant.Icon));
+                                    result.Add(new SpellEntry(
+                                        FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                                        key, variant.Icon));
                             }
                         } else {
                             var key = MakeKey(spell, level);
                             if (seen.Add(key))
-                                result.Add(new SpellEntry($"[L{level}] {spell.Name}", key, spell.Blueprint.Icon));
+                                result.Add(new SpellEntry(
+                                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
+                                    key, spell.Blueprint.Icon));
                         }
                     }
                     // Custom spells (metamagic variants, fused spells)
@@ -131,7 +135,9 @@ namespace WrathTactics.UI {
                             var name = tag.Length > 0
                                 ? $"[L{level}] {spell.Name} {tag}"
                                 : $"[L{level}] {spell.Name}";
-                            result.Add(new SpellEntry(name, key, spell.Blueprint.Icon));
+                            result.Add(new SpellEntry(
+                                FormatWithInternal(name, spell.Blueprint),
+                                key, spell.Blueprint.Icon));
                         }
                     }
                 }
@@ -156,13 +162,17 @@ namespace WrathTactics.UI {
                         if (variant == null) continue;
                         var varGuid = variant.AssetGuid.ToString();
                         if (seen.Add(varGuid))
-                            result.Add(new SpellEntry(variant.Name, varGuid, variant.Icon));
+                            result.Add(new SpellEntry(
+                                FormatWithInternal(variant.Name, variant),
+                                varGuid, variant.Icon));
                     }
                 } else {
                     // Regular ability without variants
                     var guid = ability.Blueprint.AssetGuid.ToString();
                     if (seen.Add(guid))
-                        result.Add(new SpellEntry(ability.Name, guid, ability.Blueprint.Icon));
+                        result.Add(new SpellEntry(
+                            FormatWithInternal(ability.Name, ability.Blueprint),
+                            guid, ability.Blueprint.Icon));
                 }
             }
 
@@ -176,7 +186,9 @@ namespace WrathTactics.UI {
             foreach (var activatable in unit.ActivatableAbilities.RawFacts) {
                 var guid = activatable.Blueprint.AssetGuid.ToString();
                 if (seen.Add(guid))
-                    result.Add(new SpellEntry(activatable.Blueprint.Name, guid, activatable.Blueprint.Icon));
+                    result.Add(new SpellEntry(
+                        FormatWithInternal(activatable.Blueprint.Name, activatable.Blueprint),
+                        guid, activatable.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();
@@ -188,6 +200,22 @@ namespace WrathTactics.UI {
                 if (c is T typed) return typed;
             }
             return null;
+        }
+
+        // Strips the trailing "Ability" from a blueprint's internal name so the suffix
+        // stays compact. "FireBlastAbility" → "FireBlast"; "KineticBladeFireBlastAbility"
+        // → "KineticBladeFireBlast"; names without the suffix pass through unchanged.
+        static string StripAbilitySuffix(string name) {
+            if (string.IsNullOrEmpty(name)) return name ?? "";
+            return name.EndsWith("Ability") ? name.Substring(0, name.Length - 7) : name;
+        }
+
+        // Appends "(InternalName)" to the display label so visually-identical rows
+        // (e.g. Kineticist's several "Fire Blast"-named blueprints) are distinguishable.
+        // Returns the plain displayName when the blueprint or its name is missing.
+        static string FormatWithInternal(string displayName, BlueprintScriptableObject bp) {
+            if (bp == null || string.IsNullOrEmpty(bp.name)) return displayName;
+            return $"{displayName} ({StripAbilitySuffix(bp.name)})";
         }
 
         public static List<SpellEntry> GetItemAbilities(UnitEntityData unit) {
@@ -218,7 +246,9 @@ namespace WrathTactics.UI {
                     }
                 }
 
-                result.Add(new SpellEntry($"{ability.Name} {prefix}", guid, ability.Blueprint.Icon));
+                result.Add(new SpellEntry(
+                    FormatWithInternal($"{ability.Name} {prefix}", ability.Blueprint),
+                    guid, ability.Blueprint.Icon));
             }
 
             return result.OrderBy(e => e.Name).ToList();
