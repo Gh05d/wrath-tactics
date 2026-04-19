@@ -127,11 +127,33 @@ namespace WrathTactics.UI {
                 } else if (condition.Property == ConditionProperty.CreatureType
                     || condition.Property == ConditionProperty.Alignment
                     || condition.Property == ConditionProperty.HasBuff
-                    || condition.Property == ConditionProperty.HasCondition) {
+                    || condition.Property == ConditionProperty.HasCondition
+                    || condition.Property == ConditionProperty.HasClass) {
                     CreateEqOperator(root, 0.58f, 0.64f, "CountEqOp");
 
                     if (condition.Property == ConditionProperty.HasBuff) {
                         CreateBuffSelector(root, 0.65f, 0.88f);
+                    } else if (condition.Property == ConditionProperty.HasClass) {
+                        var entries = ClassProvider.GetAll();
+                        var labels = entries.Select(e => e.Label).ToList();
+                        int idx = -1;
+                        for (int i = 0; i < entries.Count; i++) {
+                            if (entries[i].Value == condition.Value) { idx = i; break; }
+                        }
+                        if (idx < 0 && entries.Count > 0) { idx = 0; condition.Value = entries[0].Value; }
+                        if (labels.Count == 0) {
+                            var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                                0.65, 0.88, condition.Value ?? "", 16f);
+                            valueInput.onEndEdit.AddListener(v => {
+                                condition.Value = v;
+                                ConfigManager.Save();
+                            });
+                        } else {
+                            PopupSelector.Create(root, "CountHasClassValue", 0.65f, 0.88f, labels, idx, v => {
+                                condition.Value = entries[v].Value;
+                                ConfigManager.Save();
+                            });
+                        }
                     } else {
                         var valueOptions = GetValueOptionsForProperty(condition.Property);
                         int valIdx = valueOptions.IndexOf(condition.Value);
@@ -156,7 +178,8 @@ namespace WrathTactics.UI {
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
-                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment;
+                bool isHasClass = condition.Property == ConditionProperty.HasClass;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
                 bool needsOperator = !usesEqOp && !isInCombat;
 
                 // Operator popup selector
@@ -197,6 +220,29 @@ namespace WrathTactics.UI {
                         condition.Value = condNames[v];
                         ConfigManager.Save();
                     });
+                } else if (isHasClass) {
+                    var entries = ClassProvider.GetAll();
+                    var labels = entries.Select(e => e.Label).ToList();
+
+                    if (labels.Count == 0) {
+                        // Safety fallback: blueprint root not yet available (e.g. main menu).
+                        var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                            0.45, 0.88, condition.Value ?? "", 16f);
+                        valueInput.onEndEdit.AddListener(v => {
+                            condition.Value = v;
+                            ConfigManager.Save();
+                        });
+                    } else {
+                        int idx = -1;
+                        for (int i = 0; i < entries.Count; i++) {
+                            if (entries[i].Value == condition.Value) { idx = i; break; }
+                        }
+                        if (idx < 0) { idx = 0; condition.Value = entries[0].Value; }
+                        PopupSelector.Create(root, "HasClassValue", 0.45f, 0.88f, labels, idx, v => {
+                            condition.Value = entries[v].Value;
+                            ConfigManager.Save();
+                        });
+                    }
                 } else if (condition.Property == ConditionProperty.HasBuff) {
                     CreateBuffSelector(root, 0.45f, 0.88f);
                 } else if (condition.Property == ConditionProperty.IsInCombat) {
