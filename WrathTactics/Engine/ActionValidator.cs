@@ -12,29 +12,36 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class ActionValidator {
-        public static bool CanExecute(ActionDef action, UnitEntityData owner, UnitEntityData target) {
-            // No IsRunning() guard — auto-attacks would block everything in real-time mode.
-            // Cooldown system + game's command queue handle conflicts.
+        public static bool CanExecute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
+            if (!target.IsValid && RequiresValidTarget(action.Type))
+                return false;
+            var unit = target.Unit;
             switch (action.Type) {
                 case ActionType.CastSpell:
-                    return CanCastSpell(action.AbilityId, owner, target);
+                    return CanCastSpell(action.AbilityId, owner, unit);
                 case ActionType.CastAbility:
-                    return CanCastSpell(action.AbilityId, owner, target);
+                    return CanCastSpell(action.AbilityId, owner, unit);
                 case ActionType.UseItem:
-                    return CanUseItem(action.AbilityId, owner, target);
+                    return CanUseItem(action.AbilityId, owner, unit);
                 case ActionType.ToggleActivatable:
                     return CanToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                 case ActionType.AttackTarget:
-                    return target != null && target.HPLeft > 0;
+                    return unit != null && unit.HPLeft > 0;
                 case ActionType.Heal:
                     return FindBestHeal(owner, action.HealMode, action.HealSources) != null;
                 case ActionType.ThrowSplash:
-                    return target != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
+                    return unit != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.DoNothing:
                     return true;
                 default:
                     return false;
             }
+        }
+
+        static bool RequiresValidTarget(ActionType type) {
+            return type != ActionType.ToggleActivatable
+                && type != ActionType.Heal
+                && type != ActionType.DoNothing;
         }
 
         static bool CanCastSpell(string abilityGuid, UnitEntityData owner, UnitEntityData target) {

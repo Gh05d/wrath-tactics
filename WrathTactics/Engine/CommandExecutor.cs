@@ -14,23 +14,24 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class CommandExecutor {
-        public static bool Execute(ActionDef action, UnitEntityData owner, UnitEntityData target) {
+        public static bool Execute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
+            var unit = target.Unit;
             try {
                 switch (action.Type) {
                     case ActionType.CastSpell:
-                        return ExecuteCastSpell(action.AbilityId, owner, target);
+                        return ExecuteCastSpell(action.AbilityId, owner, unit);
                     case ActionType.CastAbility:
-                        return ExecuteCastSpell(action.AbilityId, owner, target);
+                        return ExecuteCastSpell(action.AbilityId, owner, unit);
                     case ActionType.UseItem:
-                        return ExecuteUseItem(action.AbilityId, owner, target);
+                        return ExecuteUseItem(action.AbilityId, owner, unit);
                     case ActionType.ToggleActivatable:
                         return ExecuteToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                     case ActionType.AttackTarget:
-                        return ExecuteAttack(owner, target);
+                        return ExecuteAttack(owner, unit);
                     case ActionType.Heal:
-                        return ExecuteHeal(action, owner, target);
+                        return ExecuteHeal(action, owner, unit);
                     case ActionType.ThrowSplash:
-                        return ExecuteThrowSplash(action, owner, target);
+                        return ExecuteThrowSplash(action, owner, unit);
                     case ActionType.DoNothing:
                         return true;
                     default:

@@ -119,7 +119,7 @@ namespace WrathTactics.Engine {
                 // Execute!
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     cooldowns[cooldownKey] = gameTimeSec;
-                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
+                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
                     return true;
                 }
             }
@@ -169,7 +169,7 @@ namespace WrathTactics.Engine {
                 }
 
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
-                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {target?.CharacterName ?? "self"}");
+                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
                     return true;
                 }
             }
@@ -187,6 +187,15 @@ namespace WrathTactics.Engine {
             wasInCombat = false;
             tickCounter = 0;
             cooldowns.Clear();
+        }
+
+        static string FormatTarget(ResolvedTarget target) {
+            if (target.Unit != null) return target.Unit.CharacterName;
+            if (target.Point.HasValue) {
+                var p = target.Point.Value;
+                return $"point({p.x:F1},{p.y:F1},{p.z:F1})";
+            }
+            return "self";
         }
     }
 }

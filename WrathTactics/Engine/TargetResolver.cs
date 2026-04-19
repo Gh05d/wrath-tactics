@@ -8,14 +8,16 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class TargetResolver {
-        public static UnitEntityData Resolve(TargetDef target, UnitEntityData owner) {
-            var result = ResolveInternal(target, owner);
-            if (result != null) {
-                float dist = (result.Position - owner.Position).magnitude;
-                Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> {result.CharacterName} " +
-                    $"(type={target.Type}, dist={dist:F1}, inCombat={result.IsInCombat}, visible={result.IsVisibleForPlayer})");
+        public static ResolvedTarget Resolve(TargetDef target, UnitEntityData owner) {
+            var unit = ResolveInternal(target, owner);
+            if (unit != null) {
+                float dist = (unit.Position - owner.Position).magnitude;
+                Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> {unit.CharacterName} " +
+                    $"(type={target.Type}, dist={dist:F1}, inCombat={unit.IsInCombat}, visible={unit.IsVisibleForPlayer})");
+                return new ResolvedTarget(unit);
             }
-            return result;
+            Log.Engine.Trace($"TargetResolver: {owner.CharacterName} -> <none> (type={target.Type})");
+            return ResolvedTarget.None;
         }
 
         static UnitEntityData ResolveInternal(TargetDef target, UnitEntityData owner) {
