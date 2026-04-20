@@ -269,22 +269,43 @@ namespace WrathTactics.Engine {
         // Returns (currentSpellDC − target's matching save). Returns float.NaN for
         // any disqualifying condition (non-cast action, unresolvable ability, spell
         // with no save). Callers must check IsNaN before comparing.
+        //
+        // Save-type lookup mirrors AbilityEffectRunAction.GetSavingThrowTypeInContext:
+        // MagicHackData takes precedence (Magic Deceiver fused spells and other
+        // hack-altered casts carry their save type on the AbilityData, not on the
+        // static blueprint component). Fallback is the blueprint's RunAction component.
         static float ComputeDCMinusSave(UnitEntityData target) {
             if (target == null || CurrentOwner == null || CurrentAction == null) return float.NaN;
             if (CurrentAction.Type != ActionType.CastSpell && CurrentAction.Type != ActionType.CastAbility)
                 return float.NaN;
 
             var ability = ActionValidator.FindAbility(CurrentOwner, CurrentAction.AbilityId);
-            if (ability == null) return float.NaN;
+            if (ability == null) {
+                Log.Engine.Trace($"SpellDCMinusSave: FindAbility returned null (guid={CurrentAction.AbilityId})");
+                return float.NaN;
+            }
 
-            var runAction = ability.Blueprint
-                .GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityEffectRunAction>();
-            var saveType = runAction?.SavingThrowType
-                ?? Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown;
-            if (saveType == Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown) return float.NaN;
+            Kingmaker.EntitySystem.Stats.SavingThrowType saveType;
+            string saveTypeSource;
+            if (ability.MagicHackData != null) {
+                saveType = ability.MagicHackData.SavingThrowType;
+                saveTypeSource = "MagicHackData";
+            } else {
+                var runAction = ability.Blueprint
+                    .GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityEffectRunAction>();
+                saveType = runAction?.SavingThrowType
+                    ?? Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown;
+                saveTypeSource = runAction != null ? "RunAction" : "no-RunAction-component";
+            }
+
+            if (saveType == Kingmaker.EntitySystem.Stats.SavingThrowType.Unknown) {
+                Log.Engine.Trace($"SpellDCMinusSave: '{ability.Name}' ({ability.Blueprint?.name}) has no computable save type (source={saveTypeSource})");
+                return float.NaN;
+            }
 
             int dc = ability.CalculateParams().DC;
             int save = UnitExtensions.GetSave(target, saveType);
+            Log.Engine.Trace($"SpellDCMinusSave: '{ability.Name}' vs {target.CharacterName}: DC {dc} - {saveType} {save} = {dc - save} (source={saveTypeSource})");
             return dc - save;
         }
 
