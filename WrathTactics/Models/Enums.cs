@@ -40,7 +40,8 @@ namespace WrathTactics.Models {
         IsInCombat,
         HitDice,
         SpellDCMinusSave,
-        HasClass
+        HasClass,
+        WithinRange
     }
 
     public enum ConditionOperator {
@@ -117,5 +118,35 @@ namespace WrathTactics.Models {
         EnemyLowestHD,
         PointAtSelf,            // ~1 square in front of caster
         PointAtConditionTarget  // ~1 square toward caster from matched unit
+    }
+
+    public enum RangeBracket { Melee, Cone, Short, Medium, Long }
+
+    public static class RangeBrackets {
+        public static float MaxMeters(RangeBracket b) {
+            switch (b) {
+                case RangeBracket.Melee:  return 2f;
+                case RangeBracket.Cone:   return 5f;
+                case RangeBracket.Short:  return 10f;
+                case RangeBracket.Medium: return 20f;
+                case RangeBracket.Long:   return 40f;
+                default:                  return float.PositiveInfinity;
+            }
+        }
+
+        public static bool TryParse(string s, out RangeBracket b) {
+            return System.Enum.TryParse(s, ignoreCase: true, result: out b);
+        }
+
+        public static string Label(RangeBracket b) {
+            switch (b) {
+                case RangeBracket.Melee:  return "Melee (≤2 m)";
+                case RangeBracket.Cone:   return "Cone (≤5 m)";
+                case RangeBracket.Short:  return "Short (≤10 m)";
+                case RangeBracket.Medium: return "Medium (≤20 m)";
+                case RangeBracket.Long:   return "Long (≤40 m)";
+                default:                  return b.ToString();
+            }
+        }
     }
 }
