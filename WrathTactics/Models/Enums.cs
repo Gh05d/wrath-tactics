@@ -138,6 +138,17 @@ namespace WrathTactics.Models {
             return System.Enum.TryParse(s, ignoreCase: true, result: out b);
         }
 
+        public static float LowerMeters(RangeBracket b) {
+            switch (b) {
+                case RangeBracket.Melee:  return 0f;
+                case RangeBracket.Cone:   return MaxMeters(RangeBracket.Melee);
+                case RangeBracket.Short:  return MaxMeters(RangeBracket.Cone);
+                case RangeBracket.Medium: return MaxMeters(RangeBracket.Short);
+                case RangeBracket.Long:   return MaxMeters(RangeBracket.Medium);
+                default:                  return 0f;
+            }
+        }
+
         public static string Label(RangeBracket b) {
             switch (b) {
                 case RangeBracket.Melee:  return "Melee (≤2 m)";

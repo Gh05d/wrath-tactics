@@ -498,12 +498,17 @@ namespace WrathTactics.Engine {
                         Log.Engine.Warn($"WithinRange: unknown bracket '{condition.Value}' on {unit.CharacterName}");
                         return false;
                     }
-                    float dist = Vector3.Distance(CurrentOwner.Position, unit.Position);
-                    bool within = dist <= RangeBrackets.MaxMeters(bracket);
+                    float d = Vector3.Distance(CurrentOwner.Position, unit.Position);
+                    float lo = RangeBrackets.LowerMeters(bracket);
+                    float hi = RangeBrackets.MaxMeters(bracket);
                     switch (condition.Operator) {
-                        case ConditionOperator.Equal:    return within;
-                        case ConditionOperator.NotEqual: return !within;
-                        default:                         return false;
+                        case ConditionOperator.Equal:          return d > lo && d <= hi;
+                        case ConditionOperator.NotEqual:       return !(d > lo && d <= hi);
+                        case ConditionOperator.LessOrEqual:    return d <= hi;
+                        case ConditionOperator.LessThan:       return d <= lo;
+                        case ConditionOperator.GreaterOrEqual: return d > lo;
+                        case ConditionOperator.GreaterThan:    return d > hi;
+                        default:                               return false;
                     }
                 }
 
@@ -586,9 +591,18 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.WithinRange: {
                     if (CurrentOwner == null) return false;
                     if (!RangeBrackets.TryParse(condition.Value, out var bracket)) return false;
-                    float dist = Vector3.Distance(CurrentOwner.Position, unit.Position);
-                    bool within = dist <= RangeBrackets.MaxMeters(bracket);
-                    return condition.Operator == ConditionOperator.NotEqual ? !within : within;
+                    float d = Vector3.Distance(CurrentOwner.Position, unit.Position);
+                    float lo = RangeBrackets.LowerMeters(bracket);
+                    float hi = RangeBrackets.MaxMeters(bracket);
+                    switch (condition.Operator) {
+                        case ConditionOperator.Equal:          return d > lo && d <= hi;
+                        case ConditionOperator.NotEqual:       return !(d > lo && d <= hi);
+                        case ConditionOperator.LessOrEqual:    return d <= hi;
+                        case ConditionOperator.LessThan:       return d <= lo;
+                        case ConditionOperator.GreaterOrEqual: return d > lo;
+                        case ConditionOperator.GreaterThan:    return d > hi;
+                        default:                               return false;
+                    }
                 }
 
                 default:

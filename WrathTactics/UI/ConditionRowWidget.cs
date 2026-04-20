@@ -113,7 +113,8 @@ namespace WrathTactics.UI {
                 bool propNeedsOperator = condition.Property == ConditionProperty.HpPercent
                     || condition.Property == ConditionProperty.AC
                     || condition.Property == ConditionProperty.HitDice
-                    || condition.Property == ConditionProperty.SpellDCMinusSave;
+                    || condition.Property == ConditionProperty.SpellDCMinusSave
+                    || condition.Property == ConditionProperty.WithinRange;
 
                 if (propNeedsOperator) {
                     // Operator selector where the "<" label was
@@ -124,19 +125,29 @@ namespace WrathTactics.UI {
                             onChanged?.Invoke();
                         });
 
-                    // Value input on the right
-                    var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                        0.67, 0.88, condition.Value ?? "", 16f);
-                    valueInput.onEndEdit.AddListener(v => {
-                        condition.Value = v;
-                        onChanged?.Invoke();
-                    });
+                    if (condition.Property == ConditionProperty.WithinRange) {
+                        var bracketNames = RangeBracketNames;
+                        var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
+                        int brIdx = bracketNames.IndexOf(condition.Value);
+                        if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
+                        PopupSelector.Create(root, "CountRangeBracketValue", 0.67f, 0.88f, bracketLabels, brIdx, v => {
+                            condition.Value = bracketNames[v];
+                            onChanged?.Invoke();
+                        });
+                    } else {
+                        // Value input on the right
+                        var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                            0.67, 0.88, condition.Value ?? "", 16f);
+                        valueInput.onEndEdit.AddListener(v => {
+                            condition.Value = v;
+                            onChanged?.Invoke();
+                        });
+                    }
                 } else if (condition.Property == ConditionProperty.CreatureType
                     || condition.Property == ConditionProperty.Alignment
                     || condition.Property == ConditionProperty.HasBuff
                     || condition.Property == ConditionProperty.HasCondition
-                    || condition.Property == ConditionProperty.HasClass
-                    || condition.Property == ConditionProperty.WithinRange) {
+                    || condition.Property == ConditionProperty.HasClass) {
                     CreateEqOperator(root, 0.58f, 0.64f, "CountEqOp");
 
                     if (condition.Property == ConditionProperty.HasBuff) {
@@ -162,15 +173,6 @@ namespace WrathTactics.UI {
                                 onChanged?.Invoke();
                             });
                         }
-                    } else if (condition.Property == ConditionProperty.WithinRange) {
-                        var bracketNames = RangeBracketNames;
-                        var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
-                        int brIdx = bracketNames.IndexOf(condition.Value);
-                        if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
-                        PopupSelector.Create(root, "CountRangeBracketValue", 0.65f, 0.88f, bracketLabels, brIdx, v => {
-                            condition.Value = bracketNames[v];
-                            onChanged?.Invoke();
-                        });
                     } else {
                         var valueOptions = GetValueOptionsForProperty(condition.Property);
                         int valIdx = valueOptions.IndexOf(condition.Value);
@@ -197,7 +199,7 @@ namespace WrathTactics.UI {
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
                 bool isHasClass = condition.Property == ConditionProperty.HasClass;
                 bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
-                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass || isWithinRange;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
                 bool needsOperator = !usesEqOp && !isInCombat;
 
                 // Operator popup selector
@@ -268,7 +270,7 @@ namespace WrathTactics.UI {
                     var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
                     int brIdx = bracketNames.IndexOf(condition.Value);
                     if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
-                    PopupSelector.Create(root, "RangeBracketValue", 0.45f, 0.88f, bracketLabels, brIdx, v => {
+                    PopupSelector.Create(root, "RangeBracketValue", 0.51f, 0.88f, bracketLabels, brIdx, v => {
                         condition.Value = bracketNames[v];
                         onChanged?.Invoke();
                     });
