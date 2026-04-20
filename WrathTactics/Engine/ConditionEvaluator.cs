@@ -58,10 +58,138 @@ namespace WrathTactics.Engine {
             if (group.Conditions == null || group.Conditions.Count == 0)
                 return true;
 
-            foreach (var condition in group.Conditions) {
-                if (!EvaluateCondition(condition, owner))
-                    return false;
+            var enemyConds = new List<Condition>();
+            var allyConds  = new List<Condition>();
+            var otherConds = new List<Condition>();
+
+            foreach (var c in group.Conditions) {
+                if (IsEnemyScope(c.Subject))      enemyConds.Add(c);
+                else if (IsAllyScope(c.Subject))  allyConds.Add(c);
+                else                              otherConds.Add(c);
             }
+
+            foreach (var c in otherConds) {
+                if (!EvaluateCondition(c, owner)) return false;
+            }
+
+            if (enemyConds.Count > 0 && !EvaluateEnemyBucket(enemyConds, owner)) return false;
+            if (allyConds.Count  > 0 && !EvaluateAllyBucket(allyConds, owner))   return false;
+            return true;
+        }
+
+        // Evaluates all Enemy-scope conditions as a single bucket: the bucket is satisfied
+        // iff there exists a single enemy that passes every non-Count condition, AND the
+        // count of enemies that pass every non-Count condition meets the Count threshold.
+        // If a Pick subject is present, its metric sorts the iteration and its property
+        // check is still applied (Pick acts as both sort hint and filter).
+        static bool EvaluateEnemyBucket(List<Condition> conds, UnitEntityData owner) {
+            var enemies = GetVisibleEnemies(owner).ToList();
+            if (enemies.Count == 0) return false;
+
+            var nonCountConds = conds.Where(c => c.Subject != ConditionSubject.EnemyCount).ToList();
+            var countConds    = conds.Where(c => c.Subject == ConditionSubject.EnemyCount).ToList();
+
+            // Sort by the first Pick subject's metric (if any).
+            Condition pickCond = nonCountConds.FirstOrDefault(c => PickMetric(c.Subject, out _) != null);
+            IEnumerable<UnitEntityData> ordered = enemies;
+            if (pickCond != null) {
+                var metric = PickMetric(pickCond.Subject, out bool biggest);
+                ordered = biggest
+                    ? enemies.OrderByDescending(metric)
+                    : enemies.OrderBy(metric);
+            }
+
+            // Pick-or-Enemy path: find first enemy that passes every non-Count condition.
+            UnitEntityData matchedEnemy = null;
+            if (nonCountConds.Count > 0) {
+                foreach (var enemy in ordered) {
+                    bool allPass = true;
+                    foreach (var c in nonCountConds) {
+                        if (!EvaluateUnitProperty(c, enemy)) { allPass = false; break; }
+                    }
+                    if (allPass) { matchedEnemy = enemy; break; }
+                }
+                if (matchedEnemy == null) return false;
+                LastMatchedEnemy = matchedEnemy;
+            }
+
+            // Count path: count enemies that pass every non-Count condition AND every Count
+            // condition's property-threshold. Threshold = max Value2 across Count conditions.
+            if (countConds.Count > 0) {
+                float countThreshold = 1f;
+                foreach (var cc in countConds) {
+                    if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
+                        countThreshold = v;
+                }
+
+                int count = 0;
+                foreach (var enemy in enemies) {
+                    bool allPass = true;
+                    foreach (var c in nonCountConds) {
+                        if (!EvaluateUnitProperty(c, enemy)) { allPass = false; break; }
+                    }
+                    if (!allPass) continue;
+                    foreach (var cc in countConds) {
+                        if (!MatchesPropertyThreshold(cc, enemy)) { allPass = false; break; }
+                    }
+                    if (allPass) count++;
+                }
+                if (count < countThreshold) return false;
+            }
+
+            return true;
+        }
+
+        // Ally analogue of EvaluateEnemyBucket — no Pick subjects exist for Ally scope,
+        // so the logic is simpler: a matching Ally (for the non-Count path) and/or a
+        // satisfied Count threshold.
+        static bool EvaluateAllyBucket(List<Condition> conds, UnitEntityData owner) {
+            var allies = GetAllPartyMembers(owner).Where(a => a != owner).ToList();
+            if (allies.Count == 0 && conds.All(c => c.Subject != ConditionSubject.AllyCount))
+                return false;
+
+            var nonCountConds = conds.Where(c => c.Subject != ConditionSubject.AllyCount).ToList();
+            var countConds    = conds.Where(c => c.Subject == ConditionSubject.AllyCount).ToList();
+
+            UnitEntityData matchedAlly = null;
+            if (nonCountConds.Count > 0) {
+                foreach (var ally in allies) {
+                    bool allPass = true;
+                    foreach (var c in nonCountConds) {
+                        if (!EvaluateUnitProperty(c, ally)) { allPass = false; break; }
+                    }
+                    if (allPass) { matchedAlly = ally; break; }
+                }
+                if (matchedAlly == null) return false;
+                LastMatchedAlly = matchedAlly;
+            }
+
+            if (countConds.Count > 0) {
+                float countThreshold = 1f;
+                foreach (var cc in countConds) {
+                    if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
+                        countThreshold = v;
+                }
+
+                int count = 0;
+                // AllyCount historically includes self; keep that behavior (use GetAllPartyMembers
+                // without filtering owner) for Count, to match the previous EvaluateAllyCount.
+                foreach (var ally in GetAllPartyMembers(owner)) {
+                    bool allPass = true;
+                    foreach (var c in nonCountConds) {
+                        if (!EvaluateUnitProperty(c, ally)) { allPass = false; break; }
+                    }
+                    if (!allPass) continue;
+                    foreach (var cc in countConds) {
+                        if (!MatchesPropertyThreshold(cc, ally)) { allPass = false; break; }
+                    }
+                    if (allPass) count++;
+                }
+                if (count < countThreshold) return false;
+            }
+
             return true;
         }
 
@@ -567,6 +695,55 @@ namespace WrathTactics.Engine {
                 case ConditionOperator.GreaterOrEqual: return left >= right;
                 case ConditionOperator.LessOrEqual:   return left <= right;
                 default:                              return false;
+            }
+        }
+
+        static bool IsEnemyScope(ConditionSubject s) {
+            switch (s) {
+                case ConditionSubject.Enemy:
+                case ConditionSubject.EnemyCount:
+                case ConditionSubject.EnemyBiggestThreat:
+                case ConditionSubject.EnemyLowestThreat:
+                case ConditionSubject.EnemyHighestHp:
+                case ConditionSubject.EnemyLowestHp:
+                case ConditionSubject.EnemyLowestAC:
+                case ConditionSubject.EnemyHighestAC:
+                case ConditionSubject.EnemyLowestFort:
+                case ConditionSubject.EnemyHighestFort:
+                case ConditionSubject.EnemyLowestReflex:
+                case ConditionSubject.EnemyHighestReflex:
+                case ConditionSubject.EnemyLowestWill:
+                case ConditionSubject.EnemyHighestWill:
+                case ConditionSubject.EnemyHighestHD:
+                case ConditionSubject.EnemyLowestHD:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        static bool IsAllyScope(ConditionSubject s) {
+            return s == ConditionSubject.Ally || s == ConditionSubject.AllyCount;
+        }
+
+        static Func<UnitEntityData, float> PickMetric(ConditionSubject s, out bool biggest) {
+            biggest = false;
+            switch (s) {
+                case ConditionSubject.EnemyBiggestThreat:  biggest = true;  return e => ThreatCalculator.Calculate(e);
+                case ConditionSubject.EnemyLowestThreat:   biggest = false; return e => ThreatCalculator.Calculate(e);
+                case ConditionSubject.EnemyHighestHp:      biggest = true;  return HpPercent;
+                case ConditionSubject.EnemyLowestHp:       biggest = false; return HpPercent;
+                case ConditionSubject.EnemyHighestAC:      biggest = true;  return UnitAC;
+                case ConditionSubject.EnemyLowestAC:       biggest = false; return UnitAC;
+                case ConditionSubject.EnemyHighestFort:    biggest = true;  return UnitFort;
+                case ConditionSubject.EnemyLowestFort:     biggest = false; return UnitFort;
+                case ConditionSubject.EnemyHighestReflex:  biggest = true;  return UnitReflex;
+                case ConditionSubject.EnemyLowestReflex:   biggest = false; return UnitReflex;
+                case ConditionSubject.EnemyHighestWill:    biggest = true;  return UnitWill;
+                case ConditionSubject.EnemyLowestWill:     biggest = false; return UnitWill;
+                case ConditionSubject.EnemyHighestHD:      biggest = true;  return UnitHD;
+                case ConditionSubject.EnemyLowestHD:       biggest = false; return UnitHD;
+                default:                                   return null;
             }
         }
 
