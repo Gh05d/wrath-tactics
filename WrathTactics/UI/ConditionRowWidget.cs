@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Engine;
 using WrathTactics.Models;
-using WrathTactics.Persistence;
 
 namespace WrathTactics.UI {
     public class ConditionRowWidget : MonoBehaviour {
@@ -54,7 +53,7 @@ namespace WrathTactics.UI {
                     var validProps = GetPropertiesForSubject(condition.Subject);
                     if (!validProps.Contains(condition.Property) && validProps.Count > 0)
                         condition.Property = validProps[0];
-                    ConfigManager.Save();
+                    onChanged?.Invoke();
                     Rebuild();
                 });
 
@@ -67,7 +66,7 @@ namespace WrathTactics.UI {
                 propNames, propIdx, v => {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
                     if (v < currentProps.Count) condition.Property = currentProps[v];
-                    ConfigManager.Save();
+                    onChanged?.Invoke();
                     Rebuild();
                 });
 
@@ -93,7 +92,7 @@ namespace WrathTactics.UI {
                     TMP_InputField.ContentType.IntegerNumber);
                 countInput.onEndEdit.AddListener(v => {
                     condition.Value2 = v;
-                    ConfigManager.Save();
+                    onChanged?.Invoke();
                 });
 
                 // "with" label
@@ -122,7 +121,7 @@ namespace WrathTactics.UI {
                     PopupSelector.Create(root, "CountOperator", 0.58f, 0.66f, opNames,
                         (int)condition.Operator, v => {
                             condition.Operator = (ConditionOperator)v;
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
 
                     // Value input on the right
@@ -130,7 +129,7 @@ namespace WrathTactics.UI {
                         0.67, 0.88, condition.Value ?? "", 16f);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else if (condition.Property == ConditionProperty.CreatureType
                     || condition.Property == ConditionProperty.Alignment
@@ -155,12 +154,12 @@ namespace WrathTactics.UI {
                                 0.65, 0.88, condition.Value ?? "", 16f);
                             valueInput.onEndEdit.AddListener(v => {
                                 condition.Value = v;
-                                ConfigManager.Save();
+                                onChanged?.Invoke();
                             });
                         } else {
                             PopupSelector.Create(root, "CountHasClassValue", 0.65f, 0.88f, labels, idx, v => {
                                 condition.Value = entries[v].Value;
-                                ConfigManager.Save();
+                                onChanged?.Invoke();
                             });
                         }
                     } else if (condition.Property == ConditionProperty.WithinRange) {
@@ -170,7 +169,7 @@ namespace WrathTactics.UI {
                         if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                         PopupSelector.Create(root, "CountRangeBracketValue", 0.65f, 0.88f, bracketLabels, brIdx, v => {
                             condition.Value = bracketNames[v];
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
                     } else {
                         var valueOptions = GetValueOptionsForProperty(condition.Property);
@@ -178,7 +177,7 @@ namespace WrathTactics.UI {
                         if (valIdx < 0) { valIdx = 0; condition.Value = valueOptions[0]; }
                         PopupSelector.Create(root, "CountValueDropdown", 0.65f, 0.88f, valueOptions, valIdx, v => {
                             condition.Value = valueOptions[v];
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
                     }
                 } else {
@@ -188,7 +187,7 @@ namespace WrathTactics.UI {
                         0.58, 0.88, condition.Value ?? "", 16f);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 }
             } else {
@@ -207,7 +206,7 @@ namespace WrathTactics.UI {
                     PopupSelector.Create(root, "Operator", 0.38f, 0.50f, opNames,
                         (int)condition.Operator, v => {
                             condition.Operator = (ConditionOperator)v;
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
                 } else if (usesEqOp) {
                     CreateEqOperator(root, 0.38f, 0.44f, "EqOperator");
@@ -221,7 +220,7 @@ namespace WrathTactics.UI {
                     if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
                     PopupSelector.Create(root, "CreatureTypeValue", 0.45f, 0.88f, creatureTypes, ctIdx, v => {
                         condition.Value = creatureTypes[v];
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else if (isAlignment) {
                     var alignmentValues = GetValueOptionsForProperty(ConditionProperty.Alignment);
@@ -229,7 +228,7 @@ namespace WrathTactics.UI {
                     if (aIdx < 0) { aIdx = 0; condition.Value = alignmentValues[0]; }
                     PopupSelector.Create(root, "AlignmentValue", 0.45f, 0.88f, alignmentValues, aIdx, v => {
                         condition.Value = alignmentValues[v];
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else if (isHasCondition) {
                     var condNames = GetValueOptionsForProperty(ConditionProperty.HasCondition);
@@ -237,7 +236,7 @@ namespace WrathTactics.UI {
                     if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
                     PopupSelector.Create(root, "CondValue", 0.45f, 0.88f, condNames, condIdx, v => {
                         condition.Value = condNames[v];
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else if (isHasClass) {
                     var entries = ClassProvider.GetAll();
@@ -249,7 +248,7 @@ namespace WrathTactics.UI {
                             0.45, 0.88, condition.Value ?? "", 16f);
                         valueInput.onEndEdit.AddListener(v => {
                             condition.Value = v;
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
                     } else {
                         int idx = -1;
@@ -259,7 +258,7 @@ namespace WrathTactics.UI {
                         if (idx < 0) { idx = 0; condition.Value = entries[0].Value; }
                         PopupSelector.Create(root, "HasClassValue", 0.45f, 0.88f, labels, idx, v => {
                             condition.Value = entries[v].Value;
-                            ConfigManager.Save();
+                            onChanged?.Invoke();
                         });
                     }
                 } else if (condition.Property == ConditionProperty.HasBuff) {
@@ -271,7 +270,7 @@ namespace WrathTactics.UI {
                     if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                     PopupSelector.Create(root, "RangeBracketValue", 0.45f, 0.88f, bracketLabels, brIdx, v => {
                         condition.Value = bracketNames[v];
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else if (condition.Property == ConditionProperty.IsInCombat) {
                     var yesNo = new List<string> { "Yes", "No" };
@@ -281,7 +280,7 @@ namespace WrathTactics.UI {
                     if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
                     PopupSelector.Create(root, "IsInCombatValue", 0.38f, 0.88f, yesNo, yIdx, v => {
                         condition.Value = v == 0 ? "true" : "false";
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 } else {
                     // Normal single value input
@@ -289,7 +288,7 @@ namespace WrathTactics.UI {
                         0.51, 0.88, condition.Value ?? "", 16f);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
-                        ConfigManager.Save();
+                        onChanged?.Invoke();
                     });
                 }
             }
@@ -308,7 +307,7 @@ namespace WrathTactics.UI {
             int eqOpIdx = condition.Operator == ConditionOperator.NotEqual ? 1 : 0;
             PopupSelector.Create(root, name, xMin, xMax, eqOpNames, eqOpIdx, v => {
                 condition.Operator = v == 1 ? ConditionOperator.NotEqual : ConditionOperator.Equal;
-                ConfigManager.Save();
+                onChanged?.Invoke();
             });
         }
 
@@ -351,7 +350,7 @@ namespace WrathTactics.UI {
                     xMin, xMax, condition.Value ?? "", 16f);
                 valueInput.onEndEdit.AddListener(v => {
                     condition.Value = v;
-                    ConfigManager.Save();
+                    onChanged?.Invoke();
                 });
                 return;
             }
@@ -378,7 +377,7 @@ namespace WrathTactics.UI {
             btnObj.AddComponent<Button>().onClick.AddListener(() => {
                 BuffPickerOverlay.Open(condition.Value, subjectForPicker, guid => {
                     condition.Value = guid;
-                    ConfigManager.Save();
+                    onChanged?.Invoke();
                     label.text = BuffBlueprintProvider.GetName(guid);
                 });
             });
