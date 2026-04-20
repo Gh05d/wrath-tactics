@@ -174,20 +174,30 @@ namespace WrathTactics.Engine {
                 }
 
                 int count = 0;
+                var perAlly = new List<string>();
                 // AllyCount historically includes self; keep that behavior (use GetAllPartyMembers
                 // without filtering owner) for Count, to match the previous EvaluateAllyCount.
                 foreach (var ally in GetAllPartyMembers(owner)) {
                     bool allPass = true;
+                    string failReason = null;
                     foreach (var c in nonCountConds) {
-                        if (!EvaluateUnitProperty(c, ally)) { allPass = false; break; }
+                        if (!EvaluateUnitProperty(c, ally)) { allPass = false; failReason = $"non-count {c.Property}"; break; }
                     }
-                    if (!allPass) continue;
-                    foreach (var cc in countConds) {
-                        if (!MatchesPropertyThreshold(cc, ally)) { allPass = false; break; }
+                    if (allPass) {
+                        foreach (var cc in countConds) {
+                            if (!MatchesPropertyThreshold(cc, ally)) { allPass = false; failReason = $"count {cc.Property}={cc.Value}"; break; }
+                        }
                     }
                     if (allPass) count++;
+                    int hpPct = ally.Stats.HitPoints.ModifiedValue > 0
+                        ? (int)(100f * ally.HPLeft / ally.Stats.HitPoints.ModifiedValue) : 0;
+                    float dist = UnityEngine.Vector3.Distance(owner.Position, ally.Position);
+                    perAlly.Add($"{ally.CharacterName}(hp={hpPct}%,d={dist:F1}m):{(allPass ? "pass" : "fail@" + failReason)}");
                 }
-                if (count < countThreshold) return false;
+                if (count < countThreshold) {
+                    Log.Engine.Trace($"AllyBucket miss: count={count} < threshold={countThreshold} [{string.Join(", ", perAlly)}]");
+                    return false;
+                }
             }
 
             return true;
