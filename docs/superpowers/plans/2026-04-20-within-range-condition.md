@@ -826,9 +826,15 @@ gh release create v0.11.0 \
   - **Medium** — ≤20 m (mid-range spells)
   - **Long** — ≤40 m (vision-bounded shots)
 
-## Behavior change
+## Bug fixes
+
+- **Preset condition edits no longer silently revert on reload.** `ConditionRowWidget` was always writing to the character-rules config file, even when the user was editing a preset. Preset JSON never got the edit, so the next reload restored the preset's first-saved state. The widget now routes saves through the parent's callback, which picks the correct target file.
+- **`SpellDCMinusSave` now works for Magic Deceiver fused spells.** The mod was reading the save type from the static blueprint component only, missing the `AbilityData.MagicHackData.SavingThrowType` override the game uses for hack-altered casts. Fused-spell rules returned NaN and silently fell through to melee. Fixed to mirror the game's own save-type resolution. If the issue persists for any specific spell, the new `Trace` log line in the session log (`SpellDCMinusSave: '<name>' …`) records exactly which lookup path was used and what DC/save/margin resulted — paste it into a bug report.
+
+## Behavior changes
 
 - **Same-unit AND for Enemy/Ally conditions in one group.** Rules with multiple `Enemy.*` conditions (or multiple `Ally.*` conditions) in the same AND-group now require all of those conditions to match the *same* unit. Previously each condition iterated independently, so two Enemy rows could pass on different enemies. Single-condition rules are unaffected. If you want "different enemies" semantics, split into separate OR-groups.
+- **Pick-subject fall-through.** Pick subjects (`EnemyLowestHp`, `EnemyBiggestThreat`, `EnemyHighestAC`, …) now sort-then-filter: if the top-ranked unit fails the condition's property check, the engine tries the next-ranked unit, and so on. Previously only the single metric-best unit was checked. Single-condition Pick rules that always pass are unaffected. Rules of the form `EnemyLowestHp.SomeProperty` may now fire on a different enemy than before if the weakest one fails the property check.
 
 ## Example
 
