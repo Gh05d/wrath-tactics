@@ -6,6 +6,7 @@ using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic;
 using Kingmaker.Enums;
+using UnityEngine;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 using KmAlignment = Kingmaker.Enums.Alignment;
@@ -332,6 +333,21 @@ namespace WrathTactics.Engine {
                     bool hasClassMatch = UnitExtensions.MatchesClassValue(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !hasClassMatch : hasClassMatch;
 
+                case ConditionProperty.WithinRange: {
+                    if (CurrentOwner == null) return false;
+                    if (!RangeBrackets.TryParse(condition.Value, out var bracket)) {
+                        Log.Engine.Warn($"WithinRange: unknown bracket '{condition.Value}' on {unit.CharacterName}");
+                        return false;
+                    }
+                    float dist = Vector3.Distance(CurrentOwner.Position, unit.Position);
+                    bool within = dist <= RangeBrackets.MaxMeters(bracket);
+                    switch (condition.Operator) {
+                        case ConditionOperator.Equal:    return within;
+                        case ConditionOperator.NotEqual: return !within;
+                        default:                         return false;
+                    }
+                }
+
                 default:
                     return false;
             }
@@ -407,6 +423,14 @@ namespace WrathTactics.Engine {
                 case ConditionProperty.HasClass:
                     bool hasClassMatch2 = UnitExtensions.MatchesClassValue(unit, condition.Value);
                     return condition.Operator == ConditionOperator.NotEqual ? !hasClassMatch2 : hasClassMatch2;
+
+                case ConditionProperty.WithinRange: {
+                    if (CurrentOwner == null) return false;
+                    if (!RangeBrackets.TryParse(condition.Value, out var bracket)) return false;
+                    float dist = Vector3.Distance(CurrentOwner.Position, unit.Position);
+                    bool within = dist <= RangeBrackets.MaxMeters(bracket);
+                    return condition.Operator == ConditionOperator.NotEqual ? !within : within;
+                }
 
                 default:
                     return false;
