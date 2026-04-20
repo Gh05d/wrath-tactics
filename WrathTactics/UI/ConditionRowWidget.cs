@@ -16,6 +16,14 @@ namespace WrathTactics.UI {
 
         PopupSelector propertySelector;
 
+        static readonly List<string> RangeBracketNames = new List<string> {
+            nameof(RangeBracket.Melee),
+            nameof(RangeBracket.Cone),
+            nameof(RangeBracket.Short),
+            nameof(RangeBracket.Medium),
+            nameof(RangeBracket.Long)
+        };
+
         public void Init(Condition condition, Action onChanged, Action onDelete) {
             this.condition = condition;
             this.onChanged = onChanged;
@@ -128,7 +136,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.Alignment
                     || condition.Property == ConditionProperty.HasBuff
                     || condition.Property == ConditionProperty.HasCondition
-                    || condition.Property == ConditionProperty.HasClass) {
+                    || condition.Property == ConditionProperty.HasClass
+                    || condition.Property == ConditionProperty.WithinRange) {
                     CreateEqOperator(root, 0.58f, 0.64f, "CountEqOp");
 
                     if (condition.Property == ConditionProperty.HasBuff) {
@@ -154,6 +163,15 @@ namespace WrathTactics.UI {
                                 ConfigManager.Save();
                             });
                         }
+                    } else if (condition.Property == ConditionProperty.WithinRange) {
+                        var bracketNames = RangeBracketNames;
+                        var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
+                        int brIdx = bracketNames.IndexOf(condition.Value);
+                        if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
+                        PopupSelector.Create(root, "CountRangeBracketValue", 0.65f, 0.88f, bracketLabels, brIdx, v => {
+                            condition.Value = bracketNames[v];
+                            ConfigManager.Save();
+                        });
                     } else {
                         var valueOptions = GetValueOptionsForProperty(condition.Property);
                         int valIdx = valueOptions.IndexOf(condition.Value);
@@ -179,7 +197,8 @@ namespace WrathTactics.UI {
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
                 bool isHasClass = condition.Property == ConditionProperty.HasClass;
-                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
+                bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass || isWithinRange;
                 bool needsOperator = !usesEqOp && !isInCombat;
 
                 // Operator popup selector
@@ -245,6 +264,15 @@ namespace WrathTactics.UI {
                     }
                 } else if (condition.Property == ConditionProperty.HasBuff) {
                     CreateBuffSelector(root, 0.45f, 0.88f);
+                } else if (isWithinRange) {
+                    var bracketNames = RangeBracketNames;
+                    var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
+                    int brIdx = bracketNames.IndexOf(condition.Value);
+                    if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
+                    PopupSelector.Create(root, "RangeBracketValue", 0.45f, 0.88f, bracketLabels, brIdx, v => {
+                        condition.Value = bracketNames[v];
+                        ConfigManager.Save();
+                    });
                 } else if (condition.Property == ConditionProperty.IsInCombat) {
                     var yesNo = new List<string> { "Yes", "No" };
                     // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
@@ -300,6 +328,14 @@ namespace WrathTactics.UI {
                         "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
                         "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
                         "Shaken", "Sickened", "Sleeping", "Petrified"
+                    };
+                case ConditionProperty.WithinRange:
+                    return new List<string> {
+                        RangeBrackets.Label(RangeBracket.Melee),
+                        RangeBrackets.Label(RangeBracket.Cone),
+                        RangeBrackets.Label(RangeBracket.Short),
+                        RangeBrackets.Label(RangeBracket.Medium),
+                        RangeBrackets.Label(RangeBracket.Long),
                     };
                 default:
                     return new List<string>();
@@ -363,14 +399,16 @@ namespace WrathTactics.UI {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment,
-                        ConditionProperty.HasClass
+                        ConditionProperty.HasClass,
+                        ConditionProperty.WithinRange
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment,
-                        ConditionProperty.HasClass
+                        ConditionProperty.HasClass,
+                        ConditionProperty.WithinRange
                     };
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyBiggestThreat:
@@ -395,7 +433,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
                         ConditionProperty.SpellDCMinusSave,
-                        ConditionProperty.HasClass
+                        ConditionProperty.HasClass,
+                        ConditionProperty.WithinRange
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
@@ -404,7 +443,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
                         ConditionProperty.SpellDCMinusSave,
-                        ConditionProperty.HasClass
+                        ConditionProperty.HasClass,
+                        ConditionProperty.WithinRange
                     };
                 case ConditionSubject.Combat:
                     return new List<ConditionProperty> {
