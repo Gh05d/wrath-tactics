@@ -374,6 +374,8 @@ namespace WrathTactics.UI {
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
+                    if ((ActionType)idx != ActionType.CastSpell)
+                        rule.Action.Sources = SpellSourceMask.All;
                     RefreshSpellSelector((ActionType)idx);
                     PersistEdit();
                 });
@@ -544,8 +546,11 @@ namespace WrathTactics.UI {
         }
 
         void RefreshSpellSelector(ActionType actionType) {
-            // Heal/ThrowSplash/ToggleActivatable need a full body rebuild (different row shape)
-            if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash || actionType == ActionType.ToggleActivatable) {
+            // Heal/ThrowSplash/ToggleActivatable/CastSpell need a full body rebuild (different row shape).
+            // CastSpell is in this list because the Sources dropdown is an extra sibling in the row —
+            // without a full rebuild the dropdown becomes orphaned when switching away.
+            if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
+                || actionType == ActionType.ToggleActivatable || actionType == ActionType.CastSpell) {
                 RebuildBody();
                 return;
             }
