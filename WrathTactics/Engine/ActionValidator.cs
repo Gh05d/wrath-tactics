@@ -483,16 +483,18 @@ namespace WrathTactics.Engine {
             // 3. Scroll from inventory — strict match on blueprint GUID + metamagic + variant.
             // UMD-gated: if the spell is not on the caster's class list, require UMD + 11 >= DC.
             // Unlike Heal, no "risky fallback" — scroll is simply skipped on UMD fail.
+            // Strict match: scrolls/potions never carry metamagic or variant in Wrath, so if
+            // the rule key encodes either, skip the inventory scan entirely (mirrors the wand
+            // branch's outer guard above).
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
-            if (inventory != null && (wantScroll || wantPotion)) {
+            if (inventory != null && (wantScroll || wantPotion)
+                && parsed.MetamagicMask == 0
+                && string.IsNullOrEmpty(parsed.VariantGuid)) {
                 foreach (var item in inventory) {
                     if (item == null || item.Count <= 0) continue;
                     var usable = item.Blueprint as Kingmaker.Blueprints.Items.Equipment.BlueprintItemEquipmentUsable;
                     if (usable?.Ability == null) continue;
                     if (usable.Ability.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
-                    // Strict match: scrolls/potions never carry metamagic or variant.
-                    if (parsed.MetamagicMask != 0) continue;
-                    if (!string.IsNullOrEmpty(parsed.VariantGuid)) continue;
 
                     bool isScroll = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll;
                     bool isPotion = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion;
