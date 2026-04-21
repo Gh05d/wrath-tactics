@@ -18,7 +18,16 @@ namespace WrathTactics.Engine {
 
             if (target.IsPoint) {
                 switch (action.Type) {
-                    case ActionType.CastSpell:
+                    case ActionType.CastSpell: {
+                        ItemEntity _unused;
+                        var ability = FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out _unused);
+                        if (ability == null) return false;
+                        if (!ability.CanTargetPoint) {
+                            Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} ability '{ability.Name}' is not point-castable");
+                            return false;
+                        }
+                        return true;
+                    }
                     case ActionType.CastAbility:
                         return CanCastAbilityAtPoint(action.AbilityId, owner);
                     case ActionType.UseItem:
@@ -30,8 +39,10 @@ namespace WrathTactics.Engine {
 
             var unit = target.Unit;
             switch (action.Type) {
-                case ActionType.CastSpell:
-                    return CanCastSpell(action.AbilityId, owner, unit);
+                case ActionType.CastSpell: {
+                    ItemEntity _unused;
+                    return FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out _unused) != null;
+                }
                 case ActionType.CastAbility:
                     return CanCastSpell(action.AbilityId, owner, unit);
                 case ActionType.UseItem:

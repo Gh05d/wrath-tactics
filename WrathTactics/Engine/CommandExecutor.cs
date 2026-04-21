@@ -18,7 +18,7 @@ namespace WrathTactics.Engine {
             try {
                 switch (action.Type) {
                     case ActionType.CastSpell:
-                        return ExecuteCastSpell(action.AbilityId, owner, target);
+                        return ExecuteCastSpell(action, owner, target);
                     case ActionType.CastAbility:
                         return ExecuteCastSpell(action.AbilityId, owner, target);
                     case ActionType.UseItem:
@@ -46,6 +46,55 @@ namespace WrathTactics.Engine {
             if (target.IsPoint) return new TargetWrapper(target.Point.Value);
             if (target.Unit != null) return new TargetWrapper(target.Unit);
             return new TargetWrapper(owner); // fallback preserves pre-refactor "no target = self" behavior
+        }
+
+        static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
+            ItemEntity inventorySource;
+            var ability = ActionValidator.FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out inventorySource);
+            if (ability == null) {
+                Log.Engine.Warn($"FindCastSpellSource returned null for {owner.CharacterName}, guid={action.AbilityId}");
+                return false;
+            }
+
+            var targetWrapper = BuildTargetWrapper(target, owner);
+
+            // Inventory source (scroll/potion) — synthetic AbilityData, Rulebook.Trigger + manual consume.
+            // Mirror of ExecuteHeal's inventory path.
+            if (inventorySource != null) {
+                try {
+                    Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
+                    var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    string tgtDesc = target.IsPoint
+                        ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
+                        : (target.Unit?.CharacterName ?? "self");
+                    Log.Engine.Info($"Cast (inventory): {inventorySource.Blueprint.name} -> {ability.Name} on {owner.CharacterName} -> {tgtDesc}");
+                    return true;
+                } catch (Exception ex) {
+                    Log.Engine.Error(ex, $"CastSpell inventory trigger failed for {inventorySource.Blueprint.name}");
+                    return false;
+                }
+            }
+
+            // Spellbook / Wand / class ability — animated cast command.
+            var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
+            if (command != null) {
+                owner.Commands.Run(command);
+                string tgtDesc = target.IsPoint
+                    ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
+                    : (target.Unit?.CharacterName ?? "self");
+                Log.Engine.Debug($"Queued spell {ability.Name} on {owner.CharacterName} -> {tgtDesc}");
+                return true;
+            }
+
+            try {
+                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
+                Log.Engine.Debug($"Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
+                return true;
+            } catch (Exception ex) {
+                Log.Engine.Error(ex, $"Rulebook.Trigger fallback failed for {ability.Name}");
+                return false;
+            }
         }
 
         static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
