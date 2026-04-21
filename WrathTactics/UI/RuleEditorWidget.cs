@@ -438,7 +438,32 @@ namespace WrathTactics.UI {
                 return;
             }
 
-            BuildSpellPickerButton(row, 0.39f, 1.0f);
+            bool isCastSpell = rule.Action.Type == ActionType.CastSpell;
+            float pickerXMax = isCastSpell ? 0.65f : 1.0f;
+            BuildSpellPickerButton(row, 0.39f, pickerXMax);
+
+            if (isCastSpell) {
+                // Source mask dropdown — 7 curated combinations, same pattern as HealSources.
+                var sourceLabels = new List<string> {
+                    "All sources", "Spell only", "Scroll only", "Potion only",
+                    "Spell + Scroll", "Spell + Potion", "Scroll + Potion",
+                };
+                var sourceValues = new List<SpellSourceMask> {
+                    SpellSourceMask.All,
+                    SpellSourceMask.Spell,
+                    SpellSourceMask.Scroll,
+                    SpellSourceMask.Potion,
+                    SpellSourceMask.Spell  | SpellSourceMask.Scroll,
+                    SpellSourceMask.Spell  | SpellSourceMask.Potion,
+                    SpellSourceMask.Scroll | SpellSourceMask.Potion,
+                };
+                int srcIdx = sourceValues.IndexOf(rule.Action.Sources);
+                if (srcIdx < 0) srcIdx = 0;
+                PopupSelector.Create(row, "SpellSources", 0.66f, 1.0f, sourceLabels, srcIdx, idx => {
+                    rule.Action.Sources = sourceValues[idx];
+                    PersistEdit();
+                });
+            }
 
             // Hide if not applicable
             bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
