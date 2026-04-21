@@ -404,6 +404,9 @@ namespace WrathTactics.Engine {
         /// Matching is STRICT on blueprint GUID + variant + metamagic — the compoundKey contains
         /// all three and FindAbility parses them.
         ///
+        /// `target` is used by the Scroll (UMD gate) and Potion (self-only filter) branches that
+        /// Tasks 4 and 5 slot into the same method — unused at the Spell-bit-only stage.
+        ///
         /// Returns null if no source matches. Sets `inventorySource` to a consumable ItemEntity
         /// for Scroll/Potion picks (callers must call ConsumeInventoryItem); null for spellbook
         /// and wand picks (wand charges decrement via the cast command pipeline automatically).
@@ -421,6 +424,11 @@ namespace WrathTactics.Engine {
             bool wantSpell  = (mask & SpellSourceMask.Spell)  != 0;
             bool wantScroll = (mask & SpellSourceMask.Scroll) != 0;
             bool wantPotion = (mask & SpellSourceMask.Potion) != 0;
+
+            // Parse the compound key once — reused by the wand branch (and by the scroll/potion
+            // branches added in Tasks 4 & 5). FindAbility re-parses internally; unavoidable
+            // without a new overload, but we avoid a third parse in the wand loop.
+            var parsed = UI.SpellDropdownProvider.ParseKey(compoundKey);
 
             // 1. Spellbook slot — use the existing FindAbility which parses level/variant/metamagic.
             if (wantSpell) {
@@ -443,21 +451,21 @@ namespace WrathTactics.Engine {
                     int available = owner.Resources.GetResourceAmount(required);
                     int cost = resource.CalculateCost(ability);
                     if (available >= cost) return ability;
-                    // resource exhausted -> fall through to other sources
+                    // resource exhausted -> fall through to wand/scroll/potion branches (if enabled by mask)
                 }
 
                 // 2. Wand in quickslot — search owner.Abilities.RawFacts for an item-backed ability
                 // whose blueprint GUID matches the parsed rule key and that has charges remaining.
-                var parsed = UI.SpellDropdownProvider.ParseKey(compoundKey);
-                foreach (var fact in owner.Abilities.RawFacts) {
-                    var data = fact.Data;
-                    if (data?.SourceItem == null) continue;
-                    if (data.SourceItem.Charges <= 0) continue;
-                    if (fact.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
-                    // Strict match: wands never carry metamagic or variant in Wrath.
-                    if (parsed.MetamagicMask != 0) continue;
-                    if (!string.IsNullOrEmpty(parsed.VariantGuid)) continue;
-                    return data;
+                // If the rule key carries metamagic or a variant, skip the wand search entirely —
+                // Wrath ships no wands with either.
+                if (parsed.MetamagicMask == 0 && string.IsNullOrEmpty(parsed.VariantGuid)) {
+                    foreach (var fact in owner.Abilities.RawFacts) {
+                        var data = fact.Data;
+                        if (data?.SourceItem == null) continue;
+                        if (data.SourceItem.Charges <= 0) continue;
+                        if (fact.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                        return data;
+                    }
                 }
             }
 
