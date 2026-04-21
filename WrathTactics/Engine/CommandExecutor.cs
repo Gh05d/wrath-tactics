@@ -50,11 +50,16 @@ namespace WrathTactics.Engine {
 
         static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
             ItemEntity inventorySource;
-            var ability = ActionValidator.FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out inventorySource);
+            string usedAbilityId;
+            var ability = ActionValidator.ResolveCastSpellChain(owner, target, action, out inventorySource, out usedAbilityId);
             if (ability == null) {
-                Log.Engine.Warn($"FindCastSpellSource returned null for {owner.CharacterName}, guid={action.AbilityId}");
+                int chainLen = 1 + (action.FallbackAbilityIds?.Count ?? 0);
+                Log.Engine.Warn($"ResolveCastSpellChain returned null for {owner.CharacterName}, primary={action.AbilityId}, chain={chainLen}");
                 return false;
             }
+            bool isFallback = usedAbilityId != action.AbilityId;
+            if (isFallback)
+                Log.Engine.Info($"CastSpell fallback hit for {owner.CharacterName}: primary={action.AbilityId} -> used={usedAbilityId}");
 
             var targetWrapper = BuildTargetWrapper(target, owner);
 

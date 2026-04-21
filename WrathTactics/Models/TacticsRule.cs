@@ -30,6 +30,11 @@ namespace WrathTactics.Models {
     public class ActionDef {
         [JsonProperty] public ActionType Type { get; set; }
         [JsonProperty] public string AbilityId { get; set; } = "";
+        // CastSpell fallback chain: tried in order after AbilityId when the primary resolver misses
+        // (no slot, no scroll, UMD fail, etc.). Each entry goes through the full Sources mask,
+        // so a fallback can still fall through Spellbook -> Wand -> Scroll -> Potion for itself.
+        // Empty on legacy rules; only consulted by ActionType.CastSpell.
+        [JsonProperty] public List<string> FallbackAbilityIds { get; set; } = new();
         [JsonProperty] public HealMode HealMode { get; set; } = HealMode.Any;
         [JsonProperty] public HealSourceMask HealSources { get; set; } = HealSourceMask.All;
         [JsonProperty] public SpellSourceMask Sources { get; set; } = SpellSourceMask.All;

@@ -20,7 +20,8 @@ namespace WrathTactics.Engine {
                 switch (action.Type) {
                     case ActionType.CastSpell: {
                         ItemEntity _unused;
-                        var ability = FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out _unused);
+                        string _unusedId;
+                        var ability = ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId);
                         if (ability == null) return false;
                         if (!ability.CanTargetPoint) {
                             Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} ability '{ability.Name}' is not point-castable");
@@ -41,7 +42,8 @@ namespace WrathTactics.Engine {
             switch (action.Type) {
                 case ActionType.CastSpell: {
                     ItemEntity _unused;
-                    return FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out _unused) != null;
+                    string _unusedId;
+                    return ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId) != null;
                 }
                 case ActionType.CastAbility:
                     return CanCastSpell(action.AbilityId, owner, unit);
@@ -403,6 +405,44 @@ namespace WrathTactics.Engine {
             }
             inventorySource = pick.source;
             return pick.ability;
+        }
+
+        /// <summary>
+        /// Iterates the CastSpell fallback chain (primary AbilityId + FallbackAbilityIds in order)
+        /// and returns the first entry whose FindCastSpellSource resolution succeeds. `usedAbilityId`
+        /// reports which entry won so the executor can log/report meaningfully. Empty / null ids
+        /// are skipped silently — a half-filled fallback row shouldn't block later ones.
+        /// </summary>
+        public static AbilityData ResolveCastSpellChain(
+            UnitEntityData owner,
+            ResolvedTarget target,
+            ActionDef action,
+            out ItemEntity inventorySource,
+            out string usedAbilityId) {
+
+            inventorySource = null;
+            usedAbilityId = null;
+
+            if (!string.IsNullOrEmpty(action.AbilityId)) {
+                var primary = FindCastSpellSource(owner, target, action.AbilityId, action.Sources, out inventorySource);
+                if (primary != null) {
+                    usedAbilityId = action.AbilityId;
+                    return primary;
+                }
+            }
+
+            if (action.FallbackAbilityIds == null) return null;
+            foreach (var id in action.FallbackAbilityIds) {
+                if (string.IsNullOrEmpty(id)) continue;
+                var ability = FindCastSpellSource(owner, target, id, action.Sources, out inventorySource);
+                if (ability != null) {
+                    usedAbilityId = id;
+                    return ability;
+                }
+            }
+
+            inventorySource = null;
+            return null;
         }
 
         /// <summary>

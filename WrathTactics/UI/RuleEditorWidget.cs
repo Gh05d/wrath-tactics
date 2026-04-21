@@ -182,6 +182,9 @@ namespace WrathTactics.UI {
             // THEN: action row
             SetupActionRow(bodyContainer.transform);
 
+            // Fallback chain rows (CastSpell only)
+            SetupFallbackRows(bodyContainer.transform);
+
             // TARGET: target row
             SetupTargetRow(bodyContainer.transform);
 
@@ -374,8 +377,10 @@ namespace WrathTactics.UI {
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
-                    if ((ActionType)idx != ActionType.CastSpell)
+                    if ((ActionType)idx != ActionType.CastSpell) {
                         rule.Action.Sources = SpellSourceMask.All;
+                        rule.Action.FallbackAbilityIds?.Clear();
+                    }
                     RefreshSpellSelector((ActionType)idx);
                     PersistEdit();
                 });
@@ -543,6 +548,100 @@ namespace WrathTactics.UI {
                 spellPickerIcon.sprite = haveEntries ? entry.Icon : null;
                 spellPickerIcon.enabled = haveEntries && entry.Icon != null;
             }
+        }
+
+        // Fallback-chain rendering for CastSpell rules. Renders one row per fallback id
+        // (indent arrow + picker button + delete X) plus a "+ Fallback" button at the bottom.
+        // Rebuilds the entire body on add/delete to keep index-capture semantics simple.
+        void SetupFallbackRows(Transform parent) {
+            if (rule.Action.Type != ActionType.CastSpell) return;
+            if (rule.Action.FallbackAbilityIds == null)
+                rule.Action.FallbackAbilityIds = new List<string>();
+
+            for (int i = 0; i < rule.Action.FallbackAbilityIds.Count; i++) {
+                int captured = i;
+                BuildFallbackRow(parent, captured);
+            }
+
+            var (addBtn, _) = UIHelpers.Create("AddFallback", parent);
+            addBtn.AddComponent<LayoutElement>().preferredHeight = 22;
+            UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
+            UIHelpers.AddLabel(addBtn, "+ Fallback", 14f, TextAlignmentOptions.Midline);
+            addBtn.AddComponent<Button>().onClick.AddListener(() => {
+                rule.Action.FallbackAbilityIds.Add("");
+                PersistEdit();
+                RebuildBody();
+            });
+        }
+
+        void BuildFallbackRow(Transform parent, int index) {
+            var entries = GetSpellEntries(ActionType.CastSpell);
+            string current = rule.Action.FallbackAbilityIds[index];
+            SpellDropdownProvider.SpellEntry selected = default;
+            bool found = false;
+            if (!string.IsNullOrEmpty(current)) {
+                foreach (var e in entries) {
+                    if (e.Guid == current) { selected = e; found = true; break; }
+                }
+            }
+            if (!found && entries.Count > 0) {
+                selected = entries[0];
+                if (string.IsNullOrEmpty(current)) {
+                    rule.Action.FallbackAbilityIds[index] = selected.Guid;
+                    PersistEdit();
+                }
+            }
+
+            var (row, _) = UIHelpers.Create($"Fallback_{index}", parent);
+            row.AddComponent<LayoutElement>().preferredHeight = 26;
+
+            var (arrowLbl, arrowRect) = UIHelpers.Create("ArrowLbl", row.transform);
+            arrowRect.SetAnchor(0.11, 0.17, 0, 1);
+            arrowRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddLabel(arrowLbl, "\u21B3", 18f, TextAlignmentOptions.Midline,
+                new Color(0.6f, 0.6f, 0.5f));
+
+            var (btn, btnRect) = UIHelpers.Create("FallbackPick", row.transform);
+            btnRect.SetAnchor(0.18, 0.9, 0, 1);
+            btnRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(btn, new Color(0.22f, 0.22f, 0.22f, 1f));
+
+            var (iconGO, iconRect) = UIHelpers.Create("Icon", btn.transform);
+            iconRect.SetAnchor(0, 0, 0.5, 0.5);
+            iconRect.pivot = new Vector2(0, 0.5f);
+            iconRect.anchoredPosition = new Vector2(4, 0);
+            iconRect.sizeDelta = new Vector2(20, 20);
+            var icon = iconGO.AddComponent<Image>();
+            icon.raycastTarget = false;
+            icon.sprite = entries.Count > 0 ? selected.Icon : null;
+            icon.enabled = entries.Count > 0 && selected.Icon != null;
+
+            var label = UIHelpers.AddLabel(btn,
+                entries.Count > 0 ? selected.Name : "(none available)",
+                14f, TextAlignmentOptions.MidlineLeft);
+            label.margin = new Vector4(28, 0, 16, 0);
+
+            btn.AddComponent<Button>().onClick.AddListener(() => {
+                if (entries.Count == 0) return;
+                SpellPickerOverlay.Open(entries, rule.Action.FallbackAbilityIds[index], picked => {
+                    rule.Action.FallbackAbilityIds[index] = picked.Guid;
+                    label.text = picked.Name;
+                    icon.sprite = picked.Icon;
+                    icon.enabled = picked.Icon != null;
+                    PersistEdit();
+                });
+            });
+
+            var (delBtn, delRect) = UIHelpers.Create("DeleteFallback", row.transform);
+            delRect.SetAnchor(0.92, 1.0, 0, 1);
+            delRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(delBtn, new Color(0.4f, 0.2f, 0.2f, 1f));
+            UIHelpers.AddLabel(delBtn, "X", 14f, TextAlignmentOptions.Midline);
+            delBtn.AddComponent<Button>().onClick.AddListener(() => {
+                rule.Action.FallbackAbilityIds.RemoveAt(index);
+                PersistEdit();
+                RebuildBody();
+            });
         }
 
         void RefreshSpellSelector(ActionType actionType) {
@@ -748,6 +847,10 @@ namespace WrathTactics.UI {
             // Child count reflects the widgets rendered below — ~condCount + groupCount*2
             // rows plus 6 fixed sections. Close enough to estimate VLG gaps.
             int childEstimate = condCount + groupCount * 2 + 7 + (hideHeader ? 0 : 1);
+            int fallbackCount = rule.Action.Type == ActionType.CastSpell
+                ? (rule.Action.FallbackAbilityIds?.Count ?? 0)
+                : 0;
+            bool showAddFallback = rule.Action.Type == ActionType.CastSpell;
             float height = headerH
                 + 20f           // IF: label
                 + condCount * 34f
@@ -756,6 +859,8 @@ namespace WrathTactics.UI {
                 + 26f           // add-or button
                 + 4f            // spacer
                 + 28f           // action row
+                + fallbackCount * 26f                 // fallback rows
+                + (showAddFallback ? 22f : 0f)        // + Fallback button
                 + 28f           // target row
                 + 28f           // cooldown row
                 + Mathf.Max(0, childEstimate - 1) * bodySpacing
