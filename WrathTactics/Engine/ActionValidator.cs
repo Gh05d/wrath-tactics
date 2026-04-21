@@ -523,7 +523,21 @@ namespace WrathTactics.Engine {
                         return scrollAbility;
                     }
 
-                    // Potion branch — Task 5 fills in the self-only filter and return path.
+                    if (isPotion) {
+                        // Potions are self-only in this model (Wrath's potion ability data almost always
+                        // has CanTargetSelf=true only). Skip silently when target isn't the owner.
+                        bool targetIsSelf = !target.IsPoint && target.Unit == owner;
+                        if (!targetIsSelf) {
+                            Log.Engine.Trace($"CastSpell potion {item.Blueprint.name}: target is not self, skipping");
+                            continue;
+                        }
+                        var potionAbility = new AbilityData(usable.Ability, owner.Descriptor) {
+                            OverrideCasterLevel = usable.CasterLevel,
+                            OverrideSpellLevel = usable.SpellLevel,
+                        };
+                        inventorySource = item;
+                        return potionAbility;
+                    }
                 }
             }
 
