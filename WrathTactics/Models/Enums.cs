@@ -84,6 +84,21 @@ namespace WrathTactics.Models {
         All    = Spell | Scroll | Potion,
     }
 
+    /// <summary>
+    /// Which classes of source the CastSpell action may draw from. Flag-based so combinations
+    /// (Spell+Scroll etc.) are expressible. Default is All. Spell covers spellbook casts and
+    /// wands in quickslots. Structurally identical to HealSourceMask but kept separate so
+    /// Heal's code path is untouched; a future refactor can unify them.
+    /// </summary>
+    [System.Flags]
+    public enum SpellSourceMask {
+        None   = 0,
+        Spell  = 1,
+        Scroll = 2,
+        Potion = 4,
+        All    = Spell | Scroll | Potion,
+    }
+
     public enum ThrowSplashMode {
         Any,        // Use whatever splash item is first in inventory
         Strongest,  // Use the highest-damage splash item
