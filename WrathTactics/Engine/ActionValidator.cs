@@ -480,7 +480,51 @@ namespace WrathTactics.Engine {
                 }
             }
 
-            // Scroll + Potion branches added in Tasks 4 and 5.
+            // 3. Scroll from inventory — strict match on blueprint GUID + metamagic + variant.
+            // UMD-gated: if the spell is not on the caster's class list, require UMD + 11 >= DC.
+            // Unlike Heal, no "risky fallback" — scroll is simply skipped on UMD fail.
+            var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
+            if (inventory != null && (wantScroll || wantPotion)) {
+                foreach (var item in inventory) {
+                    if (item == null || item.Count <= 0) continue;
+                    var usable = item.Blueprint as Kingmaker.Blueprints.Items.Equipment.BlueprintItemEquipmentUsable;
+                    if (usable?.Ability == null) continue;
+                    if (usable.Ability.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                    // Strict match: scrolls/potions never carry metamagic or variant.
+                    if (parsed.MetamagicMask != 0) continue;
+                    if (!string.IsNullOrEmpty(parsed.VariantGuid)) continue;
+
+                    bool isScroll = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll;
+                    bool isPotion = usable.Type == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion;
+
+                    if (isScroll && !wantScroll) continue;
+                    if (isPotion && !wantPotion) continue;
+                    if (!isScroll && !isPotion) continue;
+
+                    if (isScroll) {
+                        // UMD gate mirrors Heal but skips on fail (no fallback-burn).
+                        bool canCastNatively = CanCastSpellFromSpellbook(owner, usable.Ability);
+                        if (!canCastNatively) {
+                            int dc = 20 + usable.CasterLevel;
+                            int umd = owner.Stats.SkillUseMagicDevice.ModifiedValue;
+                            if (umd + 11 < dc) {
+                                Log.Engine.Trace($"CastSpell scroll {item.Blueprint.name}: UMD {umd} vs DC {dc} (< 50%), skipping");
+                                continue;
+                            }
+                        }
+
+                        var scrollAbility = new AbilityData(usable.Ability, owner.Descriptor) {
+                            OverrideCasterLevel = usable.CasterLevel,
+                            OverrideSpellLevel = usable.SpellLevel,
+                        };
+                        inventorySource = item;
+                        return scrollAbility;
+                    }
+
+                    // Potion branch — Task 5 fills in the self-only filter and return path.
+                }
+            }
+
             return null;
         }
 
