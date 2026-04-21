@@ -395,6 +395,77 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// Resolves which source should cast the requested spell. Mirrors FindBestHealEx but
+        /// the spell is fixed (not "best heal"); selects the first viable source in priority order:
+        ///   1. Spellbook slot         (Spell bit)
+        ///   2. Wand in quickslot      (Spell bit, implicit fallback like Heal)
+        ///   3. Scroll from inventory  (Scroll bit, UMD-gated)
+        ///   4. Potion from inventory  (Potion bit, self-only)
+        /// Matching is STRICT on blueprint GUID + variant + metamagic — the compoundKey contains
+        /// all three and FindAbility parses them.
+        ///
+        /// Returns null if no source matches. Sets `inventorySource` to a consumable ItemEntity
+        /// for Scroll/Potion picks (callers must call ConsumeInventoryItem); null for spellbook
+        /// and wand picks (wand charges decrement via the cast command pipeline automatically).
+        /// </summary>
+        public static AbilityData FindCastSpellSource(
+            UnitEntityData owner,
+            ResolvedTarget target,
+            string compoundKey,
+            SpellSourceMask mask,
+            out ItemEntity inventorySource) {
+
+            inventorySource = null;
+            if (string.IsNullOrEmpty(compoundKey)) return null;
+
+            bool wantSpell  = (mask & SpellSourceMask.Spell)  != 0;
+            bool wantScroll = (mask & SpellSourceMask.Scroll) != 0;
+            bool wantPotion = (mask & SpellSourceMask.Potion) != 0;
+
+            // 1. Spellbook slot — use the existing FindAbility which parses level/variant/metamagic.
+            if (wantSpell) {
+                var ability = FindAbility(owner, compoundKey);
+                if (ability != null
+                    && ability.Spellbook != null
+                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) > 0) {
+                    return ability;
+                }
+
+                // Class ability path (no spellbook, no inventory source, resource-gated).
+                // Guard against wand abilities, which also have Spellbook==null but carry a SourceItem —
+                // those must go through the wand branch below for a proper charge check.
+                if (ability != null && ability.Spellbook == null && ability.SourceItem == null) {
+                    var resource = ability.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
+                    if (resource == null || !resource.IsSpendResource) return ability;
+                    var required = (Kingmaker.Blueprints.BlueprintScriptableObject)ability.OverrideRequiredResource
+                        ?? resource.RequiredResource;
+                    if (required == null) return ability;
+                    int available = owner.Resources.GetResourceAmount(required);
+                    int cost = resource.CalculateCost(ability);
+                    if (available >= cost) return ability;
+                    // resource exhausted -> fall through to other sources
+                }
+
+                // 2. Wand in quickslot — search owner.Abilities.RawFacts for an item-backed ability
+                // whose blueprint GUID matches the parsed rule key and that has charges remaining.
+                var parsed = UI.SpellDropdownProvider.ParseKey(compoundKey);
+                foreach (var fact in owner.Abilities.RawFacts) {
+                    var data = fact.Data;
+                    if (data?.SourceItem == null) continue;
+                    if (data.SourceItem.Charges <= 0) continue;
+                    if (fact.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                    // Strict match: wands never carry metamagic or variant in Wrath.
+                    if (parsed.MetamagicMask != 0) continue;
+                    if (!string.IsNullOrEmpty(parsed.VariantGuid)) continue;
+                    return data;
+                }
+            }
+
+            // Scroll + Potion branches added in Tasks 4 and 5.
+            return null;
+        }
+
+        /// <summary>
         /// True iff the unit has the given spell known/prepared in one of their spellbooks
         /// AND still has a slot available to cast it right now. Used to bypass the UMD
         /// check on scrolls — a character who can cast the spell themselves doesn't need
