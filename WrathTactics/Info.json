@@ -2,7 +2,7 @@
   "Id": "WrathTactics",
   "DisplayName": "Wrath Tactics",
   "Author": "Gh05d",
-  "Version": "1.0.0",
+  "Version": "1.0.1",
   "ManagerVersion": "0.23.0",
   "GameVersion": "1.4.0",
   "EntryMethod": "WrathTactics.Main.Load",
