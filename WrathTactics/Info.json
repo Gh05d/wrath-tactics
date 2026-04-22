@@ -8,5 +8,6 @@
   "EntryMethod": "WrathTactics.Main.Load",
   "AssemblyName": "WrathTactics.dll",
   "Requirements": [],
-  "HomePage": ""
+  "HomePage": "",
+  "Repository": "https://raw.githubusercontent.com/Gh05d/wrath-tactics/master/Repository.json"
 }
