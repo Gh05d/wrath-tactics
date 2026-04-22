@@ -4,8 +4,6 @@
 
 A Unity Mod Manager mod for **Pathfinder: Wrath of the Righteous** that brings Dragon Age Origins-style tactical AI to your party. Define priority-ordered rules per companion (and globally), and the mod evaluates them every few seconds in real-time combat — automatically casting spells, using items, activating class abilities, or picking attack targets based on the conditions you set.
 
-> ⚠️ **Early alpha.** Works on my Steam Deck with game version 1.4.0. Testing is ongoing. Expect rough edges.
-
 ---
 
 ## What it does
@@ -81,13 +79,6 @@ See [CLAUDE.md](CLAUDE.md) for dev notes. Built with:
 ```
 
 On Linux, symlink or create `GamePath.props` pointing to the game's `Wrath_Data/Managed` directory.
-
-## Known issues (alpha)
-
-- UI positioning is static; on non-1080p resolutions the HUD button may sit in an awkward spot
-- Performance with 20+ rules per character hasn't been profiled
-- Some edge cases in preset load/save may need a panel re-open to show correctly
-- Rule names are not yet searchable
 
 ## License
 

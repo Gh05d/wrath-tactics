@@ -83,6 +83,7 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 
 - `GameInstall/` is a symlink to `../wrath-epic-buffing/GameInstall` — do not commit
 - `GamePath.props` is machine-specific — gitignored
+- **Phantom log lines on deck**: the deployed DLL is whatever was last `./deploy.sh`'d, not necessarily HEAD. If a trace message from the deck session log doesn't `grep` out of git source, it's leftover instrumentation from a prior debug build — re-deploy from a clean tree to normalize before trusting the log contents for diagnosis.
 - No per-round EventBus events in RTWP mode — use `Game.Instance.Player.GameTime` in `Update()`
 - `UnitUseAbility.CreateCastCommand` rejects synthetic AbilityData — only works for real spellbook spells
 - **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in Rebuild() methods to avoid duplicate layout calculators for one frame
