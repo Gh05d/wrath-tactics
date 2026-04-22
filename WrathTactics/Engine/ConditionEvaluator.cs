@@ -331,9 +331,10 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateAllyCount(Condition condition, UnitEntityData owner) {
-            // Value = property threshold (e.g., "60" for HP < 60%)
-            // Value2 = count threshold (e.g., "2" for 2+ allies)
-            // Operator = comparison for the count (e.g., >= 2)
+            // Value  = property threshold (e.g., "60" for HP < 60%)
+            // Value2 = count threshold (e.g., "2" for 2 allies)
+            // Operator      = comparison for the property (e.g., HP < 60)
+            // CountOperator = comparison for the count itself (e.g., count >= 2)
             float countThreshold;
             if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
@@ -344,8 +345,7 @@ namespace WrathTactics.Engine {
                 if (MatchesPropertyThreshold(condition, ally))
                     count++;
             }
-            // Count comparison is ALWAYS >= (hardcoded, UI shows "count >=")
-            return count >= countThreshold;
+            return CompareCount(count, countThreshold, condition.CountOperator);
         }
 
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
@@ -365,7 +365,7 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateEnemyCount(Condition condition, UnitEntityData owner) {
-            // Value2 = count threshold; Value = property threshold
+            // Value2 = count threshold; Value = property threshold; CountOperator = comparison for the count.
             float countThreshold;
             if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
@@ -376,8 +376,20 @@ namespace WrathTactics.Engine {
                 if (MatchesPropertyThreshold(condition, enemy))
                     count++;
             }
-            // Count comparison is ALWAYS >= (hardcoded, UI shows "count >=")
-            return count >= countThreshold;
+            return CompareCount(count, countThreshold, condition.CountOperator);
+        }
+
+        static bool CompareCount(int actual, float threshold, ConditionOperator op) {
+            int t = (int)threshold;
+            switch (op) {
+                case ConditionOperator.LessThan:       return actual <  threshold;
+                case ConditionOperator.LessOrEqual:    return actual <= threshold;
+                case ConditionOperator.Equal:          return actual == t;
+                case ConditionOperator.NotEqual:       return actual != t;
+                case ConditionOperator.GreaterThan:    return actual >  threshold;
+                case ConditionOperator.GreaterOrEqual: return actual >= threshold;
+                default:                                return actual >= threshold;
+            }
         }
 
         static bool EvaluateCombat(Condition condition) {
@@ -453,10 +465,17 @@ namespace WrathTactics.Engine {
                     return CompareFloat(margin, condition.Operator, threshold);
                 }
 
-                case ConditionProperty.IsDead:
-                    bool isDead = unit.HPLeft <= 0;
-                    bool wantDead = threshold > 0;
-                    return isDead == wantDead;
+                case ConditionProperty.IsDead: {
+                    // Value is the "true"/"false" payload written by the Yes/No dropdown.
+                    // UnitState.IsDead is LifeState==Dead (portrait greyed, Breath of Life / Raise
+                    // territory). HPLeft<=0 would also cover Unconscious (Death's Door, revivable
+                    // with Cure) — use the tighter State.IsDead so rez rules don't fire on a
+                    // merely-unconscious companion.
+                    bool isDead = unit.Descriptor?.State?.IsDead ?? false;
+                    bool wantDead = ParseBoolValue(condition.Value);
+                    bool match = isDead == wantDead;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
 
                 case ConditionProperty.HasBuff: {
                     bool hasBuff = unit.Buffs.RawFacts.Any(b =>
@@ -561,8 +580,14 @@ namespace WrathTactics.Engine {
                     return CompareFloat(margin, condition.Operator, threshold);
                 }
 
-                case ConditionProperty.IsDead:
-                    return unit.HPLeft <= 0;
+                case ConditionProperty.IsDead: {
+                    // See note in EvaluateUnitProperty.IsDead: use State.IsDead (LifeState==Dead),
+                    // not HPLeft<=0 (which also includes Unconscious / Death's Door).
+                    bool dead = unit.Descriptor?.State?.IsDead ?? false;
+                    bool wantDead = ParseBoolValue(condition.Value);
+                    bool match = dead == wantDead;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
 
                 case ConditionProperty.HasCondition: {
                     bool hasCond = HasConditionByName(unit, condition.Value);

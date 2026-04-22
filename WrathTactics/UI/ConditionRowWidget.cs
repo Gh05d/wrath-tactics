@@ -75,20 +75,21 @@ namespace WrathTactics.UI {
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
 
             if (isCountSubject) {
-                // Layout: [Subject 0→0.15] [">=" 0.16→0.2] [count 0.21→0.3] ["with" 0.31→0.37]
+                // Layout: [Subject 0→0.15] [op 0.16→0.22] [count 0.23→0.30] ["with" 0.31→0.37]
                 //         [Property 0.38→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
-                // Reads: "AllyCount >= 2 with HpPercent < 60"
+                // Reads: "AllyCount >= 2 with HpPercent < 60" (operator now user-selectable)
 
-                // ">=" label
-                var (gteLbl, gteLblRect) = UIHelpers.Create("GteLabel", root.transform);
-                gteLblRect.SetAnchor(0.16, 0.20, 0, 1);
-                gteLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(gteLbl, ">=", 14f, TextAlignmentOptions.Midline,
-                    new Color(0.7f, 0.7f, 0.7f));
+                // Count-threshold operator dropdown (replaces fixed ">=" label)
+                var countOpNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                PopupSelector.Create(root, "CountThresholdOperator", 0.16f, 0.22f,
+                    countOpNames, (int)condition.CountOperator, v => {
+                        condition.CountOperator = (ConditionOperator)v;
+                        onChanged?.Invoke();
+                    });
 
                 // Value2 = count threshold
                 var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
-                    0.21, 0.30, condition.Value2 ?? "1", 16f,
+                    0.23, 0.30, condition.Value2 ?? "1", 16f,
                     TMP_InputField.ContentType.IntegerNumber);
                 countInput.onEndEdit.AddListener(v => {
                     condition.Value2 = v;
@@ -197,10 +198,12 @@ namespace WrathTactics.UI {
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
+                bool isIsDead = condition.Property == ConditionProperty.IsDead;
                 bool isHasClass = condition.Property == ConditionProperty.HasClass;
                 bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
                 bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
-                bool needsOperator = !usesEqOp && !isInCombat;
+                bool isBoolProp = isInCombat || isIsDead;
+                bool needsOperator = !usesEqOp && !isBoolProp;
 
                 // Operator popup selector
                 if (needsOperator) {
@@ -274,13 +277,14 @@ namespace WrathTactics.UI {
                         condition.Value = bracketNames[v];
                         onChanged?.Invoke();
                     });
-                } else if (condition.Property == ConditionProperty.IsInCombat) {
+                } else if (isBoolProp) {
                     var yesNo = new List<string> { "Yes", "No" };
                     // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
                     if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
-                    PopupSelector.Create(root, "IsInCombatValue", 0.38f, 0.88f, yesNo, yIdx, v => {
+                    string widgetName = isIsDead ? "IsDeadValue" : "IsInCombatValue";
+                    PopupSelector.Create(root, widgetName, 0.38f, 0.88f, yesNo, yIdx, v => {
                         condition.Value = v == 0 ? "true" : "false";
                         onChanged?.Invoke();
                     });

@@ -23,6 +23,9 @@ namespace WrathTactics.Models {
         [JsonProperty] public ConditionSubject Subject { get; set; }
         [JsonProperty] public ConditionProperty Property { get; set; }
         [JsonProperty] public ConditionOperator Operator { get; set; }
+        // Operator applied to the count itself for AllyCount/EnemyCount (e.g. count < 3, count >= 2).
+        // Defaults to GreaterOrEqual so legacy saves without this field keep their original behavior.
+        [JsonProperty] public ConditionOperator CountOperator { get; set; } = ConditionOperator.GreaterOrEqual;
         [JsonProperty] public string Value { get; set; } = "";
         [JsonProperty] public string Value2 { get; set; } = "";  // For AllyCount/EnemyCount: the count threshold
     }

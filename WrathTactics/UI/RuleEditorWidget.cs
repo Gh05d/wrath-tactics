@@ -717,11 +717,11 @@ namespace WrathTactics.UI {
         List<SpellDropdownProvider.SpellEntry> GetAllPartySpells(ActionType actionType) {
             var combined = new List<SpellDropdownProvider.SpellEntry>();
             var seen = new HashSet<string>();
-            var party = Game.Instance?.Player?.Party;
+            var party = Game.Instance?.Player?.AllCharacters;
             if (party == null) return combined;
 
             foreach (var unit in party) {
-                if (!unit.IsInGame) continue;
+                if (!unit.IsInGame || unit.HPLeft <= 0) continue;
                 List<SpellDropdownProvider.SpellEntry> unitEntries;
                 switch (actionType) {
                     case ActionType.CastSpell:
