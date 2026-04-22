@@ -133,7 +133,11 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 
 ## Release Process
 
-Override of parent `wrath-mods/CLAUDE.md` §Release Process step 5: this mod is NOT on Nexus and has no `.github/workflows/`. After `git tag -a vX.Y.Z` + `git push origin master && git push origin vX.Y.Z`, publish manually: `gh release create vX.Y.Z --title "..." --notes "..." WrathTactics/bin/WrathTactics-X.Y.Z.zip` (the Release build target produces the zip).
+Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin` (not `fork` like wrath-epic-buffing). Everything from the `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`) → Discord-post generation.
+
+Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, file_group_id 4191).
+
+`deploy.sh` is **dev-only** — builds Debug and SCPs to Steam Deck for smoke-testing. Release builds come from the `/release` command's Release-config build, which also produces the distributable ZIP at `WrathTactics/bin/WrathTactics-X.Y.Z.zip`.
 
 ## Logs
 

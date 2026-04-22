@@ -5,7 +5,7 @@
 - Remote: `origin`
 - Repo: `Gh05d/wrath-tactics`
 - Mod-Name: `Wrath Tactics`
-- Nexus-URL: `https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/<MOD_ID>` (nach Nexus-Page-Creation echten Wert einsetzen)
+- Nexus-URL: `https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005` (nach Nexus-Page-Creation echten Wert einsetzen)
 - csproj: `WrathTactics/WrathTactics.csproj`
 - Info.json: `WrathTactics/Info.json`
 - Repository.json: `Repository.json`
@@ -229,7 +229,7 @@ Nexus:  Automatisch hochgeladen via GitHub Action (Status: <success/failure>)
 
 Falls die GitHub Action fehlgeschlagen ist, zeige den manuellen Nexus-Upload-Link:
 ```
-Nexus Upload (manuell): https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/<MOD_ID>?tab=files
+Nexus Upload (manuell): https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005?tab=files
 ZIP: WrathTactics/bin/WrathTactics-X.Y.Z.zip
 ```
 
@@ -258,7 +258,7 @@ Ausgabeformat im Terminal (exakt so, inkl. Delimiter-Zeilen):
 - ...
 
 GitHub: https://github.com/Gh05d/wrath-tactics/releases/tag/vX.Y.Z
-Nexus: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/<MOD_ID>
+Nexus: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005
 === End Discord Post ===
 ```
 
