@@ -467,11 +467,13 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.IsDead: {
                     // Value is the "true"/"false" payload written by the Yes/No dropdown.
-                    // UnitState.IsDead is LifeState==Dead (portrait greyed, Breath of Life / Raise
-                    // territory). HPLeft<=0 would also cover Unconscious (Death's Door, revivable
-                    // with Cure) — use the tighter State.IsDead so rez rules don't fire on a
-                    // merely-unconscious companion.
-                    bool isDead = unit.Descriptor?.State?.IsDead ?? false;
+                    // UnitState.IsDead is just LifeState==Dead — set in-combat when a companion
+                    // drops past -CON on Normal difficulty, even though the companion will
+                    // auto-revive at combat end (red portrait, IsFinallyDead=false). Using
+                    // IsDead caused BoL to fire on down-but-recovering allies. IsFinallyDead
+                    // is the persisted flag the game pairs with CompanionState.Dead for the
+                    // greyed-portrait / permadeath state that genuinely needs resurrection.
+                    bool isDead = unit.Descriptor?.State?.IsFinallyDead ?? false;
                     bool wantDead = ParseBoolValue(condition.Value);
                     bool match = isDead == wantDead;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
@@ -581,9 +583,9 @@ namespace WrathTactics.Engine {
                 }
 
                 case ConditionProperty.IsDead: {
-                    // See note in EvaluateUnitProperty.IsDead: use State.IsDead (LifeState==Dead),
-                    // not HPLeft<=0 (which also includes Unconscious / Death's Door).
-                    bool dead = unit.Descriptor?.State?.IsDead ?? false;
+                    // See note in EvaluateUnitProperty.IsDead: use State.IsFinallyDead, not
+                    // State.IsDead — the latter fires for auto-recovering downed companions.
+                    bool dead = unit.Descriptor?.State?.IsFinallyDead ?? false;
                     bool wantDead = ParseBoolValue(condition.Value);
                     bool match = dead == wantDead;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
