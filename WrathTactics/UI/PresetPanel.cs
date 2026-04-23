@@ -105,6 +105,9 @@ namespace WrathTactics.UI {
                 empty.AddComponent<LayoutElement>().preferredHeight = 28;
                 UIHelpers.AddLabel(empty, "No presets yet.", 15f,
                     TextAlignmentOptions.MidlineLeft, Color.gray);
+                // Intentionally bail before emptyMatchLabel setup — nothing to filter,
+                // ApplyFilter would dereference a null label. Rebuild on first preset
+                // creation re-enters BuildUI and wires the filter normally.
                 return;
             }
 
