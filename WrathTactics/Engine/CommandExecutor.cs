@@ -133,10 +133,7 @@ namespace WrathTactics.Engine {
         }
 
         static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
-            var ability = owner.Abilities.RawFacts
-                .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid && a.Data.SourceItem != null)
-                ?.Data;
-
+            var ability = ActionValidator.FindUseItemSource(owner, abilityGuid, out var inventorySource);
             if (ability == null) {
                 Log.Engine.Warn($"Item ability {abilityGuid} not found on {owner.CharacterName}");
                 return false;
@@ -144,6 +141,23 @@ namespace WrathTactics.Engine {
 
             var targetWrapper = BuildTargetWrapper(target, owner);
 
+            // Inventory-backed potion/scroll: synthesized AbilityData (no SourceItem). Same
+            // silent-drop caveat as ExecuteHeal's inventory branch — CreateCastCommand rejects
+            // synthetic ability data, so trigger the rule and consume the stack explicitly.
+            if (inventorySource != null) {
+                try {
+                    Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
+                    var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    Log.Engine.Info($"UseItem (inventory): {inventorySource.Blueprint.name} on {owner.CharacterName}");
+                    return true;
+                } catch (Exception ex) {
+                    Log.Engine.Error(ex, $"UseItem inventory trigger failed for {inventorySource.Blueprint.name}");
+                    return false;
+                }
+            }
+
+            // Equipped source (wand / scroll in quickslot) — animated cast path.
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command == null) {
                 Log.Engine.Warn($"CreateCastCommand failed for item ability");

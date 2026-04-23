@@ -222,6 +222,8 @@ namespace WrathTactics.UI {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
 
+            // 1. Equipped item-backed abilities (wands in quickslot, staves, scrolls in quickslot).
+            //    These register as facts on the unit with SourceItem set.
             foreach (var ability in unit.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
                 var guid = ability.Blueprint.AssetGuid.ToString();
@@ -249,6 +251,28 @@ namespace WrathTactics.UI {
                 result.Add(new SpellEntry(
                     FormatWithInternal($"{ability.Name} {prefix}", ability.Blueprint),
                     guid, ability.Blueprint.Icon));
+            }
+
+            // 2. Shared-inventory potions/scrolls. These do NOT register as facts on the unit —
+            //    Wrath's own inventory-drink flow scans the shared inventory directly.
+            //    Without this branch, UseItem rules could never pick an inventory potion
+            //    (e.g. Potion of Invisibility sitting in the party stash).
+            var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
+            if (inventory != null) {
+                foreach (var item in inventory) {
+                    if (item == null || item.Count <= 0) continue;
+                    var usable = item.Blueprint as BlueprintItemEquipmentUsable;
+                    if (usable?.Ability == null) continue;
+                    if (usable.Type != UsableItemType.Potion && usable.Type != UsableItemType.Scroll) continue;
+
+                    var guid = usable.Ability.AssetGuid.ToString();
+                    if (!seen.Add(guid)) continue;
+
+                    string prefix = usable.Type == UsableItemType.Potion ? "(Potion)" : "(Scroll)";
+                    result.Add(new SpellEntry(
+                        FormatWithInternal($"{usable.Ability.Name} {prefix}", usable.Ability),
+                        guid, usable.Ability.Icon));
+                }
             }
 
             return result.OrderBy(e => e.Name).ToList();
