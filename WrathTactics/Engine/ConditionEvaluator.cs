@@ -4,6 +4,8 @@ using System.Linq;
 using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.RuleSystem;
+using Kingmaker.RuleSystem.Rules;
 using Kingmaker.UnitLogic;
 using Kingmaker.Enums;
 using UnityEngine;
@@ -319,6 +321,41 @@ namespace WrathTactics.Engine {
             return dc - save;
         }
 
+        // Engine-authoritative best attack bonus across all living party members.
+        // RuleCalculateAttackBonusWithoutTarget returns the same AB the game uses at
+        // attack time minus target-side modifiers (flanking, bane, etc.) — it includes
+        // BAB, stat mod (correctly picked by weapon type), weapon enhancement, feats,
+        // and active buffs. NaN on empty / fully-dead party.
+        static float PartyBestAB(UnitEntityData owner) {
+            int best = int.MinValue;
+            foreach (var ally in GetAllPartyMembers(owner)) {
+                if (ally == null || !ally.IsInGame) continue;
+                if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+
+                var weapon = ally.Body?.PrimaryHand?.MaybeWeapon
+                          ?? ally.Body?.SecondaryHand?.MaybeWeapon
+                          ?? ally.Body?.EmptyHandWeapon;
+                if (weapon == null) continue;
+
+                var rule = Rulebook.Trigger(new RuleCalculateAttackBonusWithoutTarget(ally, weapon, 0));
+                if (rule.Result > best) best = rule.Result;
+            }
+            return best == int.MinValue ? float.NaN : (float)best;
+        }
+
+        // Computes partyBestAB - enemy.AC for the ABMinusAC condition property.
+        // Rule-scoped: CurrentOwner is the rule's owning unit (set in Evaluate, cleared in finally).
+        // NaN when the party has no eligible attacker or the enemy is null.
+        static float ComputeABMinusAC(UnitEntityData enemy) {
+            if (enemy == null || CurrentOwner == null) return float.NaN;
+            float ab = PartyBestAB(CurrentOwner);
+            if (float.IsNaN(ab)) return float.NaN;
+            int ac = enemy.Stats.AC.ModifiedValue;
+            float margin = ab - ac;
+            Log.Engine.Trace($"ABMinusAC: {enemy.CharacterName} AC={ac}, partyBestAB={ab} -> margin={margin}");
+            return margin;
+        }
+
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
             foreach (var ally in GetAllPartyMembers(owner)) {
                 if (ally == owner) continue;
@@ -461,6 +498,16 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.SpellDCMinusSave: {
                     float margin = ComputeDCMinusSave(unit);
+                    if (float.IsNaN(margin)) return false;
+                    return CompareFloat(margin, condition.Operator, threshold);
+                }
+
+                case ConditionProperty.ABMinusAC: {
+                    if (!IsEnemyScope(condition.Subject)) {
+                        Log.Engine.Trace($"ABMinusAC: subject {condition.Subject} is not Enemy-scope, returning false");
+                        return false;
+                    }
+                    float margin = ComputeABMinusAC(unit);
                     if (float.IsNaN(margin)) return false;
                     return CompareFloat(margin, condition.Operator, threshold);
                 }
