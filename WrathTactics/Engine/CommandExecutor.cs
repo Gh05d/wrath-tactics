@@ -69,7 +69,7 @@ namespace WrathTactics.Engine {
                 try {
                     Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
                     var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
-                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable, owner);
                     string tgtDesc = target.IsPoint
                         ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
                         : (target.Unit?.CharacterName ?? "self");
@@ -148,7 +148,7 @@ namespace WrathTactics.Engine {
                 try {
                     Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
                     var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
-                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable, owner);
                     Log.Engine.Info($"UseItem (inventory): {inventorySource.Blueprint.name} on {owner.CharacterName}");
                     return true;
                 } catch (Exception ex) {
@@ -207,7 +207,7 @@ namespace WrathTactics.Engine {
                 try {
                     Rulebook.Trigger(new RuleCastSpell(ability, targetWrapper));
                     var usable = inventorySource.Blueprint as BlueprintItemEquipmentUsable;
-                    if (usable != null) ConsumeInventoryItem(inventorySource, usable);
+                    if (usable != null) ConsumeInventoryItem(inventorySource, usable, owner);
                     Log.Engine.Info($"Heal (inventory): {inventorySource.Blueprint.name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                     return true;
                 } catch (Exception ex) {
@@ -234,18 +234,20 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static void ConsumeInventoryItem(ItemEntity item, BlueprintItemEquipmentUsable usable) {
-            int before = item.Count;
-            int charges = item.Charges;
-            string path;
-            if (usable.Type == UsableItemType.Wand) {
-                item.Charges--;
-                path = "Charges--";
-            } else {
-                Game.Instance.Player.Inventory.Remove(item, 1);
-                path = "Remove";
-            }
-            Log.Engine.Debug($"Consume {item.Blueprint.name} via {path}: Count {before}->{item.Count}, Charges {charges}->{item.Charges}, Type={usable.Type}");
+        // Delegates to the engine's ItemEntity.SpendCharges(UnitDescriptor) — the same method
+        // AbilityData.Spend() invokes on Path A (UnitUseAbility.CreateCastCommand). Handles all
+        // three item types uniformly: Wand → Charges-- then Remove when depleted (unless the
+        // blueprint has RestoreChargesOnRest); Potion/Scroll → DecrementCount(1) + Remove when
+        // the stack hits 0. Also respects IsSpendCharges (free-use items), TricksterUMD unlimited
+        // wands, HandOfMagusDan 25%-free-scroll, and stack-split semantics for multi-charge
+        // stacked items. Manual `item.Charges--` leaves a depleted wand with 0 charges stuck in
+        // inventory forever — SpendCharges cleans it up the way the engine does.
+        static void ConsumeInventoryItem(ItemEntity item, BlueprintItemEquipmentUsable usable, UnitEntityData caster) {
+            int beforeCount = item.Count;
+            int beforeCharges = item.Charges;
+            bool inCollection = item.Collection != null;
+            item.SpendCharges(caster.Descriptor);
+            Log.Engine.Debug($"Consume {item.Blueprint.name} via SpendCharges: Count {beforeCount}->{item.Count}, Charges {beforeCharges}->{item.Charges}, stillInInventory={item.Collection != null}, Type={usable.Type}");
         }
 
         static bool ExecuteThrowSplash(ActionDef action, UnitEntityData owner, UnitEntityData target) {
@@ -277,7 +279,7 @@ namespace WrathTactics.Engine {
 
             try {
                 Rulebook.Trigger(new RuleCastSpell(data, tw));
-                ConsumeInventoryItem(item, usable);
+                ConsumeInventoryItem(item, usable, owner);
                 Log.Engine.Info($"ThrowSplash: {owner.CharacterName} threw {item.Blueprint.name} at {target.CharacterName}");
                 return true;
             } catch (Exception ex) {
