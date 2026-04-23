@@ -211,12 +211,12 @@ namespace WrathTactics.UI {
             var (scrollbarObj, scrollbarRect) = UIHelpers.Create("Scrollbar", scrollObj.transform);
             scrollbarRect.SetAnchor(1, 1, 0, 1);
             scrollbarRect.pivot = new Vector2(1, 0.5f);
-            scrollbarRect.sizeDelta = new Vector2(8, 0);
-            UIHelpers.AddBackground(scrollbarObj, new Color(0.12f, 0.12f, 0.12f, 0.5f));
+            scrollbarRect.sizeDelta = new Vector2(12, 0);
+            UIHelpers.AddBackground(scrollbarObj, new Color(0.15f, 0.15f, 0.15f, 0.85f));
 
             var (handleObj, handleRect) = UIHelpers.Create("Handle", scrollbarObj.transform);
             handleRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(handleObj, new Color(0.5f, 0.5f, 0.5f, 0.6f));
+            UIHelpers.AddBackground(handleObj, new Color(0.7f, 0.7f, 0.7f, 1.0f));
 
             var scrollbar = scrollbarObj.AddComponent<Scrollbar>();
             scrollbar.handleRect = handleRect;
@@ -231,8 +231,8 @@ namespace WrathTactics.UI {
             scroll.vertical = true;
             scroll.scrollSensitivity = 30f;
             scroll.verticalScrollbar = scrollbar;
-            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
-            scroll.verticalScrollbarSpacing = 2f;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            scroll.verticalScrollbarSpacing = 4f;
 
             ruleListContent = content.transform;
         }
