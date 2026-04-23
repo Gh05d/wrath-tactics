@@ -90,7 +90,8 @@ namespace WrathTactics.UI {
         /// </summary>
         public static TMP_InputField CreateTMPInputField(GameObject parent, string name,
             double xMin, double xMax, string initialText, float fontSize = 16f,
-            TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard) {
+            TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard,
+            string placeholderText = null) {
 
             var (obj, rect) = Create(name, parent.transform);
             rect.SetAnchor(xMin, xMax, 0, 1);
@@ -119,6 +120,23 @@ namespace WrathTactics.UI {
             inputField.textComponent = textTmp;
             inputField.text = initialText;
             inputField.contentType = contentType;
+
+            // Optional placeholder — rendered by TMP_InputField when text is empty and
+            // the field is unfocused. Null/empty placeholderText skips this entirely so
+            // existing callers keep their no-placeholder behavior.
+            if (!string.IsNullOrEmpty(placeholderText)) {
+                var (phObj, phRect) = Create("Placeholder", viewport.transform);
+                phRect.FillParent();
+                var phTmp = phObj.AddComponent<TextMeshProUGUI>();
+                phTmp.fontSize = fontSize;
+                phTmp.alignment = TextAlignmentOptions.MidlineLeft;
+                phTmp.color = new Color(0.5f, 0.5f, 0.5f);
+                phTmp.enableWordWrapping = false;
+                phTmp.overflowMode = TextOverflowModes.Ellipsis;
+                phTmp.raycastTarget = false;  // don't intercept clicks meant for the input
+                phTmp.text = placeholderText;
+                inputField.placeholder = phTmp;
+            }
 
             // Clicking into a field should place the cursor at the click point,
             // not select-all. Select-all means backspace wipes the whole text.

@@ -199,16 +199,11 @@ namespace WrathTactics.UI {
             UIHelpers.AddBackground(strip, new Color(0.14f, 0.14f, 0.14f, 1f));
 
             ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
-                0.02, 0.85, "", 15f);
+                0.02, 0.85, "", 15f,
+                placeholderText: "Filter rules…");
             var inputRect = ruleFilterInput.GetComponent<RectTransform>();
             inputRect.SetAnchor(0.02f, 0.85f, 0.1f, 0.9f);
             inputRect.sizeDelta = Vector2.zero;
-            // Placeholder text
-            var placeholder = ruleFilterInput.placeholder as TextMeshProUGUI;
-            if (placeholder != null) {
-                placeholder.text = "Filter rules…";
-                placeholder.color = new Color(0.5f, 0.5f, 0.5f);
-            }
             ruleFilterInput.onValueChanged.AddListener(v => {
                 currentRuleFilter = v ?? "";
                 UpdateFilterClearButton();
