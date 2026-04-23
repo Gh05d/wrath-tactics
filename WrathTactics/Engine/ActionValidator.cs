@@ -277,18 +277,22 @@ namespace WrathTactics.Engine {
                     return ability.Data;
             }
 
-            // 2. Shared inventory — potions first, then scrolls. Mirrors SpellDropdownProvider's
-            // two-pass ordering: a Potion of X and a Scroll of X share an ability GUID, and the
-            // dropdown surfaces the potion variant. The runtime must pick the same source so
-            // the user's "UseItem: Invisibility" rule (labelled "(Potion)") consumes a potion,
-            // not a scroll that happened to appear first in storage order.
+            // 2. Shared inventory — potions, then scrolls, then wands. Mirrors
+            // SpellDropdownProvider's three-pass ordering so "UseItem: Invisibility" labelled
+            // "(Potion)" consumes a potion, not whichever form of Invisibility happens to appear
+            // first in storage order. Wands are last so existing user rules (which could only
+            // target potions/scrolls before wands landed in the dropdown) keep resolving to
+            // their original consumable; a user who adds a Wand-labelled rule explicitly opts in.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory == null) return null;
             var potion = FindInventoryUsable(inventory, owner, abilityGuid,
                 Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion, out inventorySource);
             if (potion != null) return potion;
-            return FindInventoryUsable(inventory, owner, abilityGuid,
+            var scroll = FindInventoryUsable(inventory, owner, abilityGuid,
                 Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll, out inventorySource);
+            if (scroll != null) return scroll;
+            return FindInventoryUsable(inventory, owner, abilityGuid,
+                Kingmaker.Blueprints.Items.Equipment.UsableItemType.Wand, out inventorySource);
         }
 
         static AbilityData FindInventoryUsable(
@@ -304,6 +308,10 @@ namespace WrathTactics.Engine {
                 if (usable?.Ability == null) continue;
                 if (usable.Type != wantedType) continue;
                 if (usable.Ability.AssetGuid.ToString() != abilityGuid) continue;
+                // Wands track uses via Charges. A spent wand still has Count=1 but Charges=0
+                // and must not be queued for cast (the engine would silently drop it).
+                if (wantedType == Kingmaker.Blueprints.Items.Equipment.UsableItemType.Wand
+                    && item.Charges <= 0) continue;
 
                 inventorySource = item;
                 return new AbilityData(usable.Ability, owner.Descriptor) {

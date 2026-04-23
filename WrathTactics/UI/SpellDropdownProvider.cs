@@ -256,17 +256,21 @@ namespace WrathTactics.UI {
             // 2. Shared-inventory potions/scrolls. These do NOT register as facts on the unit —
             //    Wrath's own inventory-drink flow scans the shared inventory directly.
             //
-            //    Two-pass scan: POTIONS first, then scrolls. Potions and scrolls frequently share
-            //    an ability blueprint GUID (Scroll of Invisibility + Potion of Invisibility both
-            //    cast "Invisibility"). Iterating the inventory in storage order would add whichever
-            //    came first and silently dedup the other. Potions are preferred because they don't
-            //    need UMD, don't fail on silenced casters, and are the player's normal consumable
-            //    of choice. ActionValidator.FindUseItemSource uses the same ordering so the
-            //    runtime pick matches the dropdown label.
+            //    Three-pass scan ordered POTION → SCROLL → WAND. Multiple item forms share an
+            //    ability blueprint GUID (Scroll of Invisibility, Potion of Invisibility, Wand of
+            //    Invisibility all cast "Invisibility"). Iterating in storage order and deduping
+            //    by GUID silently drops later entries. Potions are preferred (no UMD, no silence
+            //    gate, CL1 reliable); scrolls next; wands last — wand handling is new and putting
+            //    it at the end preserves existing rule semantics for users already targeting a
+            //    potion/scroll. Wand inventory charges decrement via ConsumeInventoryItem's Wand
+            //    branch (item.Charges--) when the runtime casts the synthetic AbilityData.
+            //    ActionValidator.FindUseItemSource uses the same ordering so the runtime pick
+            //    matches the dropdown label.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory != null) {
                 EnumerateInventoryByType(inventory, UsableItemType.Potion, "(Potion)", seen, result);
                 EnumerateInventoryByType(inventory, UsableItemType.Scroll, "(Scroll)", seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Wand, "(Wand)", seen, result);
             }
 
             return result.OrderBy(e => e.Name).ToList();
@@ -283,6 +287,9 @@ namespace WrathTactics.UI {
                 var usable = item.Blueprint as BlueprintItemEquipmentUsable;
                 if (usable?.Ability == null) continue;
                 if (usable.Type != wantedType) continue;
+                // Wands track uses via Charges, not stack Count. A spent wand would still have
+                // Count=1 but Charges=0 — don't offer it as a UseItem target.
+                if (wantedType == UsableItemType.Wand && item.Charges <= 0) continue;
 
                 var guid = usable.Ability.AssetGuid.ToString();
                 if (!seen.Add(guid)) continue;
