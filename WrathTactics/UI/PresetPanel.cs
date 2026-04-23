@@ -17,12 +17,19 @@ namespace WrathTactics.UI {
         string lastIOStatus;
         Color lastIOStatusColor = Color.gray;
 
+        // Filter state — driven from TacticsPanel via ApplyFilter(string).
+        string currentFilter = "";
+        readonly List<(GameObject entry, string name)> entries = new List<(GameObject, string)>();
+        GameObject emptyMatchLabel;
+
         public void Init(string _unusedCharacterId, Transform _unusedParent, Action onPresetsChanged) {
             this.onPresetsChanged = onPresetsChanged;
             BuildUI();
         }
 
         void BuildUI() {
+            entries.Clear();
+            emptyMatchLabel = null;
             var root = gameObject;
 
             var vlg = root.AddComponent<VerticalLayoutGroup>();
@@ -119,12 +126,23 @@ namespace WrathTactics.UI {
                     Log.UI.Warn($"Could not open presets folder '{dir}': {ex.Message}");
                 }
             });
+
+            // Empty-match label — shown by ApplyFilter when the filter hides every entry.
+            var (emptyObj, _em) = UIHelpers.Create("EmptyMatch", root.transform);
+            emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
+            UIHelpers.AddLabel(emptyObj, "No matching presets", 15f,
+                TextAlignmentOptions.MidlineLeft, new Color(0.6f, 0.6f, 0.6f));
+            emptyObj.SetActive(false);
+            emptyMatchLabel = emptyObj;
+
+            ApplyFilter(currentFilter);
         }
 
         void CreatePresetEntry(Transform parent, TacticsRule preset) {
             var (row, _) = UIHelpers.Create($"Preset_{preset.Id}", parent);
             row.AddComponent<LayoutElement>().preferredHeight = 40;
             UIHelpers.AddBackground(row, new Color(0.18f, 0.18f, 0.18f, 1f));
+            entries.Add((row, preset.Name ?? ""));
 
             var hlg = row.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 6;
@@ -287,6 +305,19 @@ namespace WrathTactics.UI {
             var csf = GetComponent<ContentSizeFitter>();
             if (csf != null) DestroyImmediate(csf);
             BuildUI();
+        }
+
+        public void ApplyFilter(string query) {
+            currentFilter = query ?? "";
+            int visible = 0;
+            foreach (var pair in entries) {
+                bool match = UIHelpers.StringMatchesFilter(pair.name, currentFilter);
+                if (pair.entry != null) pair.entry.SetActive(match);
+                if (match) visible++;
+            }
+            bool filterActive = !string.IsNullOrWhiteSpace(currentFilter);
+            if (emptyMatchLabel != null)
+                emptyMatchLabel.SetActive(filterActive && entries.Count > 0 && visible == 0);
         }
     }
 }
