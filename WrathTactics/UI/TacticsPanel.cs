@@ -22,6 +22,13 @@ namespace WrathTactics.UI {
         TextMeshProUGUI toggleLabel;
         Transform tabBarTransform; // reference to rebuild tabs
 
+        // Filter state
+        string currentRuleFilter = "";
+        TMP_InputField ruleFilterInput;
+        Button ruleFilterClearButton;
+        GameObject ruleFilterEmptyLabel;  // sibling of rule scroll, shown when filter hides everything
+        PresetPanel currentPresetPanel;    // tracks the active PresetPanel when presets tab is open
+
         public static TacticsPanel Instance => instance;
 
         public static void Install() {
@@ -99,8 +106,14 @@ namespace WrathTactics.UI {
             // Toggle + Add rule row
             CreateControlRow(root.transform);
 
+            // Filter strip (sticky — stays above the scroll area regardless of tab)
+            CreateFilterStrip(root.transform);
+
             // Scrollable rule list
             CreateRuleList(root.transform);
+
+            // Empty-state label for the rule list (hidden by default, driven by ApplyFilter)
+            CreateRuleFilterEmptyLabel(root.transform);
 
             panelRoot.SetActive(false);
             Log.UI.Info("Panel created");
@@ -179,10 +192,67 @@ namespace WrathTactics.UI {
             fromPresetBtn.AddComponent<Button>().onClick.AddListener(AddFromPreset);
         }
 
+        void CreateFilterStrip(Transform parent) {
+            var (strip, stripRect) = UIHelpers.Create("FilterStrip", parent);
+            stripRect.SetAnchor(0.01, 0.99, 0.72, 0.76);
+            stripRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(strip, new Color(0.14f, 0.14f, 0.14f, 1f));
+
+            ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
+                0.02, 0.85, "", 15f);
+            var inputRect = ruleFilterInput.GetComponent<RectTransform>();
+            inputRect.SetAnchor(0.02f, 0.85f, 0.1f, 0.9f);
+            inputRect.sizeDelta = Vector2.zero;
+            // Placeholder text
+            var placeholder = ruleFilterInput.placeholder as TextMeshProUGUI;
+            if (placeholder != null) {
+                placeholder.text = "Filter rules…";
+                placeholder.color = new Color(0.5f, 0.5f, 0.5f);
+            }
+            ruleFilterInput.onValueChanged.AddListener(v => {
+                currentRuleFilter = v ?? "";
+                UpdateFilterClearButton();
+                ApplyFilter();
+            });
+
+            // Clear (×) button
+            var (clearBtn, clearRect) = UIHelpers.Create("FilterClear", strip.transform);
+            clearRect.SetAnchor(0.87f, 0.98f, 0.15f, 0.85f);
+            clearRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(clearBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
+            UIHelpers.AddLabel(clearBtn, "✕", 16f, TextAlignmentOptions.Midline);
+            ruleFilterClearButton = clearBtn.AddComponent<Button>();
+            ruleFilterClearButton.onClick.AddListener(() => {
+                ruleFilterInput.text = "";  // triggers onValueChanged -> ApplyFilter
+            });
+            ruleFilterClearButton.interactable = false;
+        }
+
+        void UpdateFilterClearButton() {
+            if (ruleFilterClearButton == null) return;
+            ruleFilterClearButton.interactable = !string.IsNullOrEmpty(currentRuleFilter);
+        }
+
+        void CreateRuleFilterEmptyLabel(Transform parent) {
+            var (obj, rect) = UIHelpers.Create("RuleFilterEmpty", parent);
+            // Same anchor as the rule scroll so the label overlays its center
+            rect.SetAnchor(0.01, 0.99, 0.02, 0.71);
+            rect.sizeDelta = Vector2.zero;
+            UIHelpers.AddLabel(obj, "No matching rules", 16f,
+                TextAlignmentOptions.Midline, new Color(0.6f, 0.6f, 0.6f));
+            obj.SetActive(false);
+            ruleFilterEmptyLabel = obj;
+        }
+
+        void ApplyFilter() {
+            // Filled in by the next two tasks; stub for now so the input listener compiles.
+            if (ruleFilterEmptyLabel != null) ruleFilterEmptyLabel.SetActive(false);
+        }
+
         void CreateRuleList(Transform parent) {
             // ScrollRect container
             var (scrollObj, scrollRect) = UIHelpers.Create("RuleScroll", parent);
-            scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.76);
+            scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             scrollRect.sizeDelta = Vector2.zero;
 
             // Viewport with RectMask2D instead of Mask.
@@ -492,6 +562,15 @@ namespace WrathTactics.UI {
             return null;
         }
 
+
+        static string EffectiveDisplayName(TacticsRule rule) {
+            if (rule == null) return "";
+            if (!string.IsNullOrEmpty(rule.PresetId)) {
+                var preset = Engine.PresetRegistry.Get(rule.PresetId);
+                if (preset != null) return preset.Name ?? "";
+            }
+            return rule.Name ?? "";
+        }
 
         public void HandlePartyCombatStateChanged(bool inCombat) {
             // Could auto-close panel when combat starts
