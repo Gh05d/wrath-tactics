@@ -158,6 +158,11 @@ namespace WrathTactics.UI {
             if (selectedUnitId != "presets")
                 lastNonPresetUnitId = selectedUnitId;
             selectedUnitId = unitId;
+
+            // Reset the filter on tab switch (fires onValueChanged -> sets currentRuleFilter = "").
+            if (ruleFilterInput != null)
+                ruleFilterInput.text = "";
+
             RebuildTabs();
             RefreshRuleList();
         }
@@ -240,8 +245,31 @@ namespace WrathTactics.UI {
         }
 
         void ApplyFilter() {
-            // Filled in by the next two tasks; stub for now so the input listener compiles.
-            if (ruleFilterEmptyLabel != null) ruleFilterEmptyLabel.SetActive(false);
+            if (ruleListContent == null) return;
+
+            // Presets tab branch — delegated in Task 6. For now, hide the char/global
+            // empty label when the presets tab is active.
+            if (selectedUnitId == "presets") {
+                if (ruleFilterEmptyLabel != null) ruleFilterEmptyLabel.SetActive(false);
+                return;
+            }
+
+            int visible = 0;
+            int total = 0;
+            for (int i = 0; i < ruleListContent.childCount; i++) {
+                var child = ruleListContent.GetChild(i).gameObject;
+                var widget = child.GetComponent<RuleEditorWidget>();
+                if (widget == null) continue;  // safety — only rule cards are counted
+                total++;
+                string name = EffectiveDisplayName(widget.Rule);
+                bool match = UIHelpers.StringMatchesFilter(name, currentRuleFilter);
+                child.SetActive(match);
+                if (match) visible++;
+            }
+
+            bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
+            if (ruleFilterEmptyLabel != null)
+                ruleFilterEmptyLabel.SetActive(filterActive && total > 0 && visible == 0);
         }
 
         void CreateRuleList(Transform parent) {
@@ -336,6 +364,8 @@ namespace WrathTactics.UI {
                 var capturedRules = rules;
                 widget.Init(rules[i], i, capturedRules, () => RefreshRuleList(), selectedUnitId);
             }
+
+            ApplyFilter();
         }
 
         void UpdateToggleLabel() {

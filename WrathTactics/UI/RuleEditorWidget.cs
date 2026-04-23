@@ -13,6 +13,7 @@ using WrathTactics.Persistence;
 namespace WrathTactics.UI {
     public class RuleEditorWidget : MonoBehaviour {
         TacticsRule rule;
+        public TacticsRule Rule => rule;
         int index;
         List<TacticsRule> ruleList;
         Action onChanged;
