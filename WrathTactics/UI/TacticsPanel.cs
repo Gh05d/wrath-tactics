@@ -185,9 +185,15 @@ namespace WrathTactics.UI {
             scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.76);
             scrollRect.sizeDelta = Vector2.zero;
 
-            // Viewport with RectMask2D instead of Mask
+            // Viewport with RectMask2D instead of Mask.
+            // Reserve a gutter on the right for the permanent scrollbar (12 px track
+            // + 4 px spacing = 16 px). ScrollbarVisibility.Permanent does NOT auto-
+            // shrink the viewport the way AutoHideAndExpandViewport does — without
+            // this inset, rule-card content near the right edge renders behind the
+            // scrollbar track.
             var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
             viewportRect.FillParent();
+            viewportRect.offsetMax = new Vector2(-16, 0);
             viewport.AddComponent<RectMask2D>();
 
             // Content container with vertical layout
