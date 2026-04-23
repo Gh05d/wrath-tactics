@@ -43,23 +43,26 @@ locate a specific entry in the `TacticsPanel` rule list:
 
 Current geometry in `CreatePanel`:
 
-- Tabs (top)
-- Toolbar row (`+ New Rule`, `+ From Preset`)
+- Title bar — `SetAnchor(0, 1, 0.92, 1)`
+- Tab bar — `SetAnchor(0, 1, 0.84, 0.91)`
+- Control row (`+ New Rule`, `+ From Preset`) — `SetAnchor(0.01, 0.99, 0.77, 0.83)`
 - Rule scroll area — `SetAnchor(0.01, 0.99, 0.02, 0.76)`
 
 New geometry:
 
-- Tabs (unchanged)
-- Toolbar row (unchanged)
-- **New filter strip** — `SetAnchor(0.01, 0.99, 0.76, 0.80)` (~4 % panel
-  height, fixed above the scroll area, always visible)
+- Title bar (unchanged)
+- Tab bar (unchanged)
+- Control row (unchanged)
+- **New filter strip** — `SetAnchor(0.01, 0.99, 0.72, 0.76)` (4 % panel
+  height, sits between control row and rule list, always visible)
   - Left ~85 % of strip: `TMP_InputField` via `UIHelpers.CreateTMPInputField`,
     placeholder `"Filter rules…"`
   - Right ~15 % of strip: small `✕` clear-button. `Button.interactable =
     !string.IsNullOrEmpty(currentRuleFilter)`.
   - Inside a GameObject held as `filterStripRoot` on the panel so it can be
     referenced at runtime.
-- Rule scroll area shrunk to `SetAnchor(0.01, 0.99, 0.02, 0.75)` to make room.
+- Rule scroll area shrunk to `SetAnchor(0.01, 0.99, 0.02, 0.71)` — makes room
+  for the filter strip with a 1 % gap on each side.
 
 ### Scrollbar visibility in `CreateRuleList`
 
