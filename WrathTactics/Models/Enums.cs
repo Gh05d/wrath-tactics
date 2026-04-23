@@ -41,7 +41,8 @@ namespace WrathTactics.Models {
         HitDice,
         SpellDCMinusSave,
         HasClass,
-        WithinRange
+        WithinRange,
+        ABMinusAC   // partyBestAB - enemy.AC — Enemy-scope only
     }
 
     public enum ConditionOperator {
