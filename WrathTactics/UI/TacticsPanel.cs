@@ -247,10 +247,13 @@ namespace WrathTactics.UI {
         void ApplyFilter() {
             if (ruleListContent == null) return;
 
-            // Presets tab branch — delegated in Task 6. For now, hide the char/global
-            // empty label when the presets tab is active.
             if (selectedUnitId == "presets") {
+                // Hide the char/global empty label — it's not ours on this tab.
                 if (ruleFilterEmptyLabel != null) ruleFilterEmptyLabel.SetActive(false);
+                // Unity's "==" operator returns true for destroyed MonoBehaviours, so
+                // this null-check catches both a never-set reference and a destroyed one.
+                if (currentPresetPanel != null)
+                    currentPresetPanel.ApplyFilter(currentRuleFilter);
                 return;
             }
 
@@ -339,15 +342,18 @@ namespace WrathTactics.UI {
         void RefreshRuleList() {
             if (ruleListContent == null) return;
 
-            // Clear existing cards
+            // Clear existing cards (this destroys any prior PresetPanel too).
             for (int i = ruleListContent.childCount - 1; i >= 0; i--)
                 Destroy(ruleListContent.GetChild(i).gameObject);
+            currentPresetPanel = null;
 
             if (selectedUnitId == "presets") {
                 var (presetObj, _) = UIHelpers.Create("PresetPanel", ruleListContent);
                 var presetPanel = presetObj.AddComponent<PresetPanel>();
                 presetPanel.Init(lastNonPresetUnitId, ruleListContent, () => RefreshRuleList());
+                currentPresetPanel = presetPanel;
                 UpdateToggleLabel();
+                ApplyFilter();
                 return;
             }
 
