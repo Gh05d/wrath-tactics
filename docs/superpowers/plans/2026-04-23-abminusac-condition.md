@@ -152,11 +152,11 @@ Immediately after this block (before the next `case` or the `default:` / closing
                     }
                     float margin = ComputeABMinusAC(unit);
                     if (float.IsNaN(margin)) return false;
-                    return CompareFloat(margin, condition.Operator, ParseFloatValue(condition.Value));
+                    return CompareFloat(margin, condition.Operator, threshold);
                 }
 ```
 
-`IsEnemyScope(ConditionSubject)` is an existing helper in the file. `CompareFloat` and `ParseFloatValue` are also existing helpers — verify they're used by the `SpellDCMinusSave` case (they are per the snippet above). If `ParseFloatValue` has a different name in this codebase, match whatever `SpellDCMinusSave` uses.
+`IsEnemyScope(ConditionSubject)` is an existing helper in the file. `CompareFloat` is also existing. `threshold` is a local `float` declared at the top of `EvaluateUnitProperty` via `float.TryParse(condition.Value, ..., out threshold)` — use it directly, same as every other numeric case in the switch.
 
 - [ ] **Step 4: Compile**
 ```bash
