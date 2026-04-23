@@ -32,6 +32,10 @@ namespace WrathTactics.Engine {
         // reads null and falls through to float.NaN → condition returns false.
         static ActionDef CurrentAction;
         static UnitEntityData CurrentOwner;
+        // Cached party-best-AB for the duration of a single Evaluate call. NaN means
+        // "not yet computed"; once computed, the same value is reused across all
+        // enemies in EvaluateEnemyBucket (AB is enemy-independent). Cleared in finally.
+        static float CurrentPartyBestAB = float.NaN;
 
         public static void ClearMatchedEntities() {
             LastMatchedEnemy = null;
@@ -53,6 +57,7 @@ namespace WrathTactics.Engine {
             } finally {
                 CurrentAction = null;
                 CurrentOwner = null;
+                CurrentPartyBestAB = float.NaN;
             }
         }
 
@@ -348,7 +353,12 @@ namespace WrathTactics.Engine {
         // NaN when the party has no eligible attacker or the enemy is null.
         static float ComputeABMinusAC(UnitEntityData enemy) {
             if (enemy == null || CurrentOwner == null) return float.NaN;
-            float ab = PartyBestAB(CurrentOwner);
+            // Cache party-best-AB once per Evaluate call: enemy-independent, but this
+            // helper is called once per enemy in the bucket scan. Ten enemies = ten
+            // identical PartyBestAB calls without the cache.
+            if (float.IsNaN(CurrentPartyBestAB))
+                CurrentPartyBestAB = PartyBestAB(CurrentOwner);
+            float ab = CurrentPartyBestAB;
             if (float.IsNaN(ab)) return float.NaN;
             int ac = enemy.Stats.AC.ModifiedValue;
             float margin = ab - ac;
