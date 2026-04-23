@@ -22,6 +22,9 @@ namespace WrathTactics.UI {
         readonly List<(GameObject entry, string name)> entries = new List<(GameObject, string)>();
         GameObject emptyMatchLabel;
 
+        // Invariant: must not invoke onPresetsChanged synchronously. TacticsPanel.RefreshRuleList
+        // assigns currentPresetPanel after Init returns; a re-entrant RefreshRuleList during Init
+        // would see currentPresetPanel = null (just cleared) and destroy this half-built panel.
         public void Init(string _unusedCharacterId, Transform _unusedParent, Action onPresetsChanged) {
             this.onPresetsChanged = onPresetsChanged;
             BuildUI();
