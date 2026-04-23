@@ -725,8 +725,16 @@ namespace WrathTactics.Engine {
         }
 
         static bool MatchesHealKeyword(string n) {
+            // "restoration" is intentionally NOT here: Lesser/Normal/Greater Restoration
+            // remove ability damage, drain, and negative levels — they do NOT restore HP.
+            // Including them made the Heal action burn 300-900g Restoration scrolls on a
+            // low-HP ally, then fall through with no actual HP recovered.
+            // Known imprecision that's kept for now: "cure" matches Cure Disease / Cure
+            // Deafness scrolls too; these are rare in typical inventories and the UMD
+            // gate limits most mis-casts. A component-based check (look for
+            // ContextActionHealTarget) would be more correct but is out of scope here.
             return n.Contains("cure") || n.Contains("heal")
-                || n.Contains("restoration") || n.Contains("lay on hands")
+                || n.Contains("lay on hands")
                 || n.Contains("channel positive")
                 || n.Contains("wunden") || n.Contains("heilung");  // German fallback
         }
