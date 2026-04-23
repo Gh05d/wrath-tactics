@@ -90,6 +90,10 @@ namespace WrathTactics.Engine {
                     if (available < cost) return false;
                 }
             }
+            if (!ability.IsAvailable) {
+                Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+                return false;
+            }
             return true;
         }
 
@@ -140,6 +144,15 @@ namespace WrathTactics.Engine {
                         return false;
                     }
                 }
+            }
+
+            // Engine-side gate — covers Blueprint.CasterRestrictions (AbilityCasterInCombat et al.),
+            // Blueprint.Restrictions, UnitState.CanCast, TemporarilyDisabled, polymorph rules,
+            // forbidden spellbooks. Without this, an ability the engine would grey out gets queued,
+            // silently dropped post-queue, and blocks fall-through to backup rules.
+            if (!ability.IsAvailable) {
+                Log.Engine.Trace($"CanCastSpell: {owner.CharacterName} {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+                return false;
             }
 
             if (target != null && !ability.CanTarget(new TargetWrapper(target)))
@@ -290,8 +303,12 @@ namespace WrathTactics.Engine {
                             // has ANY level-N slot, even if the specific spell isn't prepared.
                             // GetAvailableForCastSpellCount is the correct per-spell "can I cast
                             // this right now" check (handles prepared + spontaneous uniformly).
-                            if (book.GetAvailableForCastSpellCount(spell) > 0)
-                                heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell)); // highest priority: spellbook spells
+                            if (book.GetAvailableForCastSpellCount(spell) <= 0) continue;
+                            if (!spell.IsAvailable) {
+                                Log.Engine.Trace($"Skipping heal spell {spell.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({spell.GetUnavailableReason()})");
+                                continue;
+                            }
+                            heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell)); // highest priority: spellbook spells
                         }
                     }
                 }
@@ -313,6 +330,17 @@ namespace WrathTactics.Engine {
                     }
                 }
 
+                // Engine-side gate — covers Blueprint.CasterRestrictions (e.g. Prestige Plus'
+                // Auto Heal carrying AbilityCasterInCombat{Not=true}), forbidden spellbooks,
+                // UnitState.CanCast, TemporarilyDisabled. The engine greys the ability out and
+                // would silently drop the command post-queue — without this filter, the Heal
+                // rule picks Auto Heal as the "best" in-combat heal, the cast is dropped, the
+                // rule is marked as fired, and fall-through to backup heals is blocked.
+                if (!ability.Data.IsAvailable) {
+                    Log.Engine.Trace($"Skipping heal ability {ability.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({ability.Data.GetUnavailableReason()})");
+                    continue;
+                }
+
                 heals.Add((ability.Data, 80, null, HealSourceMask.Spell)); // next priority: class features
             }
 
@@ -320,8 +348,12 @@ namespace WrathTactics.Engine {
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
                 if (ability.Data.SourceItem.Charges <= 0) continue;
-                if (IsHealingSpell(ability.Blueprint))
-                    heals.Add((ability.Data, 30, null, HealSourceMask.Spell)); // wands/staves — character-driven
+                if (!IsHealingSpell(ability.Blueprint)) continue;
+                if (!ability.Data.IsAvailable) {
+                    Log.Engine.Trace($"Skipping heal wand {ability.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({ability.Data.GetUnavailableReason()})");
+                    continue;
+                }
+                heals.Add((ability.Data, 30, null, HealSourceMask.Spell)); // wands/staves — character-driven
             }
 
             // Healing potions/scrolls from inventory
@@ -486,8 +518,12 @@ namespace WrathTactics.Engine {
                 var ability = FindAbility(owner, compoundKey);
                 if (ability != null
                     && ability.Spellbook != null
-                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) > 0) {
+                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) > 0
+                    && ability.IsAvailable) {
                     return ability;
+                }
+                if (ability != null && ability.Spellbook != null && !ability.IsAvailable) {
+                    Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
                 }
 
                 // Class ability path (no spellbook, no inventory source, resource-gated).
@@ -495,14 +531,21 @@ namespace WrathTactics.Engine {
                 // those must go through the wand branch below for a proper charge check.
                 if (ability != null && ability.Spellbook == null && ability.SourceItem == null) {
                     var resource = ability.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
-                    if (resource == null || !resource.IsSpendResource) return ability;
-                    var required = (Kingmaker.Blueprints.BlueprintScriptableObject)ability.OverrideRequiredResource
-                        ?? resource.RequiredResource;
-                    if (required == null) return ability;
-                    int available = owner.Resources.GetResourceAmount(required);
-                    int cost = resource.CalculateCost(ability);
-                    if (available >= cost) return ability;
-                    // resource exhausted -> fall through to wand/scroll/potion branches (if enabled by mask)
+                    bool resourceOk = true;
+                    if (resource != null && resource.IsSpendResource) {
+                        var required = (Kingmaker.Blueprints.BlueprintScriptableObject)ability.OverrideRequiredResource
+                            ?? resource.RequiredResource;
+                        if (required != null) {
+                            int available = owner.Resources.GetResourceAmount(required);
+                            int cost = resource.CalculateCost(ability);
+                            if (available < cost) resourceOk = false;
+                        }
+                    }
+                    if (resourceOk) {
+                        if (ability.IsAvailable) return ability;
+                        Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} ability {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+                    }
+                    // resource exhausted or engine-gated -> fall through to wand/scroll/potion branches (if enabled by mask)
                 }
 
                 // 2. Wand in quickslot — search owner.Abilities.RawFacts for an item-backed ability
@@ -515,6 +558,10 @@ namespace WrathTactics.Engine {
                         if (data?.SourceItem == null) continue;
                         if (data.SourceItem.Charges <= 0) continue;
                         if (fact.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                        if (!data.IsAvailable) {
+                            Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} wand {data.Name} engine-unavailable ({data.GetUnavailableReason()})");
+                            continue;
+                        }
                         return data;
                     }
                 }
