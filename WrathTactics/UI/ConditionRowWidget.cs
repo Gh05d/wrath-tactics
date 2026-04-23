@@ -59,7 +59,7 @@ namespace WrathTactics.UI {
 
             // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
             var props = GetPropertiesForSubject(condition.Subject);
-            var propNames = props.Select(p => p.ToString()).ToList();
+            var propNames = props.Select(p => PropertyLabel(p)).ToList();
             int propIdx = props.IndexOf(condition.Property);
             if (propIdx < 0) propIdx = 0;
             propertySelector = PopupSelector.Create(root, "Property", 0.16f, 0.37f,
@@ -115,6 +115,7 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.AC
                     || condition.Property == ConditionProperty.HitDice
                     || condition.Property == ConditionProperty.SpellDCMinusSave
+                    || condition.Property == ConditionProperty.ABMinusAC
                     || condition.Property == ConditionProperty.WithinRange;
 
                 if (propNeedsOperator) {
@@ -317,6 +318,14 @@ namespace WrathTactics.UI {
             });
         }
 
+        static string PropertyLabel(ConditionProperty property) {
+            switch (property) {
+                case ConditionProperty.SpellDCMinusSave: return "DC − Save";
+                case ConditionProperty.ABMinusAC:        return "AB − AC";
+                default:                                 return property.ToString();
+            }
+        }
+
         static List<string> GetValueOptionsForProperty(ConditionProperty property) {
             switch (property) {
                 case ConditionProperty.CreatureType:
@@ -438,6 +447,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
                         ConditionProperty.SpellDCMinusSave,
+                        ConditionProperty.ABMinusAC,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange
                     };
@@ -448,6 +458,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
                         ConditionProperty.SpellDCMinusSave,
+                        ConditionProperty.ABMinusAC,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange
                     };
