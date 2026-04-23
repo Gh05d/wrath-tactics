@@ -277,17 +277,32 @@ namespace WrathTactics.Engine {
                     return ability.Data;
             }
 
-            // 2. Shared inventory — potions and scrolls. Mirrors the FindBestHealEx inventory
-            // scan: synthesize AbilityData bound to the caster's descriptor with the item's
-            // caster/spell-level overrides, return the ItemEntity for post-cast consumption.
+            // 2. Shared inventory — potions first, then scrolls. Mirrors SpellDropdownProvider's
+            // two-pass ordering: a Potion of X and a Scroll of X share an ability GUID, and the
+            // dropdown surfaces the potion variant. The runtime must pick the same source so
+            // the user's "UseItem: Invisibility" rule (labelled "(Potion)") consumes a potion,
+            // not a scroll that happened to appear first in storage order.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory == null) return null;
+            var potion = FindInventoryUsable(inventory, owner, abilityGuid,
+                Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion, out inventorySource);
+            if (potion != null) return potion;
+            return FindInventoryUsable(inventory, owner, abilityGuid,
+                Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll, out inventorySource);
+        }
+
+        static AbilityData FindInventoryUsable(
+            Kingmaker.Items.ItemsCollection inventory,
+            UnitEntityData owner,
+            string abilityGuid,
+            Kingmaker.Blueprints.Items.Equipment.UsableItemType wantedType,
+            out ItemEntity inventorySource) {
+            inventorySource = null;
             foreach (var item in inventory) {
                 if (item == null || item.Count <= 0) continue;
                 var usable = item.Blueprint as Kingmaker.Blueprints.Items.Equipment.BlueprintItemEquipmentUsable;
                 if (usable?.Ability == null) continue;
-                if (usable.Type != Kingmaker.Blueprints.Items.Equipment.UsableItemType.Potion
-                    && usable.Type != Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll) continue;
+                if (usable.Type != wantedType) continue;
                 if (usable.Ability.AssetGuid.ToString() != abilityGuid) continue;
 
                 inventorySource = item;
@@ -296,7 +311,6 @@ namespace WrathTactics.Engine {
                     OverrideSpellLevel = usable.SpellLevel,
                 };
             }
-
             return null;
         }
 

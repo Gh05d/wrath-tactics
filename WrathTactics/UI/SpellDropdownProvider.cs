@@ -255,27 +255,42 @@ namespace WrathTactics.UI {
 
             // 2. Shared-inventory potions/scrolls. These do NOT register as facts on the unit —
             //    Wrath's own inventory-drink flow scans the shared inventory directly.
-            //    Without this branch, UseItem rules could never pick an inventory potion
-            //    (e.g. Potion of Invisibility sitting in the party stash).
+            //
+            //    Two-pass scan: POTIONS first, then scrolls. Potions and scrolls frequently share
+            //    an ability blueprint GUID (Scroll of Invisibility + Potion of Invisibility both
+            //    cast "Invisibility"). Iterating the inventory in storage order would add whichever
+            //    came first and silently dedup the other. Potions are preferred because they don't
+            //    need UMD, don't fail on silenced casters, and are the player's normal consumable
+            //    of choice. ActionValidator.FindUseItemSource uses the same ordering so the
+            //    runtime pick matches the dropdown label.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory != null) {
-                foreach (var item in inventory) {
-                    if (item == null || item.Count <= 0) continue;
-                    var usable = item.Blueprint as BlueprintItemEquipmentUsable;
-                    if (usable?.Ability == null) continue;
-                    if (usable.Type != UsableItemType.Potion && usable.Type != UsableItemType.Scroll) continue;
-
-                    var guid = usable.Ability.AssetGuid.ToString();
-                    if (!seen.Add(guid)) continue;
-
-                    string prefix = usable.Type == UsableItemType.Potion ? "(Potion)" : "(Scroll)";
-                    result.Add(new SpellEntry(
-                        FormatWithInternal($"{usable.Ability.Name} {prefix}", usable.Ability),
-                        guid, usable.Ability.Icon));
-                }
+                EnumerateInventoryByType(inventory, UsableItemType.Potion, "(Potion)", seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Scroll, "(Scroll)", seen, result);
             }
 
             return result.OrderBy(e => e.Name).ToList();
+        }
+
+        static void EnumerateInventoryByType(
+            Kingmaker.Items.ItemsCollection inventory,
+            UsableItemType wantedType,
+            string prefix,
+            HashSet<string> seen,
+            List<SpellEntry> result) {
+            foreach (var item in inventory) {
+                if (item == null || item.Count <= 0) continue;
+                var usable = item.Blueprint as BlueprintItemEquipmentUsable;
+                if (usable?.Ability == null) continue;
+                if (usable.Type != wantedType) continue;
+
+                var guid = usable.Ability.AssetGuid.ToString();
+                if (!seen.Add(guid)) continue;
+
+                result.Add(new SpellEntry(
+                    FormatWithInternal($"{usable.Ability.Name} {prefix}", usable.Ability),
+                    guid, usable.Ability.Icon));
+            }
         }
     }
 }
