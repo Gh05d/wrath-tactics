@@ -140,6 +140,11 @@ namespace WrathTactics.UI {
 
             return inputField;
         }
+
+        public static bool StringMatchesFilter(string name, string query) {
+            if (string.IsNullOrWhiteSpace(query)) return true;
+            return (name ?? "").IndexOf(query, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 
     /// <summary>
