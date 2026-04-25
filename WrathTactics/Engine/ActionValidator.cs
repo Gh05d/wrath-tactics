@@ -12,6 +12,37 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class ActionValidator {
+        /// <summary>
+        /// True when positive energy damages and negative energy heals this unit. Matches
+        /// Vollform-Untote via Blueprint.Type ("UndeadType") plus Dhampir / NegativeEnergyAffinity
+        /// race-features by blueprint-name. Conservative: defaults false on null/unknown.
+        /// </summary>
+        public static bool IsNegativeEnergyAffine(UnitEntityData unit) {
+            var d = unit?.Descriptor;
+            if (d == null) return false;
+
+            // Source 1: Blueprint.Type (Lich-MC post-Ascension, vampire companions, undead summons).
+            // Mirrors the substring-match pattern used by ConditionEvaluator.CheckCreatureType.
+            string bpTypeName = d.Blueprint?.Type?.name?.ToLowerInvariant() ?? "";
+            if (bpTypeName.Contains("undead")) return true;
+
+            // Source 2: race / feature blueprint name (mod-added Dhampir races, mid-Lich-Ascension
+            // transition buffs that flip affinity before Type-switch). Substring is intentionally
+            // narrow — exact-name "NegativeEnergyAffinity" / "Dhampir" Owlcat-style identifiers.
+            var progression = d.Progression;
+            if (progression?.Features != null) {
+                foreach (var fact in progression.Features.Enumerable) {
+                    var fname = fact?.Blueprint?.name ?? "";
+                    if (fname.IndexOf("NegativeEnergyAffinity", System.StringComparison.OrdinalIgnoreCase) >= 0
+                     || fname.IndexOf("Dhampir", System.StringComparison.OrdinalIgnoreCase) >= 0) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public static bool CanExecute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
             if (!target.IsValid && RequiresValidTarget(action.Type))
                 return false;
