@@ -40,6 +40,7 @@ namespace WrathTactics.Models {
         [JsonProperty] public List<string> FallbackAbilityIds { get; set; } = new();
         [JsonProperty] public HealMode HealMode { get; set; } = HealMode.Any;
         [JsonProperty] public HealSourceMask HealSources { get; set; } = HealSourceMask.All;
+        [JsonProperty] public HealEnergyType HealEnergy { get; set; } = HealEnergyType.Auto;
         [JsonProperty] public SpellSourceMask Sources { get; set; } = SpellSourceMask.All;
         [JsonProperty] public ThrowSplashMode SplashMode { get; set; } = ThrowSplashMode.Any;
         [JsonProperty] public ToggleMode ToggleMode { get; set; } = ToggleMode.On;

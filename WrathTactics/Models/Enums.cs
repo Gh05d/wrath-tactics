@@ -72,6 +72,20 @@ namespace WrathTactics.Models {
     }
 
     /// <summary>
+    /// Pin for the Heal action. Auto detects via target's NegativeEnergyAffinity / CreatureType
+    /// and picks Cure (living) or Inflict/Harm (undead) accordingly. Positive / Negative force
+    /// a specific energy type regardless of target — power-user override.
+    ///
+    /// Newtonsoft serialises numeric indices. Auto MUST stay at index 0 so missing JSON fields
+    /// deserialise as Auto on legacy configs. Append new values at the END only.
+    /// </summary>
+    public enum HealEnergyType {
+        Auto,       // Detect via target's NegativeEnergyAffinity / CreatureType (default)
+        Positive,   // Force Cure / Heal / Channel-Positive only
+        Negative    // Force Inflict / Harm / Channel-Negative only
+    }
+
+    /// <summary>
     /// Which classes of heal source the engine may draw from. Flag-based so combinations
     /// (e.g. Spell+Potion to skip scrolls when UMD is bad) are expressible. Default is All.
     /// Spell covers spellbook casts, class abilities (Channel, Lay on Hands), and wands/staves.
