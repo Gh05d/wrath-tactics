@@ -391,14 +391,29 @@ namespace WrathTactics.UI {
         }
 
         void SetupSpellSelector(GameObject row) {
-            // For Heal action, show HealMode + HealSources selectors instead of spell picker
+            // For Heal action, show HealMode + HealEnergy + HealSources selectors instead of
+            // a spell picker. Three slots across the action row: Mode (0.39-0.50),
+            // Energy (0.51-0.65), Sources (0.66-0.88).
             if (rule.Action.Type == ActionType.Heal) {
                 var healModeNames = Enum.GetNames(typeof(HealMode)).ToList();
-                PopupSelector.Create(row, "HealMode", 0.39f, 0.53f, healModeNames,
+                PopupSelector.Create(row, "HealMode", 0.39f, 0.50f, healModeNames,
                     (int)rule.Action.HealMode, idx => {
                         rule.Action.HealMode = (HealMode)idx;
                         PersistEdit();
                     });
+
+                // Energy pin: Auto (default) / Positive / Negative. None is a ClassifyHeal
+                // sentinel and intentionally omitted from the dropdown.
+                var energyValues = new List<HealEnergyType> {
+                    HealEnergyType.Auto, HealEnergyType.Positive, HealEnergyType.Negative,
+                };
+                var energyLabels = new List<string> { "Auto", "Positive", "Negative" };
+                int energyIdx = energyValues.IndexOf(rule.Action.HealEnergy);
+                if (energyIdx < 0) energyIdx = 0;
+                PopupSelector.Create(row, "HealEnergy", 0.51f, 0.65f, energyLabels, energyIdx, idx => {
+                    rule.Action.HealEnergy = energyValues[idx];
+                    PersistEdit();
+                });
 
                 // Source mask selector — 7 curated combinations (2^3 - "None" sentinel).
                 var sourceLabels = new List<string> {
@@ -416,7 +431,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.HealSources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "HealSources", 0.54f, 0.88f, sourceLabels, srcIdx, idx => {
+                PopupSelector.Create(row, "HealSources", 0.66f, 0.88f, sourceLabels, srcIdx, idx => {
                     rule.Action.HealSources = sourceValues[idx];
                     PersistEdit();
                 });
