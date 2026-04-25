@@ -82,7 +82,8 @@ namespace WrathTactics.Models {
     public enum HealEnergyType {
         Auto,       // Detect via target's NegativeEnergyAffinity / CreatureType (default)
         Positive,   // Force Cure / Heal / Channel-Positive only
-        Negative    // Force Inflict / Harm / Channel-Negative only
+        Negative,   // Force Inflict / Harm / Channel-Negative only
+        None        // Sentinel returned by ClassifyHeal for non-heal blueprints (never persisted)
     }
 
     /// <summary>

@@ -393,7 +393,7 @@ namespace WrathTactics.Engine {
                 int maxLevel = book.MaxSpellLevel;
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        if (IsHealingSpell(spell.Blueprint)) {
+                        if (ClassifyHeal(spell.Blueprint) != HealEnergyType.None) {
                             // GetSpellsPerDay is MAX capacity — always positive for a caster who
                             // has ANY level-N slot, even if the specific spell isn't prepared.
                             // GetAvailableForCastSpellCount is the correct per-spell "can I cast
@@ -413,7 +413,7 @@ namespace WrathTactics.Engine {
             // Must check resource availability — some abilities are per-day
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
-                if (!IsHealingSpell(ability.Blueprint)) continue;
+                if (ClassifyHeal(ability.Blueprint) == HealEnergyType.None) continue;
 
                 // Check resource cost — skip if no uses left
                 var resource = ability.Data.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
@@ -443,7 +443,7 @@ namespace WrathTactics.Engine {
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
                 if (ability.Data.SourceItem.Charges <= 0) continue;
-                if (!IsHealingSpell(ability.Blueprint)) continue;
+                if (ClassifyHeal(ability.Blueprint) == HealEnergyType.None) continue;
                 if (!ability.Data.IsAvailable) {
                     Log.Engine.Trace($"Skipping heal wand {ability.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({ability.Data.GetUnavailableReason()})");
                     continue;
@@ -467,7 +467,7 @@ namespace WrathTactics.Engine {
                     invUsable++;
                     string itemName = item.Blueprint.name ?? "?";
                     string abilityName = usable.Ability.Name ?? usable.Ability.name ?? "?";
-                    if (!IsHealingSpell(usable.Ability)) {
+                    if (ClassifyHeal(usable.Ability) == HealEnergyType.None) {
                         Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): NOT a healing spell");
                         continue;
                     }
@@ -747,27 +747,50 @@ namespace WrathTactics.Engine {
             return false;
         }
 
-        static bool IsHealingSpell(BlueprintAbility blueprint) {
-            if (blueprint == null) return false;
-            // Check both display name (localized) and internal blueprint name (English)
-            string displayName = (blueprint.Name ?? "").ToLowerInvariant();
-            string internalName = (blueprint.name ?? "").ToLowerInvariant();
-            return MatchesHealKeyword(displayName) || MatchesHealKeyword(internalName);
+        /// <summary>
+        /// Classifies a heal blueprint by energy type. Returns None for non-heal spells.
+        /// Keyword-based; matches both internal (English, stable) name and localised display
+        /// name. The German tables disambiguate "Wunden heilen" (Cure) vs "Wunden zufügen"
+        /// (Inflict) — the bare "wunden" in 1.2.0 was harmless because Inflict was never
+        /// searched; with Negative-energy detection added, the substring is replaced by the
+        /// full bigram in each table.
+        /// </summary>
+        static HealEnergyType ClassifyHeal(BlueprintAbility blueprint) {
+            if (blueprint == null) return HealEnergyType.None;
+            string n = (blueprint.name ?? "").ToLowerInvariant();
+            string d = (blueprint.Name ?? "").ToLowerInvariant();
+
+            // Negative first: defence-in-depth against future Positive-keyword changes that
+            // might overlap (e.g. "channel" alone). The current Positive table requires
+            // "channel positive" specifically, but ordering keeps results stable on edits.
+            if (MatchesNegativeKeyword(n) || MatchesNegativeKeyword(d)) return HealEnergyType.Negative;
+            if (MatchesPositiveKeyword(n) || MatchesPositiveKeyword(d)) return HealEnergyType.Positive;
+            return HealEnergyType.None;
         }
 
-        static bool MatchesHealKeyword(string n) {
-            // "restoration" is intentionally NOT here: Lesser/Normal/Greater Restoration
-            // remove ability damage, drain, and negative levels — they do NOT restore HP.
-            // Including them made the Heal action burn 300-900g Restoration scrolls on a
-            // low-HP ally, then fall through with no actual HP recovered.
-            // Known imprecision that's kept for now: "cure" matches Cure Disease / Cure
-            // Deafness scrolls too; these are rare in typical inventories and the UMD
-            // gate limits most mis-casts. A component-based check (look for
-            // ContextActionHealTarget) would be more correct but is out of scope here.
-            return n.Contains("cure") || n.Contains("heal")
+        static bool MatchesPositiveKeyword(string n) {
+            // "restoration" intentionally excluded — Lesser/Normal/Greater Restoration remove
+            // ability damage / drain / negative levels but do NOT restore HP. Including them
+            // made the Heal action burn 300-900g Restoration scrolls on a low-HP ally.
+            // Known imprecision: "cure" matches Cure Disease / Cure Deafness / Neutralize
+            // Poison — these are rare in typical inventories and the UMD gate limits mis-casts.
+            return n.Contains("cure")
+                || n.Contains("heal")
                 || n.Contains("lay on hands")
                 || n.Contains("channel positive")
-                || n.Contains("wunden") || n.Contains("heilung");  // German fallback
+                // German display names — "wunden heilen" disambiguates from "wunden zufügen"
+                || n.Contains("wunden heilen")
+                || n.Contains("heilung")
+                || n.Contains("auflegen");
+        }
+
+        static bool MatchesNegativeKeyword(string n) {
+            return n.Contains("inflict")
+                || n.Contains("harm")
+                || n.Contains("channel negative")
+                // German display names
+                || n.Contains("wunden zufügen")
+                || n.Contains("negative energie");
         }
     }
 }
