@@ -190,7 +190,15 @@ namespace WrathTactics.Engine {
 
         static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
             ItemEntity inventorySource;
-            var ability = ActionValidator.FindBestHealEx(owner, action.HealMode, action.HealSources, out inventorySource);
+            // target ?? owner: mirror the TargetWrapper fallback below for self-heal-on-no-target.
+            // Auto-mode in FindBestHealEx checks the resolved unit for negative-energy affinity.
+            var ability = ActionValidator.FindBestHealEx(
+                owner,
+                target ?? owner,
+                action.HealMode,
+                action.HealSources,
+                action.HealEnergy,
+                out inventorySource);
             if (ability == null) {
                 Log.Engine.Warn($"FindBestHeal returned null for {owner.CharacterName}");
                 return false;

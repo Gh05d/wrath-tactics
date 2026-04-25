@@ -85,7 +85,9 @@ namespace WrathTactics.Engine {
                 case ActionType.AttackTarget:
                     return unit != null && unit.HPLeft > 0;
                 case ActionType.Heal:
-                    return FindBestHeal(owner, action.HealMode, action.HealSources) != null;
+                    // Self-heal when no explicit target is resolved — mirrors ExecuteHeal's
+                    // `target ?? owner` fallback. Auto-mode reads the unit for affinity check.
+                    return FindBestHeal(owner, unit ?? owner, action.HealMode, action.HealSources, action.HealEnergy) != null;
                 case ActionType.ThrowSplash:
                     return unit != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.DoNothing:
@@ -367,8 +369,13 @@ namespace WrathTactics.Engine {
                 .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid);
         }
 
-        public static AbilityData FindBestHeal(UnitEntityData owner, HealMode mode = HealMode.Any, HealSourceMask sources = HealSourceMask.All) {
-            return FindBestHealEx(owner, mode, sources, out _);
+        public static AbilityData FindBestHeal(
+            UnitEntityData owner,
+            UnitEntityData target,
+            HealMode mode = HealMode.Any,
+            HealSourceMask sources = HealSourceMask.All,
+            HealEnergyType pin = HealEnergyType.Auto) {
+            return FindBestHealEx(owner, target, mode, sources, pin, out _);
         }
 
         /// <summary>
@@ -377,23 +384,43 @@ namespace WrathTactics.Engine {
         /// consume the item via Inventory.Remove after casting — synthesized AbilityData
         /// from inventory doesn't auto-consume through Rulebook.Trigger.
         ///
+        /// `target` drives Auto-mode energy detection (undead → Negative, else Positive).
+        /// `pin` overrides the auto-pick: Positive / Negative force a specific energy type
+        /// regardless of target affinity (power-user override; null result if no match).
         /// `sources` masks which classes of heal are eligible. Spell covers spellbook casts,
         /// class abilities, and wand/staff activations (all character-driven). Scroll and
         /// Potion are inventory consumables. Default All keeps the legacy behaviour.
         /// </summary>
-        public static AbilityData FindBestHealEx(UnitEntityData owner, HealMode mode, HealSourceMask sources, out ItemEntity inventorySource) {
+        public static AbilityData FindBestHealEx(
+            UnitEntityData owner,
+            UnitEntityData target,
+            HealMode mode,
+            HealSourceMask sources,
+            HealEnergyType pin,
+            out ItemEntity inventorySource) {
             inventorySource = null;
             var heals = new List<(AbilityData ability, int priority, ItemEntity source, HealSourceMask category)>();
             bool wantSpell  = (sources & HealSourceMask.Spell)  != 0;
             bool wantScroll = (sources & HealSourceMask.Scroll) != 0;
             bool wantPotion = (sources & HealSourceMask.Potion) != 0;
 
+            // Resolve required energy once per call. Auto mode reads target affinity; Positive
+            // / Negative pins ignore the target check (user-explicit override, no safety-net).
+            HealEnergyType requiredEnergy =
+                pin == HealEnergyType.Positive ? HealEnergyType.Positive
+                : pin == HealEnergyType.Negative ? HealEnergyType.Negative
+                : (IsNegativeEnergyAffine(target) ? HealEnergyType.Negative : HealEnergyType.Positive);
+
+            // Local helper — "is this candidate's energy type acceptable for this rule?"
+            // Returns false for None (non-heal blueprints) and for the wrong energy type.
+            bool MatchesEnergy(BlueprintAbility bp) => ClassifyHeal(bp) == requiredEnergy;
+
             // Search spellbooks for cure/heal spells
             if (wantSpell) foreach (var book in owner.Spellbooks) {
                 int maxLevel = book.MaxSpellLevel;
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        if (ClassifyHeal(spell.Blueprint) != HealEnergyType.None) {
+                        if (MatchesEnergy(spell.Blueprint)) {
                             // GetSpellsPerDay is MAX capacity — always positive for a caster who
                             // has ANY level-N slot, even if the specific spell isn't prepared.
                             // GetAvailableForCastSpellCount is the correct per-spell "can I cast
@@ -413,7 +440,7 @@ namespace WrathTactics.Engine {
             // Must check resource availability — some abilities are per-day
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
-                if (ClassifyHeal(ability.Blueprint) == HealEnergyType.None) continue;
+                if (!MatchesEnergy(ability.Blueprint)) continue;
 
                 // Check resource cost — skip if no uses left
                 var resource = ability.Data.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
@@ -443,7 +470,7 @@ namespace WrathTactics.Engine {
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
                 if (ability.Data.SourceItem.Charges <= 0) continue;
-                if (ClassifyHeal(ability.Blueprint) == HealEnergyType.None) continue;
+                if (!MatchesEnergy(ability.Blueprint)) continue;
                 if (!ability.Data.IsAvailable) {
                     Log.Engine.Trace($"Skipping heal wand {ability.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({ability.Data.GetUnavailableReason()})");
                     continue;
@@ -467,8 +494,8 @@ namespace WrathTactics.Engine {
                     invUsable++;
                     string itemName = item.Blueprint.name ?? "?";
                     string abilityName = usable.Ability.Name ?? usable.Ability.name ?? "?";
-                    if (ClassifyHeal(usable.Ability) == HealEnergyType.None) {
-                        Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): NOT a healing spell");
+                    if (!MatchesEnergy(usable.Ability)) {
+                        Log.Engine.Trace($"  inventory item {itemName} (ability '{abilityName}'): wrong energy type for required {requiredEnergy}");
                         continue;
                     }
                     invHealing++;
