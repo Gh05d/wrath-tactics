@@ -16,6 +16,8 @@ namespace WrathTactics.Engine {
     /// match neither and are intentionally out of scope — see spec.
     /// </summary>
     internal static class TargetingRelations {
+        /// <param name="attacker">The unit whose active command and engagement state are inspected.</param>
+        /// <param name="victim">The unit being tested as the target of that command/engagement.</param>
         public static bool Has(UnitEntityData attacker, UnitEntityData victim) {
             if (attacker == null || victim == null || attacker == victim)
                 return false;
