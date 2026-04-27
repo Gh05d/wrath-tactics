@@ -579,6 +579,22 @@ namespace WrathTactics.Engine {
                     return EqualsBool(match, condition);
                 }
 
+                case ConditionProperty.IsTargetedByEnemy: {
+                    if (!IsAllyScope(condition.Subject)) {
+                        Log.Engine.Trace($"IsTargetedByEnemy: subject {condition.Subject} is not Ally-scope, returning false");
+                        return false;
+                    }
+                    bool match = false;
+                    foreach (var enemy in GetVisibleEnemies(CurrentOwner)) {
+                        if (TargetingRelations.Has(enemy, unit)) {
+                            Log.Engine.Trace($"IsTargetedByEnemy: {enemy.CharacterName} targets {unit?.CharacterName}");
+                            match = true;
+                            break;
+                        }
+                    }
+                    return EqualsBool(match, condition);
+                }
+
                 case ConditionProperty.IsDead: {
                     // Value is the "true"/"false" payload written by the Yes/No dropdown.
                     // UnitState.IsDead is just LifeState==Dead — set in-combat when a companion
