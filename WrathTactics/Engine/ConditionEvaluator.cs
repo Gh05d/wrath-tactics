@@ -604,9 +604,7 @@ namespace WrathTactics.Engine {
                     // is the persisted flag the game pairs with CompanionState.Dead for the
                     // greyed-portrait / permadeath state that genuinely needs resurrection.
                     bool isDead = unit.Descriptor?.State?.IsFinallyDead ?? false;
-                    bool wantDead = ParseBoolValue(condition.Value);
-                    bool match = isDead == wantDead;
-                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                    return EqualsBool(isDead, condition);
                 }
 
                 case ConditionProperty.HasBuff: {

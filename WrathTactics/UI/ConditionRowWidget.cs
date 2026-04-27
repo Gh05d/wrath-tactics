@@ -185,7 +185,9 @@ namespace WrathTactics.UI {
                         });
                     }
                 } else {
-                    // IsDead — fall back to text input
+                    // Bool / free-text props (IsDead, IsInCombat etc.) on count subjects:
+                    // fall back to a plain text input — the count path doesn't render a
+                    // Yes/No dropdown here, so users type "true"/"false" directly.
                     condition.Operator = ConditionOperator.Equal;
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
                         0.58, 0.88, condition.Value ?? "", 16f);
