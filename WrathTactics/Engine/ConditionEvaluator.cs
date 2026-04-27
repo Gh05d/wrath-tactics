@@ -478,6 +478,15 @@ namespace WrathTactics.Engine {
             }
         }
 
+        // Compares an actual boolean against the condition's Yes/No value, honoring the
+        // Equal/NotEqual operator. Used by all bool-valued properties (IsDead, IsInCombat,
+        // IsTargetingSelf/Ally, IsTargetedByAlly/Enemy).
+        static bool EqualsBool(bool actual, Condition c) {
+            bool wanted = ParseBoolValue(c.Value);
+            bool match = actual == wanted;
+            return c.Operator == ConditionOperator.NotEqual ? !match : match;
+        }
+
         static bool EvaluateUnitProperty(Condition condition, UnitEntityData unit) {
             float threshold;
             float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
@@ -520,6 +529,16 @@ namespace WrathTactics.Engine {
                     float margin = ComputeABMinusAC(unit);
                     if (float.IsNaN(margin)) return false;
                     return CompareFloat(margin, condition.Operator, threshold);
+                }
+
+                case ConditionProperty.IsTargetingSelf: {
+                    if (!IsEnemyScope(condition.Subject)) {
+                        Log.Engine.Trace($"IsTargetingSelf: subject {condition.Subject} not Enemy-scope, returning false");
+                        return false;
+                    }
+                    bool match = TargetingRelations.Has(unit, CurrentOwner);
+                    Log.Engine.Trace($"IsTargetingSelf: {unit?.CharacterName} targets {CurrentOwner?.CharacterName}? {match}");
+                    return EqualsBool(match, condition);
                 }
 
                 case ConditionProperty.IsDead: {
