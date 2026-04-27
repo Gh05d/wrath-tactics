@@ -541,6 +541,44 @@ namespace WrathTactics.Engine {
                     return EqualsBool(match, condition);
                 }
 
+                case ConditionProperty.IsTargetingAlly: {
+                    if (!IsEnemyScope(condition.Subject)) {
+                        Log.Engine.Trace($"IsTargetingAlly: subject {condition.Subject} is not Enemy-scope, returning false");
+                        return false;
+                    }
+                    bool match = false;
+                    foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
+                        if (ally == null || ally == CurrentOwner) continue;
+                        if (!ally.IsInGame) continue;
+                        if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+                        if (TargetingRelations.Has(unit, ally)) {
+                            Log.Engine.Trace($"IsTargetingAlly: {unit?.CharacterName} targets {ally.CharacterName}");
+                            match = true;
+                            break;
+                        }
+                    }
+                    return EqualsBool(match, condition);
+                }
+
+                case ConditionProperty.IsTargetedByAlly: {
+                    if (!IsEnemyScope(condition.Subject)) {
+                        Log.Engine.Trace($"IsTargetedByAlly: subject {condition.Subject} is not Enemy-scope, returning false");
+                        return false;
+                    }
+                    bool match = false;
+                    foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
+                        if (ally == null || ally == CurrentOwner) continue;
+                        if (!ally.IsInGame) continue;
+                        if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+                        if (TargetingRelations.Has(ally, unit)) {
+                            Log.Engine.Trace($"IsTargetedByAlly: {ally.CharacterName} targets {unit?.CharacterName}");
+                            match = true;
+                            break;
+                        }
+                    }
+                    return EqualsBool(match, condition);
+                }
+
                 case ConditionProperty.IsDead: {
                     // Value is the "true"/"false" payload written by the Yes/No dropdown.
                     // UnitState.IsDead is just LifeState==Dead — set in-combat when a companion
