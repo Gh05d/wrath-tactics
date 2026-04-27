@@ -533,7 +533,7 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.IsTargetingSelf: {
                     if (!IsEnemyScope(condition.Subject)) {
-                        Log.Engine.Trace($"IsTargetingSelf: subject {condition.Subject} not Enemy-scope, returning false");
+                        Log.Engine.Trace($"IsTargetingSelf: subject {condition.Subject} is not Enemy-scope, returning false");
                         return false;
                     }
                     bool match = TargetingRelations.Has(unit, CurrentOwner);
