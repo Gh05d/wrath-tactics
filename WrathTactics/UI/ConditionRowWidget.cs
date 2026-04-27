@@ -198,13 +198,16 @@ namespace WrathTactics.UI {
                 bool isCreatureType = condition.Property == ConditionProperty.CreatureType;
                 bool isAlignment = condition.Property == ConditionProperty.Alignment;
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
-                bool isInCombat = condition.Property == ConditionProperty.IsInCombat;
-                bool isIsDead = condition.Property == ConditionProperty.IsDead;
                 bool isHasClass = condition.Property == ConditionProperty.HasClass;
                 bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
                 bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
-                bool isBoolProp = isInCombat || isIsDead;
-                bool needsOperator = !usesEqOp && !isBoolProp;
+                bool isBoolProperty = condition.Property == ConditionProperty.IsDead
+                    || condition.Property == ConditionProperty.IsInCombat
+                    || condition.Property == ConditionProperty.IsTargetingSelf
+                    || condition.Property == ConditionProperty.IsTargetingAlly
+                    || condition.Property == ConditionProperty.IsTargetedByAlly
+                    || condition.Property == ConditionProperty.IsTargetedByEnemy;
+                bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector
                 if (needsOperator) {
@@ -278,14 +281,13 @@ namespace WrathTactics.UI {
                         condition.Value = bracketNames[v];
                         onChanged?.Invoke();
                     });
-                } else if (isBoolProp) {
+                } else if (isBoolProperty) {
                     var yesNo = new List<string> { "Yes", "No" };
                     // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
                     if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
-                    string widgetName = isIsDead ? "IsDeadValue" : "IsInCombatValue";
-                    PopupSelector.Create(root, widgetName, 0.38f, 0.88f, yesNo, yIdx, v => {
+                    PopupSelector.Create(root, "BoolPropertyValue", 0.38f, 0.88f, yesNo, yIdx, v => {
                         condition.Value = v == 0 ? "true" : "false";
                         onChanged?.Invoke();
                     });
@@ -320,9 +322,13 @@ namespace WrathTactics.UI {
 
         static string PropertyLabel(ConditionProperty property) {
             switch (property) {
-                case ConditionProperty.SpellDCMinusSave: return "DC − Save";
-                case ConditionProperty.ABMinusAC:        return "AB − AC";
-                default:                                 return property.ToString();
+                case ConditionProperty.SpellDCMinusSave:    return "DC − Save";
+                case ConditionProperty.ABMinusAC:           return "AB − AC";
+                case ConditionProperty.IsTargetingSelf:     return "Targeting me";
+                case ConditionProperty.IsTargetingAlly:     return "Targeting ally";
+                case ConditionProperty.IsTargetedByAlly:    return "Targeted by ally";
+                case ConditionProperty.IsTargetedByEnemy:   return "Targeted by enemy";
+                default:                                    return property.ToString();
             }
         }
 
@@ -414,7 +420,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
-                        ConditionProperty.WithinRange
+                        ConditionProperty.WithinRange,
+                        ConditionProperty.IsTargetedByEnemy
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
@@ -449,7 +456,10 @@ namespace WrathTactics.UI {
                         ConditionProperty.SpellDCMinusSave,
                         ConditionProperty.ABMinusAC,
                         ConditionProperty.HasClass,
-                        ConditionProperty.WithinRange
+                        ConditionProperty.WithinRange,
+                        ConditionProperty.IsTargetingSelf,
+                        ConditionProperty.IsTargetingAlly,
+                        ConditionProperty.IsTargetedByAlly
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
