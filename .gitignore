@@ -6,3 +6,6 @@ deploy.sh
 *.user
 *.suo
 .vs/
+
+# codegraph index (per-machine, regenerable)
+.codegraph/
