@@ -35,7 +35,7 @@ namespace WrathTactics.Engine {
                 Log.Engine.Info("Combat started");
                 // Log party composition once per combat for diagnostics
                 var partyNames = new List<string>();
-                foreach (var u in Game.Instance.Player.Party) {
+                foreach (var u in Game.Instance.Player.PartyAndPets) {
                     partyNames.Add($"{u.CharacterName}({u.UniqueId}) inGame={u.IsInGame}");
                 }
                 Log.Engine.Info($"Combat party: {string.Join(", ", partyNames)}");
@@ -48,7 +48,7 @@ namespace WrathTactics.Engine {
 
             tickCounter++;
             int evaluableUnits = 0;
-            foreach (var u in Game.Instance.Player.Party) {
+            foreach (var u in Game.Instance.Player.PartyAndPets) {
                 if (u.IsInGame && u.HPLeft > 0) evaluableUnits++;
             }
             Log.Engine.Trace($"Tick #{tickCounter} gameTime={gameTimeSec:F1}s evaluable={evaluableUnits}");
@@ -56,7 +56,7 @@ namespace WrathTactics.Engine {
             // Skip if BubbleBuffs is currently executing
             if (BubbleBuffsCompat.IsExecuting()) return;
 
-            foreach (var unit in Game.Instance.Player.Party) {
+            foreach (var unit in Game.Instance.Player.PartyAndPets) {
                 if (!unit.IsInGame || unit.HPLeft <= 0) continue;
                 if (!config.IsEnabled(unit.UniqueId)) continue;
                 EvaluateUnit(unit, config, gameTimeSec);
@@ -130,7 +130,7 @@ namespace WrathTactics.Engine {
             var config = ConfigManager.Current;
             ConditionEvaluator.IsPostCombatPass = true;
             try {
-                foreach (var unit in Game.Instance.Player.Party) {
+                foreach (var unit in Game.Instance.Player.PartyAndPets) {
                     if (!unit.IsInGame || unit.HPLeft <= 0) continue;
                     if (!config.IsEnabled(unit.UniqueId)) continue;
 

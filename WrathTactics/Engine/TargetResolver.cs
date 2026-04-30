@@ -205,7 +205,7 @@ namespace WrathTactics.Engine {
         }
 
         static IEnumerable<UnitEntityData> GetAllies(UnitEntityData owner) {
-            return Game.Instance.Player.Party.Where(u => u.IsInGame);
+            return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame);
         }
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {

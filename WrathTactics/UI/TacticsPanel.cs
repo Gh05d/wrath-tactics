@@ -129,9 +129,9 @@ namespace WrathTactics.UI {
             // Global tab
             AddTab(tabBarTransform.gameObject, "Global", null, () => SelectTab(null));
 
-            // Party member tabs
-            if (Game.Instance?.Player?.Party != null) {
-                foreach (var unit in Game.Instance.Player.Party) {
+            // Party member + pet tabs
+            if (Game.Instance?.Player?.PartyAndPets != null) {
+                foreach (var unit in Game.Instance.Player.PartyAndPets) {
                     if (!unit.IsInGame) continue;
                     var uid = unit.UniqueId;
                     AddTab(tabBarTransform.gameObject, unit.CharacterName, uid, () => SelectTab(uid));
@@ -462,8 +462,8 @@ namespace WrathTactics.UI {
         }
 
         string GetCharacterName(string unitId) {
-            if (Game.Instance?.Player?.Party == null) return unitId;
-            foreach (var unit in Game.Instance.Player.Party) {
+            if (Game.Instance?.Player?.PartyAndPets == null) return unitId;
+            foreach (var unit in Game.Instance.Player.PartyAndPets) {
                 if (unit.UniqueId == unitId) return unit.CharacterName;
             }
             return unitId;

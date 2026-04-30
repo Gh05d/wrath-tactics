@@ -948,11 +948,11 @@ namespace WrathTactics.Engine {
         }
 
         static IEnumerable<UnitEntityData> GetLivingPartyMembers(UnitEntityData owner) {
-            return Game.Instance.Player.Party.Where(u => u.IsInGame && u.HPLeft > 0);
+            return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame && u.HPLeft > 0);
         }
 
         static IEnumerable<UnitEntityData> GetAllPartyMembers(UnitEntityData owner) {
-            return Game.Instance.Player.Party.Where(u => u.IsInGame);
+            return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame);
         }
 
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
