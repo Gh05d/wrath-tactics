@@ -85,6 +85,7 @@ namespace WrathTactics.Engine {
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
+                PlayerCommandGuard.Track(owner, command);
                 string tgtDesc = target.IsPoint
                     ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
                     : (target.Unit?.CharacterName ?? "self");
@@ -115,6 +116,7 @@ namespace WrathTactics.Engine {
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
+                PlayerCommandGuard.Track(owner, command);
                 string tgtDesc = target.IsPoint
                     ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
                     : (target.Unit?.CharacterName ?? "self");
@@ -165,6 +167,7 @@ namespace WrathTactics.Engine {
             }
 
             owner.Commands.Run(command);
+            PlayerCommandGuard.Track(owner, command);
             Log.Engine.Info($"Queued item use on {owner.CharacterName}");
             return true;
         }
@@ -228,6 +231,7 @@ namespace WrathTactics.Engine {
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
                 owner.Commands.Run(command);
+                PlayerCommandGuard.Track(owner, command);
                 Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             }
@@ -301,6 +305,7 @@ namespace WrathTactics.Engine {
 
             var command = new UnitAttack(target, null);
             owner.Commands.Run(command);
+            PlayerCommandGuard.Track(owner, command);
             Log.Engine.Info($"Queued attack on {owner.CharacterName} -> {target.CharacterName}");
             return true;
         }

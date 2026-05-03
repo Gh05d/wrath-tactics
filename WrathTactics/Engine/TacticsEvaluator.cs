@@ -24,6 +24,7 @@ namespace WrathTactics.Engine {
                     wasInCombat = false;
                     RunPostCombatCleanup(gameTimeSec);
                     cooldowns.Clear();
+                    PlayerCommandGuard.Reset();
                     Log.Engine.Info("Combat ended, post-combat cleanup ran, cooldowns cleared");
                 }
                 return;
@@ -32,6 +33,7 @@ namespace WrathTactics.Engine {
             if (!wasInCombat) {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
+                PlayerCommandGuard.Reset();
                 Log.Engine.Info("Combat started");
                 // Log party composition once per combat for diagnostics
                 var partyNames = new List<string>();
@@ -64,9 +66,13 @@ namespace WrathTactics.Engine {
         }
 
         static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec) {
-            // No command check — let the game's command system handle conflicts.
-            // Our cooldown system (1 round = 6s) prevents spam.
-            // BubbleBuffs also queues commands without checking.
+            // Skip if a player- (or other-mod-) issued command is currently running. Our own
+            // tactics commands stay in the tracked set and don't block — self-interruption
+            // when a higher-priority rule matches mid-cast is intentional (DAO semantics).
+            if (PlayerCommandGuard.HasForeignActiveCommand(unit)) {
+                Log.Engine.Trace($"  Skip {unit.CharacterName}: player/foreign command active");
+                return;
+            }
 
             Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId})");
 
