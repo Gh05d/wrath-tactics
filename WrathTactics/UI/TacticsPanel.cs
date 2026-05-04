@@ -474,8 +474,13 @@ namespace WrathTactics.UI {
         float hudButtonRetrySeconds;
 
         void Update() {
-            // Re-create button if it was destroyed (e.g. by BubbleBuffs rebuilding its root on area load)
-            bool needsButton = hudButton == null || !hudButton.activeInHierarchy;
+            // Re-create only when the button was actually destroyed (BubbleBuffs rebuilds its
+            // root on area load and our child gets torn down with it). DO NOT recreate on
+            // !activeInHierarchy: dialog scenes deactivate the HUD parent briefly, and the
+            // per-frame destroy+reparent cycle leaves the button at a transient layout state
+            // — observed mid-screen over dialog text. Unity's destroyed-object equality
+            // covers the BB-rebuild teardown case.
+            bool needsButton = hudButton == null;
             if (needsButton && Game.Instance?.UI?.Canvas != null) {
                 hudButtonRetrySeconds += Time.deltaTime;
                 var canvas = Game.Instance.UI.Canvas.transform;
