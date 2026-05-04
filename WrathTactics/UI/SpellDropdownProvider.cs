@@ -6,6 +6,7 @@ using Kingmaker.Blueprints.Items.Equipment;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
 using UnityEngine;
+using WrathTactics.Localization;
 
 namespace WrathTactics.UI {
     public static class SpellDropdownProvider {
@@ -229,21 +230,21 @@ namespace WrathTactics.UI {
                 var guid = ability.Blueprint.AssetGuid.ToString();
                 if (!seen.Add(guid)) continue;
 
-                string prefix = "(Item)";
+                string prefix = "item.prefix.item".i18n();
                 var sourceItem = ability.Data.SourceItem;
                 if (sourceItem.Blueprint is BlueprintItemEquipmentUsable usable) {
                     switch (usable.Type) {
                         case UsableItemType.Scroll:
-                            prefix = "(Scroll)";
+                            prefix = "item.prefix.scroll".i18n();
                             break;
                         case UsableItemType.Potion:
-                            prefix = "(Potion)";
+                            prefix = "item.prefix.potion".i18n();
                             break;
                         case UsableItemType.Wand:
-                            prefix = "(Wand)";
+                            prefix = "item.prefix.wand".i18n();
                             break;
                         default:
-                            prefix = "(Item)";
+                            prefix = "item.prefix.item".i18n();
                             break;
                     }
                 }
@@ -268,9 +269,9 @@ namespace WrathTactics.UI {
             //    matches the dropdown label.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory != null) {
-                EnumerateInventoryByType(inventory, UsableItemType.Potion, "(Potion)", seen, result);
-                EnumerateInventoryByType(inventory, UsableItemType.Scroll, "(Scroll)", seen, result);
-                EnumerateInventoryByType(inventory, UsableItemType.Wand, "(Wand)", seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Potion, "item.prefix.potion".i18n(), seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Scroll, "item.prefix.scroll".i18n(), seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Wand, "item.prefix.wand".i18n(), seen, result);
             }
 
             return result.OrderBy(e => e.Name).ToList();

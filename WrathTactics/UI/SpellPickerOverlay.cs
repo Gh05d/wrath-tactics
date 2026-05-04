@@ -4,6 +4,7 @@ using Kingmaker;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Localization;
 
 namespace WrathTactics.UI {
     /// <summary>
@@ -149,8 +150,8 @@ namespace WrathTactics.UI {
             var matches = FilterAndRank(currentQuery);
             if (matches.Count == 0) {
                 AddInfoLabel(string.IsNullOrEmpty(currentQuery)
-                    ? "(no abilities available)"
-                    : $"No matches for \"{currentQuery}\"");
+                    ? "picker.no_abilities".i18n()
+                    : string.Format("picker.no_matches".i18n(), currentQuery));
                 return;
             }
 

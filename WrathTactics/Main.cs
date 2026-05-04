@@ -21,6 +21,8 @@ namespace WrathTactics {
             Logging.DebugLog.Init(modEntry.Path);
             Logging.Log.Engine.Info($"Wrath Tactics loading (session log: {Logging.DebugLog.CurrentSessionPath})");
 
+            Localization.Strings.Initialise();
+
             harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
 

@@ -185,14 +185,7 @@ namespace WrathTactics.Models {
         }
 
         public static string Label(RangeBracket b) {
-            switch (b) {
-                case RangeBracket.Melee:  return "Melee (≤2 m)";
-                case RangeBracket.Cone:   return "Cone (≤5 m)";
-                case RangeBracket.Short:  return "Short (≤10 m)";
-                case RangeBracket.Medium: return "Medium (≤20 m)";
-                case RangeBracket.Long:   return "Long (≤40 m)";
-                default:                  return b.ToString();
-            }
+            return WrathTactics.Localization.EnumLabels.For(b);
         }
     }
 }

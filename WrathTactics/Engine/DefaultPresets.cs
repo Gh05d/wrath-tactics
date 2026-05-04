@@ -6,6 +6,10 @@ namespace WrathTactics.Engine {
     /// Seeded once per fresh install via PresetRegistry.SeedDefaults. Uses fixed IDs so
     /// "file exists?" check is idempotent across mod reloads and version bumps. User
     /// deletions and manual edits are never overwritten.
+    ///
+    /// Names stay English: SeedDefaults runs from Main.Load (UMM init), but
+    /// LocalizationManager.CurrentLocale only becomes safe after game settings load —
+    /// any i18n() here NREs at startup. Users can rename via the Presets tab.
     /// </summary>
     public static class DefaultPresets {
         public static List<TacticsRule> Build() {

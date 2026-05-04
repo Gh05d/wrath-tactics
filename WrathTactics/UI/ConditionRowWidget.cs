@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Engine;
+using WrathTactics.Localization;
 using WrathTactics.Models;
 
 namespace WrathTactics.UI {
@@ -45,7 +46,7 @@ namespace WrathTactics.UI {
             root.AddComponent<LayoutElement>().preferredHeight = 30;
 
             // Subject popup selector — narrow enough to leave room for count layout
-            var subjectNames = Enum.GetNames(typeof(ConditionSubject)).ToList();
+            var subjectNames = EnumLabels.NamesFor<ConditionSubject>();
             PopupSelector.Create(root, "Subject", 0f, 0.15f, subjectNames,
                 (int)condition.Subject, v => {
                     condition.Subject = (ConditionSubject)v;
@@ -59,7 +60,7 @@ namespace WrathTactics.UI {
 
             // Property popup selector (for non-count: 0.16→0.37; repositioned below for count)
             var props = GetPropertiesForSubject(condition.Subject);
-            var propNames = props.Select(p => PropertyLabel(p)).ToList();
+            var propNames = props.Select(p => EnumLabels.For(p)).ToList();
             int propIdx = props.IndexOf(condition.Property);
             if (propIdx < 0) propIdx = 0;
             propertySelector = PopupSelector.Create(root, "Property", 0.16f, 0.37f,
@@ -100,7 +101,7 @@ namespace WrathTactics.UI {
                 var (withLbl, withLblRect) = UIHelpers.Create("WithLabel", root.transform);
                 withLblRect.SetAnchor(0.31, 0.37, 0, 1);
                 withLblRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(withLbl, "with", 14f, TextAlignmentOptions.Midline,
+                UIHelpers.AddLabel(withLbl, "condition.with".i18n(), 14f, TextAlignmentOptions.Midline,
                     new Color(0.7f, 0.7f, 0.7f));
 
                 // Property selector already placed at 0.16→0.37 above — move it to 0.38→0.58
@@ -129,7 +130,7 @@ namespace WrathTactics.UI {
 
                     if (condition.Property == ConditionProperty.WithinRange) {
                         var bracketNames = RangeBracketNames;
-                        var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
+                        var bracketLabels = GetValueLabelsForProperty(ConditionProperty.WithinRange);
                         int brIdx = bracketNames.IndexOf(condition.Value);
                         if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                         PopupSelector.Create(root, "CountRangeBracketValue", 0.67f, 0.88f, bracketLabels, brIdx, v => {
@@ -176,11 +177,12 @@ namespace WrathTactics.UI {
                             });
                         }
                     } else {
-                        var valueOptions = GetValueOptionsForProperty(condition.Property);
-                        int valIdx = valueOptions.IndexOf(condition.Value);
-                        if (valIdx < 0) { valIdx = 0; condition.Value = valueOptions[0]; }
-                        PopupSelector.Create(root, "CountValueDropdown", 0.65f, 0.88f, valueOptions, valIdx, v => {
-                            condition.Value = valueOptions[v];
+                        var valueKeys = GetValueKeysForProperty(condition.Property);
+                        var valueLabels = GetValueLabelsForProperty(condition.Property);
+                        int valIdx = valueKeys.IndexOf(condition.Value);
+                        if (valIdx < 0) { valIdx = 0; condition.Value = valueKeys[0]; }
+                        PopupSelector.Create(root, "CountValueDropdown", 0.65f, 0.88f, valueLabels, valIdx, v => {
+                            condition.Value = valueKeys[v];
                             onChanged?.Invoke();
                         });
                     }
@@ -226,27 +228,30 @@ namespace WrathTactics.UI {
                 }
 
                 if (isCreatureType) {
-                    var creatureTypes = GetValueOptionsForProperty(ConditionProperty.CreatureType);
-                    int ctIdx = creatureTypes.IndexOf(condition.Value);
-                    if (ctIdx < 0) { ctIdx = 0; condition.Value = creatureTypes[0]; }
-                    PopupSelector.Create(root, "CreatureTypeValue", 0.45f, 0.88f, creatureTypes, ctIdx, v => {
-                        condition.Value = creatureTypes[v];
+                    var ctKeys = EnumLabels.KeysForCreatureType();
+                    var ctLabels = EnumLabels.LabelsForCreatureType();
+                    int ctIdx = ctKeys.IndexOf(condition.Value);
+                    if (ctIdx < 0) { ctIdx = 0; condition.Value = ctKeys[0]; }
+                    PopupSelector.Create(root, "CreatureTypeValue", 0.45f, 0.88f, ctLabels, ctIdx, v => {
+                        condition.Value = ctKeys[v];
                         onChanged?.Invoke();
                     });
                 } else if (isAlignment) {
-                    var alignmentValues = GetValueOptionsForProperty(ConditionProperty.Alignment);
-                    int aIdx = alignmentValues.IndexOf(condition.Value);
-                    if (aIdx < 0) { aIdx = 0; condition.Value = alignmentValues[0]; }
-                    PopupSelector.Create(root, "AlignmentValue", 0.45f, 0.88f, alignmentValues, aIdx, v => {
-                        condition.Value = alignmentValues[v];
+                    var aKeys = EnumLabels.KeysForAlignment();
+                    var aLabels = EnumLabels.LabelsForAlignment();
+                    int aIdx = aKeys.IndexOf(condition.Value);
+                    if (aIdx < 0) { aIdx = 0; condition.Value = aKeys[0]; }
+                    PopupSelector.Create(root, "AlignmentValue", 0.45f, 0.88f, aLabels, aIdx, v => {
+                        condition.Value = aKeys[v];
                         onChanged?.Invoke();
                     });
                 } else if (isHasCondition) {
-                    var condNames = GetValueOptionsForProperty(ConditionProperty.HasCondition);
-                    int condIdx = condNames.IndexOf(condition.Value);
-                    if (condIdx < 0) { condIdx = 0; condition.Value = condNames[0]; }
-                    PopupSelector.Create(root, "CondValue", 0.45f, 0.88f, condNames, condIdx, v => {
-                        condition.Value = condNames[v];
+                    var condKeys = EnumLabels.KeysForCondition();
+                    var condLabels = EnumLabels.LabelsForCondition();
+                    int condIdx = condKeys.IndexOf(condition.Value);
+                    if (condIdx < 0) { condIdx = 0; condition.Value = condKeys[0]; }
+                    PopupSelector.Create(root, "CondValue", 0.45f, 0.88f, condLabels, condIdx, v => {
+                        condition.Value = condKeys[v];
                         onChanged?.Invoke();
                     });
                 } else if (isHasClass) {
@@ -276,7 +281,7 @@ namespace WrathTactics.UI {
                     CreateBuffSelector(root, 0.45f, 0.88f);
                 } else if (isWithinRange) {
                     var bracketNames = RangeBracketNames;
-                    var bracketLabels = GetValueOptionsForProperty(ConditionProperty.WithinRange);
+                    var bracketLabels = GetValueLabelsForProperty(ConditionProperty.WithinRange);
                     int brIdx = bracketNames.IndexOf(condition.Value);
                     if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                     PopupSelector.Create(root, "RangeBracketValue", 0.51f, 0.88f, bracketLabels, brIdx, v => {
@@ -284,7 +289,7 @@ namespace WrathTactics.UI {
                         onChanged?.Invoke();
                     });
                 } else if (isBoolProperty) {
-                    var yesNo = new List<string> { "Yes", "No" };
+                    var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
                     // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
@@ -322,35 +327,23 @@ namespace WrathTactics.UI {
             });
         }
 
-        static string PropertyLabel(ConditionProperty property) {
+        // Storage-side keys (English, persisted to JSON, never localized).
+        static List<string> GetValueKeysForProperty(ConditionProperty property) {
             switch (property) {
-                case ConditionProperty.SpellDCMinusSave:    return "DC − Save";
-                case ConditionProperty.ABMinusAC:           return "AB − AC";
-                case ConditionProperty.IsTargetingSelf:     return "Targeting me";
-                case ConditionProperty.IsTargetingAlly:     return "Targeting ally";
-                case ConditionProperty.IsTargetedByAlly:    return "Targeted by ally";
-                case ConditionProperty.IsTargetedByEnemy:   return "Targeted by enemy";
-                default:                                    return property.ToString();
+                case ConditionProperty.CreatureType: return EnumLabels.KeysForCreatureType();
+                case ConditionProperty.Alignment:    return EnumLabels.KeysForAlignment();
+                case ConditionProperty.HasCondition: return EnumLabels.KeysForCondition();
+                case ConditionProperty.WithinRange:  return RangeBracketNames;
+                default:                             return new List<string>();
             }
         }
 
-        static List<string> GetValueOptionsForProperty(ConditionProperty property) {
+        // Display-side labels — locale-dependent. Same order/length as the keys list.
+        static List<string> GetValueLabelsForProperty(ConditionProperty property) {
             switch (property) {
-                case ConditionProperty.CreatureType:
-                    return new List<string> {
-                        "Aberration", "Animal", "Construct", "Dragon", "Fey",
-                        "Humanoid", "MagicalBeast", "MonstrousHumanoid", "Ooze",
-                        "Outsider", "Plant", "Swarm", "Undead", "Vermin",
-                        "Incorporeal"
-                    };
-                case ConditionProperty.Alignment:
-                    return new List<string> { "Good", "Evil", "Lawful", "Chaotic", "Neutral" };
-                case ConditionProperty.HasCondition:
-                    return new List<string> {
-                        "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
-                        "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
-                        "Shaken", "Sickened", "Sleeping", "Petrified"
-                    };
+                case ConditionProperty.CreatureType: return EnumLabels.LabelsForCreatureType();
+                case ConditionProperty.Alignment:    return EnumLabels.LabelsForAlignment();
+                case ConditionProperty.HasCondition: return EnumLabels.LabelsForCondition();
                 case ConditionProperty.WithinRange:
                     return new List<string> {
                         RangeBrackets.Label(RangeBracket.Melee),
@@ -359,8 +352,7 @@ namespace WrathTactics.UI {
                         RangeBrackets.Label(RangeBracket.Medium),
                         RangeBrackets.Label(RangeBracket.Long),
                     };
-                default:
-                    return new List<string>();
+                default: return new List<string>();
             }
         }
 
@@ -386,7 +378,7 @@ namespace WrathTactics.UI {
 
             string currentLabel = BuffBlueprintProvider.GetName(condition.Value);
             if (string.IsNullOrEmpty(currentLabel) || currentLabel == condition.Value)
-                currentLabel = string.IsNullOrEmpty(condition.Value) ? "(pick a buff)" : currentLabel;
+                currentLabel = string.IsNullOrEmpty(condition.Value) ? "placeholder.pick_buff".i18n() : currentLabel;
             var label = UIHelpers.AddLabel(btnObj, currentLabel, 14f, TextAlignmentOptions.MidlineLeft);
             label.margin = new Vector4(6, 0, 20, 0);
 

@@ -7,6 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Kingmaker;
 using WrathTactics.Engine;
+using WrathTactics.Localization;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
@@ -171,18 +172,18 @@ namespace WrathTactics.UI {
             var dedupedDefaults = defaults.Where(e => !recentGuids.Contains(e.Guid)).ToList();
 
             if (recents.Count > 0) {
-                AddSectionHeader("★ Recents");
+                AddSectionHeader("picker.section.recents".i18n());
                 foreach (var e in recents) AddRow(e);
             }
 
             if (dedupedDefaults.Count > 0) {
-                string label = CommonBuffRegistry.IsEnemySubject(subject) ? "Common Enemy Buffs" : "Common Ally Buffs";
+                string label = CommonBuffRegistry.IsEnemySubject(subject) ? "picker.section.common_enemy".i18n() : "picker.section.common_ally".i18n();
                 AddSectionHeader(label);
                 foreach (var e in dedupedDefaults) AddRow(e);
             }
 
             if (recents.Count == 0 && dedupedDefaults.Count == 0) {
-                AddInfoLabel("(no suggestions available — start typing to search)");
+                AddInfoLabel("picker.no_suggestions".i18n());
             }
         }
 
@@ -214,14 +215,14 @@ namespace WrathTactics.UI {
             var matches = capped ? all_matches.GetRange(0, MaxFilterResults) : all_matches;
 
             if (matches.Count == 0) {
-                AddInfoLabel($"No matches for \"{query}\"");
+                AddInfoLabel(string.Format("picker.no_matches".i18n(), query));
                 return;
             }
 
             foreach (var entry in matches) AddRow(entry);
 
             if (capped) {
-                AddInfoLabel($"(showing first {MaxFilterResults} matches — refine your search for more)");
+                AddInfoLabel(string.Format("picker.capped".i18n(), MaxFilterResults));
             }
         }
 

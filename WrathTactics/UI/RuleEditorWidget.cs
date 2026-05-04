@@ -6,6 +6,7 @@ using Kingmaker.EntitySystem.Entities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Localization;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
@@ -111,7 +112,7 @@ namespace WrathTactics.UI {
             }
 
             // IF: label row
-            AddSectionLabel(bodyContainer.transform, "IF:");
+            AddSectionLabel(bodyContainer.transform, "section.if".i18n());
 
             // Condition groups
             for (int gi = 0; gi < rule.ConditionGroups.Count; gi++) {
@@ -120,7 +121,7 @@ namespace WrathTactics.UI {
 
                 // OR separator (between groups)
                 if (gi > 0) {
-                    AddSectionLabel(bodyContainer.transform, "-- OR --");
+                    AddSectionLabel(bodyContainer.transform, "section.or_separator".i18n());
                 }
 
                 // Condition rows in this group
@@ -145,7 +146,7 @@ namespace WrathTactics.UI {
                 var (addCondBtn, _) = UIHelpers.Create($"AddCond_G{gi}", bodyContainer.transform);
                 addCondBtn.AddComponent<LayoutElement>().preferredHeight = 22;
                 UIHelpers.AddBackground(addCondBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addCondBtn, "+ Condition", 15f, TextAlignmentOptions.Midline);
+                UIHelpers.AddLabel(addCondBtn, "button.add_condition".i18n(), 15f, TextAlignmentOptions.Midline);
                 addCondBtn.AddComponent<Button>().onClick.AddListener(() => {
                     group.Conditions.Add(new Condition());
                     PersistEdit();
@@ -158,7 +159,7 @@ namespace WrathTactics.UI {
                 var (addFirstBtn, _) = UIHelpers.Create("AddFirstCond", bodyContainer.transform);
                 addFirstBtn.AddComponent<LayoutElement>().preferredHeight = 26;
                 UIHelpers.AddBackground(addFirstBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addFirstBtn, "+ Condition", 16f, TextAlignmentOptions.Midline);
+                UIHelpers.AddLabel(addFirstBtn, "button.add_condition".i18n(), 16f, TextAlignmentOptions.Midline);
                 addFirstBtn.AddComponent<Button>().onClick.AddListener(() => {
                     rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
                     PersistEdit();
@@ -170,7 +171,7 @@ namespace WrathTactics.UI {
             var (addOrBtn, _2) = UIHelpers.Create("AddOrBtn", bodyContainer.transform);
             addOrBtn.AddComponent<LayoutElement>().preferredHeight = 22;
             UIHelpers.AddBackground(addOrBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
-            UIHelpers.AddLabel(addOrBtn, "+ OR (new group)", 15f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(addOrBtn, "button.add_or_group".i18n(), 15f, TextAlignmentOptions.Midline);
             addOrBtn.AddComponent<Button>().onClick.AddListener(() => {
                 rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
                 PersistEdit();
@@ -224,11 +225,11 @@ namespace WrathTactics.UI {
             enableLE.preferredWidth = 50;
             enableLE.flexibleWidth = 0;
             UIHelpers.AddBackground(enableBtnObj, new Color(0.25f, 0.25f, 0.25f, 1f));
-            enabledLabel = UIHelpers.AddLabel(enableBtnObj, rule.Enabled ? "ON" : "OFF", 16f,
+            enabledLabel = UIHelpers.AddLabel(enableBtnObj, (rule.Enabled ? "button.on" : "button.off").i18n(), 16f,
                 TextAlignmentOptions.Midline, rule.Enabled ? Color.green : Color.gray);
             enableBtnObj.AddComponent<Button>().onClick.AddListener(() => {
                 rule.Enabled = !rule.Enabled;
-                enabledLabel.text = rule.Enabled ? "ON" : "OFF";
+                enabledLabel.text = (rule.Enabled ? "button.on" : "button.off").i18n();
                 enabledLabel.color = rule.Enabled ? Color.green : Color.gray;
                 PersistEdit();
             });
@@ -257,7 +258,7 @@ namespace WrathTactics.UI {
             copyLE.preferredWidth = 48;
             copyLE.flexibleWidth = 0;
             UIHelpers.AddBackground(copyObj, new Color(0.2f, 0.35f, 0.5f, 1f));
-            UIHelpers.AddLabel(copyObj, "Copy", 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(copyObj, "button.copy".i18n(), 14f, TextAlignmentOptions.Midline);
             copyObj.AddComponent<Button>().onClick.AddListener(() => CloneRule());
 
             // Export (clipboard) — wraps the resolved rule in a 1-element JSON array
@@ -266,7 +267,7 @@ namespace WrathTactics.UI {
             exportLE.preferredWidth = 56;
             exportLE.flexibleWidth = 0;
             UIHelpers.AddBackground(exportObj, new Color(0.3f, 0.3f, 0.5f, 1f));
-            UIHelpers.AddLabel(exportObj, "Export", 13f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(exportObj, "button.export".i18n(), 13f, TextAlignmentOptions.Midline);
             exportObj.AddComponent<Button>().onClick.AddListener(() => ExportRuleToClipboard());
 
             // Promote to preset — only for unlinked character rules
@@ -277,7 +278,7 @@ namespace WrathTactics.UI {
                 promoteLE.preferredWidth = 64;
                 promoteLE.flexibleWidth = 0;
                 UIHelpers.AddBackground(promoteObj, new Color(0.25f, 0.45f, 0.3f, 1f));
-                UIHelpers.AddLabel(promoteObj, "↥ Preset", 13f, TextAlignmentOptions.Midline);
+                UIHelpers.AddLabel(promoteObj, "button.promote_to_preset".i18n(), 13f, TextAlignmentOptions.Midline);
                 promoteObj.AddComponent<Button>().onClick.AddListener(() => PromoteToPreset());
             }
 
@@ -292,7 +293,7 @@ namespace WrathTactics.UI {
 
             // Name input — fills remaining space on the right
             string displayName = isLinked
-                ? $"🔗 {linkedPreset.Name}"
+                ? string.Format("linked.name_format".i18n(), linkedPreset.Name)
                 : $"{index + 1}. {rule.Name}";
 
             var nameInput = UIHelpers.CreateTMPInputField(header, "NameInput",
@@ -317,7 +318,7 @@ namespace WrathTactics.UI {
             var (badge, _) = UIHelpers.Create("LinkedBadge", parent);
             badge.AddComponent<LayoutElement>().preferredHeight = 26;
             UIHelpers.AddBackground(badge, new Color(0.22f, 0.3f, 0.4f, 1f));
-            UIHelpers.AddLabel(badge, $"Linked to preset: {preset.Name}", 14f,
+            UIHelpers.AddLabel(badge, string.Format("linked.badge".i18n(), preset.Name), 14f,
                 TextAlignmentOptions.MidlineLeft, new Color(0.85f, 0.9f, 1f));
 
             // Summary
@@ -329,7 +330,9 @@ namespace WrathTactics.UI {
             string abilityInfo = string.IsNullOrEmpty(preset.Action.AbilityId)
                 ? ""
                 : $" ({preset.Action.AbilityId.Substring(0, System.Math.Min(8, preset.Action.AbilityId.Length))}…)";
-            string summary = $"IF: {condCount} condition(s) | THEN: {preset.Action.Type}{abilityInfo} | Target: {preset.Target.Type}";
+            string condCountText = string.Format("linked.summary.condition_count".i18n(), condCount);
+            string summary = string.Format("linked.summary".i18n(),
+                condCountText, preset.Action.Type, abilityInfo, preset.Target.Type);
 
             var (sumObj, _s) = UIHelpers.Create("Summary", parent);
             sumObj.AddComponent<LayoutElement>().preferredHeight = 22;
@@ -339,7 +342,7 @@ namespace WrathTactics.UI {
             var (unlinkBtn, _u) = UIHelpers.Create("UnlinkBtn", parent);
             unlinkBtn.AddComponent<LayoutElement>().preferredHeight = 28;
             UIHelpers.AddBackground(unlinkBtn, new Color(0.45f, 0.35f, 0.15f));
-            UIHelpers.AddLabel(unlinkBtn, "Unlink & Edit (break link)", 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(unlinkBtn, "button.unlink_edit".i18n(), 14f, TextAlignmentOptions.Midline);
             unlinkBtn.AddComponent<Button>().onClick.AddListener(() => {
                 Engine.PresetRegistry.BreakLink(rule);
                 PersistEdit();
@@ -369,11 +372,11 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("ThenLabel", row.transform);
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "THEN:", 16f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "section.then".i18n(), 16f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.5f));
 
             // Action type popup selector
-            var actionNames = Enum.GetNames(typeof(ActionType)).ToList();
+            var actionNames = EnumLabels.NamesFor<ActionType>();
             PopupSelector.Create(row, "ActionType", 0.11f, 0.38f, actionNames,
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
@@ -395,7 +398,7 @@ namespace WrathTactics.UI {
             // a spell picker. Three slots across the action row: Mode (0.39-0.50),
             // Energy (0.51-0.65), Sources (0.66-0.88).
             if (rule.Action.Type == ActionType.Heal) {
-                var healModeNames = Enum.GetNames(typeof(HealMode)).ToList();
+                var healModeNames = EnumLabels.NamesFor<HealMode>();
                 PopupSelector.Create(row, "HealMode", 0.39f, 0.50f, healModeNames,
                     (int)rule.Action.HealMode, idx => {
                         rule.Action.HealMode = (HealMode)idx;
@@ -407,7 +410,11 @@ namespace WrathTactics.UI {
                 var energyValues = new List<HealEnergyType> {
                     HealEnergyType.Auto, HealEnergyType.Positive, HealEnergyType.Negative,
                 };
-                var energyLabels = new List<string> { "Auto", "Positive", "Negative" };
+                var energyLabels = new List<string> {
+                    EnumLabels.For(HealEnergyType.Auto),
+                    EnumLabels.For(HealEnergyType.Positive),
+                    EnumLabels.For(HealEnergyType.Negative),
+                };
                 int energyIdx = energyValues.IndexOf(rule.Action.HealEnergy);
                 if (energyIdx < 0) energyIdx = 0;
                 PopupSelector.Create(row, "HealEnergy", 0.51f, 0.65f, energyLabels, energyIdx, idx => {
@@ -417,8 +424,8 @@ namespace WrathTactics.UI {
 
                 // Source mask selector — 7 curated combinations (2^3 - "None" sentinel).
                 var sourceLabels = new List<string> {
-                    "All sources", "Spell only", "Scroll only", "Potion only",
-                    "Spell + Scroll", "Spell + Potion", "Scroll + Potion",
+                    "source.all".i18n(), "source.spell_only".i18n(), "source.scroll_only".i18n(), "source.potion_only".i18n(),
+                    "source.spell_scroll".i18n(), "source.spell_potion".i18n(), "source.scroll_potion".i18n(),
                 };
                 var sourceValues = new List<HealSourceMask> {
                     HealSourceMask.All,
@@ -439,7 +446,7 @@ namespace WrathTactics.UI {
             }
 
             if (rule.Action.Type == ActionType.ThrowSplash) {
-                var splashModeNames = Enum.GetNames(typeof(ThrowSplashMode)).ToList();
+                var splashModeNames = EnumLabels.NamesFor<ThrowSplashMode>();
                 PopupSelector.Create(row, "SplashMode", 0.39f, 0.7f, splashModeNames,
                     (int)rule.Action.SplashMode, idx => {
                         rule.Action.SplashMode = (ThrowSplashMode)idx;
@@ -450,7 +457,7 @@ namespace WrathTactics.UI {
 
             // ToggleActivatable: mode dropdown (On/Off) + ability picker side by side
             if (rule.Action.Type == ActionType.ToggleActivatable) {
-                var toggleModeNames = Enum.GetNames(typeof(ToggleMode)).ToList();
+                var toggleModeNames = EnumLabels.NamesFor<ToggleMode>();
                 PopupSelector.Create(row, "ToggleMode", 0.39f, 0.52f, toggleModeNames,
                     (int)rule.Action.ToggleMode, idx => {
                         rule.Action.ToggleMode = (ToggleMode)idx;
@@ -468,8 +475,8 @@ namespace WrathTactics.UI {
             if (isCastSpell) {
                 // Source mask dropdown — 7 curated combinations, same pattern as HealSources.
                 var sourceLabels = new List<string> {
-                    "All sources", "Spell only", "Scroll only", "Potion only",
-                    "Spell + Scroll", "Spell + Potion", "Scroll + Potion",
+                    "source.all".i18n(), "source.spell_only".i18n(), "source.scroll_only".i18n(), "source.potion_only".i18n(),
+                    "source.spell_scroll".i18n(), "source.spell_potion".i18n(), "source.scroll_potion".i18n(),
                 };
                 var sourceValues = new List<SpellSourceMask> {
                     SpellSourceMask.All,
@@ -534,7 +541,7 @@ namespace WrathTactics.UI {
             spellPickerIcon.raycastTarget = false;
 
             spellPickerLabel = UIHelpers.AddLabel(btnObj,
-                found || entries.Count > 0 ? selected.Name : "(none available)",
+                found || entries.Count > 0 ? selected.Name : "placeholder.none_available".i18n(),
                 15f, TextAlignmentOptions.MidlineLeft);
             spellPickerLabel.margin = new Vector4(32, 0, 20, 0);
 
@@ -559,7 +566,7 @@ namespace WrathTactics.UI {
 
         void UpdateSpellPickerButton(SpellDropdownProvider.SpellEntry entry, bool haveEntries) {
             if (spellPickerLabel != null)
-                spellPickerLabel.text = haveEntries ? entry.Name : "(none available)";
+                spellPickerLabel.text = haveEntries ? entry.Name : "placeholder.none_available".i18n();
             if (spellPickerIcon != null) {
                 spellPickerIcon.sprite = haveEntries ? entry.Icon : null;
                 spellPickerIcon.enabled = haveEntries && entry.Icon != null;
@@ -582,7 +589,7 @@ namespace WrathTactics.UI {
             var (addBtn, _) = UIHelpers.Create("AddFallback", parent);
             addBtn.AddComponent<LayoutElement>().preferredHeight = 22;
             UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
-            UIHelpers.AddLabel(addBtn, "+ Fallback", 14f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(addBtn, "button.add_fallback".i18n(), 14f, TextAlignmentOptions.Midline);
             addBtn.AddComponent<Button>().onClick.AddListener(() => {
                 rule.Action.FallbackAbilityIds.Add("");
                 PersistEdit();
@@ -633,7 +640,7 @@ namespace WrathTactics.UI {
             icon.enabled = entries.Count > 0 && selected.Icon != null;
 
             var label = UIHelpers.AddLabel(btn,
-                entries.Count > 0 ? selected.Name : "(none available)",
+                entries.Count > 0 ? selected.Name : "placeholder.none_available".i18n(),
                 14f, TextAlignmentOptions.MidlineLeft);
             label.margin = new Vector4(28, 0, 16, 0);
 
@@ -773,11 +780,11 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("TargetLabel", row.transform);
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "TARGET:", 16f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "section.target".i18n(), 16f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.5f));
 
             // Target type popup selector — rebuilds body so filter shows/hides
-            var targetNames = Enum.GetNames(typeof(TargetType)).ToList();
+            var targetNames = EnumLabels.NamesFor<TargetType>();
             PopupSelector.Create(row, "TargetType", 0.11f, 0.5f, targetNames,
                 (int)rule.Target.Type, idx => {
                     rule.Target.Type = (TargetType)idx;
@@ -791,9 +798,9 @@ namespace WrathTactics.UI {
                 || rule.Target.Type == TargetType.EnemyCreatureType;
 
             if (needsFilter) {
-                string filterLabel = rule.Target.Type == TargetType.AllyWithCondition ? "Condition:"
-                    : rule.Target.Type == TargetType.AllyMissingBuff ? "Buff GUID:"
-                    : "Creature Type:";
+                string filterLabel = rule.Target.Type == TargetType.AllyWithCondition ? "target.filter.condition".i18n()
+                    : rule.Target.Type == TargetType.AllyMissingBuff ? "target.filter.buff_guid".i18n()
+                    : "target.filter.creature_type".i18n();
 
                 var (filterLbl, filterLblRect) = UIHelpers.Create("FilterLabel", row.transform);
                 filterLblRect.SetAnchor(0.51, 0.65, 0, 1);
@@ -819,7 +826,7 @@ namespace WrathTactics.UI {
             var (lbl, lblRect) = UIHelpers.Create("CdLabel", row.transform);
             lblRect.SetAnchor(0, 0.25, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "Cooldown (rounds):", 15f, TextAlignmentOptions.MidlineLeft,
+            UIHelpers.AddLabel(lbl, "cooldown.label".i18n(), 15f, TextAlignmentOptions.MidlineLeft,
                 new Color(0.7f, 0.7f, 0.7f));
 
             var cdInput = UIHelpers.CreateTMPInputField(row, "CdInput",
@@ -907,7 +914,7 @@ namespace WrathTactics.UI {
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(source);
             var copy = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
             copy.Id = System.Guid.NewGuid().ToString();
-            copy.Name = source.Name + " (copy)";
+            copy.Name = source.Name + "clone.suffix".i18n();
             copy.PresetId = null;  // standalone copy; never inherit the link
             ruleList.Insert(index + 1, copy);
             PersistEdit();

@@ -5,6 +5,7 @@ using Kingmaker.PubSubSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Localization;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
@@ -80,7 +81,7 @@ namespace WrathTactics.UI {
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
-            UIHelpers.AddLabel(titleBar, "Wrath Tactics", 26f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
@@ -127,7 +128,7 @@ namespace WrathTactics.UI {
                 Destroy(tabBarTransform.GetChild(i).gameObject);
 
             // Global tab
-            AddTab(tabBarTransform.gameObject, "Global", null, () => SelectTab(null));
+            AddTab(tabBarTransform.gameObject, "tab.global".i18n(), null, () => SelectTab(null));
 
             // Party member + pet tabs
             if (Game.Instance?.Player?.PartyAndPets != null) {
@@ -139,7 +140,7 @@ namespace WrathTactics.UI {
             }
 
             // Presets tab
-            AddTab(tabBarTransform.gameObject, "Presets", "presets", () => SelectTab("presets"));
+            AddTab(tabBarTransform.gameObject, "tab.presets".i18n(), "presets", () => SelectTab("presets"));
         }
 
         static readonly Color TabNormal = new Color(0.25f, 0.2f, 0.15f, 1f);
@@ -176,7 +177,7 @@ namespace WrathTactics.UI {
             var (toggleBtn, toggleRect) = UIHelpers.Create("ToggleBtn", row.transform);
             toggleRect.SetAnchor(0, 0.5, 0, 1);
             toggleRect.sizeDelta = Vector2.zero;
-            toggleLabel = UIHelpers.AddLabel(toggleBtn, "Global Rules", 18f,
+            toggleLabel = UIHelpers.AddLabel(toggleBtn, "toggle.global_rules".i18n(), 18f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
             toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
 
@@ -185,7 +186,7 @@ namespace WrathTactics.UI {
             addRect.SetAnchor(0.55, 0.76, 0, 1);
             addRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-            UIHelpers.AddLabel(addBtn, "+ New Rule", 18f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(addBtn, "button.new_rule".i18n(), 18f, TextAlignmentOptions.Midline);
             addBtn.AddComponent<Button>().onClick.AddListener(AddNewRule);
 
             // "+ From Preset" button
@@ -193,7 +194,7 @@ namespace WrathTactics.UI {
             fromPresetRect.SetAnchor(0.77, 1, 0, 1);
             fromPresetRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(fromPresetBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
-            UIHelpers.AddLabel(fromPresetBtn, "+ From Preset \u25be", 16f, TextAlignmentOptions.Midline);
+            UIHelpers.AddLabel(fromPresetBtn, "button.from_preset".i18n() + " \u25be", 16f, TextAlignmentOptions.Midline);
             fromPresetBtn.AddComponent<Button>().onClick.AddListener(AddFromPreset);
         }
 
@@ -205,7 +206,7 @@ namespace WrathTactics.UI {
 
             ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
                 0.02, 0.85, "", 15f,
-                placeholderText: "Filter rules…");
+                placeholderText: "filter.rules.placeholder".i18n());
             var inputRect = ruleFilterInput.GetComponent<RectTransform>();
             inputRect.SetAnchor(0.02f, 0.85f, 0.1f, 0.9f);
             inputRect.sizeDelta = Vector2.zero;
@@ -238,7 +239,7 @@ namespace WrathTactics.UI {
             // Same anchor as the rule scroll so the label overlays its center
             rect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             rect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(obj, "No matching rules", 16f,
+            UIHelpers.AddLabel(obj, "filter.no_matching_rules".i18n(), 16f,
                 TextAlignmentOptions.Midline, new Color(0.6f, 0.6f, 0.6f));
             obj.SetActive(false);
             ruleFilterEmptyLabel = obj;
@@ -378,16 +379,17 @@ namespace WrathTactics.UI {
             if (toggleLabel == null) return;
 
             if (selectedUnitId == null) {
-                toggleLabel.text = "Global Rules";
+                toggleLabel.text = "toggle.global_rules".i18n();
                 toggleLabel.color = Color.white;
             } else if (selectedUnitId == "presets") {
-                toggleLabel.text = "Presets";
+                toggleLabel.text = "tab.presets".i18n();
                 toggleLabel.color = Color.white;
             } else {
                 var config = ConfigManager.Current;
                 bool enabled = config.IsEnabled(selectedUnitId);
                 var charName = GetCharacterName(selectedUnitId);
-                toggleLabel.text = $"Tactics {(enabled ? "enabled" : "disabled")} for {charName}";
+                var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
+                toggleLabel.text = string.Format(template, charName);
                 toggleLabel.color = enabled ? Color.green : Color.gray;
             }
         }
@@ -409,7 +411,7 @@ namespace WrathTactics.UI {
                 : GetOrCreateCharacterRules(selectedUnitId);
 
             rules.Add(new TacticsRule {
-                Name = "New Rule",
+                Name = "default.new_rule_name".i18n(),
                 Priority = rules.Count,
                 Enabled = true,
                 ConditionGroups = new List<ConditionGroup> {
