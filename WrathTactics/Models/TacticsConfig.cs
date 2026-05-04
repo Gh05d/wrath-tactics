@@ -7,6 +7,7 @@ namespace WrathTactics.Models {
         [JsonProperty] public Dictionary<string, List<TacticsRule>> CharacterRules { get; set; } = new();
         [JsonProperty] public Dictionary<string, bool> TacticsEnabled { get; set; } = new();
         [JsonProperty] public float TickIntervalSeconds { get; set; } = 3f;
+        [JsonProperty] public float OutOfCombatTickIntervalSeconds { get; set; } = 2f;
         [JsonProperty] public bool DebugLogging { get; set; }
         [JsonProperty] public List<string> RecentBuffGuids { get; set; } = new();
 
