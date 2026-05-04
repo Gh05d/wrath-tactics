@@ -484,12 +484,19 @@ namespace WrathTactics.UI {
             if (needsButton && Game.Instance?.UI?.Canvas != null) {
                 hudButtonRetrySeconds += Time.deltaTime;
                 var canvas = Game.Instance.UI.Canvas.transform;
+                // BubbleBuffs is the only container we can rely on as a parent: BB rebuilds
+                // its own GridLayoutGroup with explicit cell sizing, so dropping in our
+                // helmet adds a visible cell. The vanilla "NestedCanvas1/.../ButtonsPart/
+                // Container" looks identical structurally but its layout/sizing makes our
+                // child invisible (clipped, off-screen on Steam Deck — observed empirically).
+                // Without BB we use the floating fallback at a fixed safe screen position.
                 var bbContainer = canvas.Find("BUBBLEMODS_ROOT/IngameMenuView/ButtonsPart/Container");
                 if (bbContainer != null) {
-                    CreateButtonInBubbleBuffsContainer(bbContainer);
+                    CreateButtonInGameContainer(bbContainer);
                     hudButtonRetrySeconds = 0f;
-                } else if (hudButtonRetrySeconds > 30f && hudButton == null) {
+                } else if (hudButtonRetrySeconds > 5f) {
                     CreateFloatingHudButton(canvas);
+                    hudButtonRetrySeconds = 0f;
                 }
             }
 
@@ -508,13 +515,14 @@ namespace WrathTactics.UI {
             }
         }
 
-        void CreateButtonInBubbleBuffsContainer(Transform container) {
+        // Parents a fresh helmet button into the GridLayoutGroup container that hosts the
+        // game's HUD buttons. Same code path for BubbleBuffs' rebuilt container and the
+        // vanilla NestedCanvas1 container — both have identical structure.
+        void CreateButtonInGameContainer(Transform container) {
             if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
 
-            // Extract helmet sprite from game's own HUD
             Sprite helmetSprite = TryExtractGameSprite(Game.Instance.UI.Canvas.transform);
 
-            // Create fresh button inside the GridLayoutGroup container
             var btn = new GameObject("TacticsBtn", typeof(RectTransform));
             btn.transform.SetParent(container, false);
             btn.transform.localScale = Vector3.one;
@@ -533,31 +541,29 @@ namespace WrathTactics.UI {
             var btnComp = btn.AddComponent<Button>();
             btnComp.targetGraphic = btnImg;
             btnComp.onClick.AddListener(() => {
-                Log.UI.Debug("HUD button clicked (in BB container)");
+                Log.UI.Debug("HUD button clicked");
                 Toggle();
             });
 
-            Log.UI.Info("HUD button created in BubbleBuffs container");
+            Log.UI.Info($"HUD button created in {container.parent?.parent?.name ?? "?"} container");
         }
 
         void CreateFloatingHudButton(Transform canvas) {
             if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
 
-            // Try to extract a helmet sprite from the Character button in the HUD
             Sprite helmetSprite = TryExtractGameSprite(canvas);
 
             var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
             hudButton = btn;
 
-            // Position: bottom-center, next to BubbleBuffs row (which sits at roughly y=96)
-            // Anchor bottom-center so it scales nicely across resolutions
-            btnRect.anchorMin = new Vector2(0.5f, 0f);
-            btnRect.anchorMax = new Vector2(0.5f, 0f);
-            btnRect.pivot = new Vector2(0.5f, 0f);
-            // X offset: to the LEFT of the game's action bar center
-            // Y offset: ~96 matches BubbleBuffs row height
-            btnRect.anchoredPosition = new Vector2(-260, 96);
-            btnRect.sizeDelta = new Vector2(44, 44);
+            // Bottom-LEFT corner with clear margin — avoids overlap with the action bar
+            // (bottom-center), the mini-map (bottom-right), and dialog UI (centred). This
+            // position holds across all aspect ratios including Steam Deck (1280×800).
+            btnRect.anchorMin = new Vector2(0f, 0f);
+            btnRect.anchorMax = new Vector2(0f, 0f);
+            btnRect.pivot = new Vector2(0f, 0f);
+            btnRect.anchoredPosition = new Vector2(20, 120);
+            btnRect.sizeDelta = new Vector2(48, 48);
 
             // Main button background — just the helmet sprite, no extra frame
             var btnImg = btn.AddComponent<Image>();
