@@ -19,13 +19,6 @@ namespace WrathTactics.Engine {
         public static UnitEntityData LastMatchedEnemy { get; private set; }
         public static UnitEntityData LastMatchedAlly { get; private set; }
 
-        /// <summary>
-        /// Set to true during TacticsEvaluator.RunPostCombatCleanup() so that
-        /// `Combat.IsInCombat` evaluates to false during the one-shot cleanup pass,
-        /// regardless of transient game state.
-        /// </summary>
-        public static bool IsPostCombatPass { get; set; }
-
         // Rule-scoped ambient state — set in Evaluate(rule, owner), cleared in finally.
         // Accessed by SpellDCMinusSave evaluation so the property helper stays one-arg
         // (matches HpPercent/AC shape). A stray access outside an active Evaluate
@@ -441,7 +434,7 @@ namespace WrathTactics.Engine {
 
         static bool EvaluateCombat(Condition condition) {
             if (condition.Property == ConditionProperty.IsInCombat) {
-                bool inCombat = !IsPostCombatPass && Game.Instance.Player.IsInCombat;
+                bool inCombat = Game.Instance.Player.IsInCombat;
                 bool wanted = ParseBoolValue(condition.Value);
                 bool match = inCombat == wanted;
                 return condition.Operator == ConditionOperator.NotEqual ? !match : match;

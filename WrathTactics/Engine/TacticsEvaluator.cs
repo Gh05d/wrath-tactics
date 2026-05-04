@@ -19,23 +19,23 @@ namespace WrathTactics.Engine {
         static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
 
         public static void Tick(float gameTimeSec) {
-            if (!Game.Instance.Player.IsInCombat) {
-                if (wasInCombat) {
-                    wasInCombat = false;
-                    RunPostCombatCleanup(gameTimeSec);
-                    cooldowns.Clear();
-                    PlayerCommandGuard.Reset();
-                    Log.Engine.Info("Combat ended, post-combat cleanup ran, cooldowns cleared");
-                }
-                return;
+            bool inCombat = Game.Instance.Player.IsInCombat;
+
+            // Combat-end transition: log + reset the foreign-command tracker. The legacy
+            // RunPostCombatCleanup single-pass is gone — the next regular tick handles
+            // cleanup with cooldowns honored.
+            if (!inCombat && wasInCombat) {
+                wasInCombat = false;
+                PlayerCommandGuard.Reset();
+                Log.Engine.Info("Combat ended");
             }
 
-            if (!wasInCombat) {
+            // Combat-start transition.
+            if (inCombat && !wasInCombat) {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
                 PlayerCommandGuard.Reset();
                 Log.Engine.Info("Combat started");
-                // Log party composition once per combat for diagnostics
                 var partyNames = new List<string>();
                 foreach (var u in Game.Instance.Player.PartyAndPets) {
                     partyNames.Add($"{u.CharacterName}({u.UniqueId}) inGame={u.IsInGame}");
@@ -44,7 +44,9 @@ namespace WrathTactics.Engine {
             }
 
             var config = ConfigManager.Current;
-            float interval = config.TickIntervalSeconds;
+            float interval = inCombat
+                ? config.TickIntervalSeconds
+                : config.OutOfCombatTickIntervalSeconds;
             if (gameTimeSec - lastTickTime < interval) return;
             lastTickTime = gameTimeSec;
 
@@ -53,19 +55,38 @@ namespace WrathTactics.Engine {
             foreach (var u in Game.Instance.Player.PartyAndPets) {
                 if (u.IsInGame && u.HPLeft > 0) evaluableUnits++;
             }
-            Log.Engine.Trace($"Tick #{tickCounter} gameTime={gameTimeSec:F1}s evaluable={evaluableUnits}");
+            Log.Engine.Trace($"Tick #{tickCounter} gameTime={gameTimeSec:F1}s inCombat={inCombat} evaluable={evaluableUnits}");
 
-            // Skip if BubbleBuffs is currently executing
             if (BubbleBuffsCompat.IsExecuting()) return;
 
             foreach (var unit in Game.Instance.Player.PartyAndPets) {
                 if (!unit.IsInGame || unit.HPLeft <= 0) continue;
                 if (!config.IsEnabled(unit.UniqueId)) continue;
-                EvaluateUnit(unit, config, gameTimeSec);
+                EvaluateUnit(unit, config, gameTimeSec, inCombat);
             }
         }
 
-        static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec) {
+        // Returns true iff the rule has at least one Combat.IsInCombat==false condition
+        // anywhere in its ConditionGroups. Used as the out-of-combat opt-in gate; the
+        // condition's actual matching during evaluation is handled by the existing
+        // bucket-AND-OR logic in ConditionEvaluator.Evaluate. Looseness is intentional —
+        // presence of the condition is the user's expressed "out-of-combat-fähig" intent.
+        static bool RuleEnabledOutOfCombat(TacticsRule rule) {
+            if (rule.ConditionGroups == null) return false;
+            foreach (var group in rule.ConditionGroups) {
+                if (group?.Conditions == null) continue;
+                foreach (var c in group.Conditions) {
+                    if (c.Subject != ConditionSubject.Combat) continue;
+                    if (c.Property != ConditionProperty.IsInCombat) continue;
+                    if (c.Operator != ConditionOperator.Equal) continue;
+                    var v = c.Value?.Trim().ToLowerInvariant();
+                    if (v == "false" || v == "0" || v == "no" || v == "nein") return true;
+                }
+            }
+            return false;
+        }
+
+        static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec, bool inCombat) {
             // Skip if a player- (or other-mod-) issued command is currently running. Our own
             // tactics commands stay in the tracked set and don't block — self-interruption
             // when a higher-priority rule matches mid-cast is intentional (DAO semantics).
@@ -74,24 +95,29 @@ namespace WrathTactics.Engine {
                 return;
             }
 
-            Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId})");
+            Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId}, inCombat={inCombat})");
 
-            // Evaluate global rules first, then character-specific
             var globalRules = config.GlobalRules;
             var charRules = config.GetRulesForCharacter(unit.UniqueId);
 
-            if (TryExecuteRules(globalRules, unit, "global", gameTimeSec))
+            if (TryExecuteRules(globalRules, unit, "global", gameTimeSec, inCombat))
                 return;
-            TryExecuteRules(charRules, unit, unit.CharacterName, gameTimeSec);
+            TryExecuteRules(charRules, unit, unit.CharacterName, gameTimeSec, inCombat);
         }
 
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
-            string source, float gameTimeSec) {
+            string source, float gameTimeSec, bool inCombat) {
             for (int i = 0; i < rules.Count; i++) {
                 var entry = rules[i];
                 if (!entry.Enabled) continue;
 
                 var rule = PresetRegistry.Resolve(entry);
+
+                // Out-of-combat opt-in gate. Rules without a Combat.IsInCombat==false
+                // condition keep their pre-1.7.0 behavior (in-combat-only).
+                if (!inCombat && !RuleEnabledOutOfCombat(rule)) {
+                    continue;
+                }
 
                 // Check cooldown — key on entry.Id so linked copies cooldown independently
                 var cooldownKey = (unit.UniqueId, entry.Id);
@@ -103,78 +129,23 @@ namespace WrathTactics.Engine {
                     }
                 }
 
-                // Clear matched entities before evaluating conditions
                 ConditionEvaluator.ClearMatchedEntities();
 
-                // Evaluate conditions
                 bool match = ConditionEvaluator.Evaluate(rule, unit);
                 if (!match) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): conditions not met");
                     continue;
                 }
 
-                // Resolve target
                 var target = TargetResolver.Resolve(rule.Target, unit);
 
-                // Validate action
                 if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
                     Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
                     continue;
                 }
 
-                // Execute!
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     cooldowns[cooldownKey] = gameTimeSec;
-                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        static void RunPostCombatCleanup(float gameTimeSec) {
-            var config = ConfigManager.Current;
-            ConditionEvaluator.IsPostCombatPass = true;
-            try {
-                foreach (var unit in Game.Instance.Player.PartyAndPets) {
-                    if (!unit.IsInGame || unit.HPLeft <= 0) continue;
-                    if (!config.IsEnabled(unit.UniqueId)) continue;
-
-                    var globalRules = config.GlobalRules;
-                    var charRules = config.GetRulesForCharacter(unit.UniqueId);
-
-                    // Same ordering as combat tick: globals first, then character rules.
-                    // Cooldowns are skipped here — this is a one-shot pass, and we clear
-                    // cooldowns immediately after.
-                    if (TryExecuteRulesIgnoringCooldown(globalRules, unit, "post-combat:global", gameTimeSec))
-                        continue;
-                    TryExecuteRulesIgnoringCooldown(charRules, unit, "post-combat:" + unit.CharacterName, gameTimeSec);
-                }
-            } catch (Exception ex) {
-                Log.Engine.Error(ex, "RunPostCombatCleanup failed");
-            } finally {
-                ConditionEvaluator.IsPostCombatPass = false;
-            }
-        }
-
-        static bool TryExecuteRulesIgnoringCooldown(List<TacticsRule> rules, UnitEntityData unit,
-            string source, float gameTimeSec) {
-            for (int i = 0; i < rules.Count; i++) {
-                var entry = rules[i];
-                if (!entry.Enabled) continue;
-
-                var rule = PresetRegistry.Resolve(entry);
-                ConditionEvaluator.ClearMatchedEntities();
-
-                if (!ConditionEvaluator.Evaluate(rule, unit)) continue;
-
-                var target = TargetResolver.Resolve(rule.Target, unit);
-                if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
-                    Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
-                    continue;
-                }
-
-                if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
                     return true;
                 }
