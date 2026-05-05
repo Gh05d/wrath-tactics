@@ -29,6 +29,12 @@ namespace WrathTactics.Engine {
         // "not yet computed"; once computed, the same value is reused across all
         // enemies in EvaluateEnemyBucket (AB is enemy-independent). Cleared in finally.
         static float CurrentPartyBestAB = float.NaN;
+        // Cached party-max-effective-level (CharacterLevel + MythicLevel) for the
+        // duration of a single Evaluate call. -1 means "not yet computed"; once
+        // computed, reused across all enemies in EvaluateEnemyBucket. Cleared in
+        // finally. Sentinel is -1 (not 0) because 0 is a legitimate empty-party
+        // result that should propagate as NaN downstream.
+        static int CurrentPartyMaxLevel = -1;
 
         public static void ClearMatchedEntities() {
             LastMatchedEnemy = null;
@@ -51,6 +57,7 @@ namespace WrathTactics.Engine {
                 CurrentAction = null;
                 CurrentOwner = null;
                 CurrentPartyBestAB = float.NaN;
+                CurrentPartyMaxLevel = -1;
             }
         }
 
@@ -359,6 +366,40 @@ namespace WrathTactics.Engine {
             return margin;
         }
 
+        // Computes max(GetEffectiveHD(member)) over Player.Party. Player.Party
+        // (NOT PartyAndPets) is intentional: pets have separate level progression
+        // curves and a high-HD Eidolon / Drake / Animal Companion would skew the
+        // max. PartyLevel here means "the player squad's level" — pets are
+        // explicitly excluded. Cached once per Evaluate call via CurrentPartyMaxLevel.
+        static int ComputePartyMaxEffectiveLevel() {
+            if (CurrentPartyMaxLevel >= 0) return CurrentPartyMaxLevel;
+            int max = 0;
+            var party = Game.Instance?.Player?.Party;
+            if (party != null) {
+                foreach (var member in party) {
+                    int eff = UnitExtensions.GetEffectiveHD(member);
+                    if (eff > max) max = eff;
+                }
+            }
+            CurrentPartyMaxLevel = max;
+            return max;
+        }
+
+        // Computes enemyEffectiveHD - partyMaxEffectiveLevel for the
+        // EnemyHDMinusPartyLevel condition property. Mythic-inclusive on both
+        // sides so the margin stays meaningful through late Wrath. Returns NaN
+        // when the party is empty (theoretical — not reachable mid-combat) so
+        // the row fails-closed rather than reading 0.
+        static float ComputeHDMinusPartyLevel(UnitEntityData enemy) {
+            if (enemy == null) return float.NaN;
+            int partyMax = ComputePartyMaxEffectiveLevel();
+            if (partyMax == 0) return float.NaN;
+            int enemyHD = UnitExtensions.GetEffectiveHD(enemy);
+            float margin = enemyHD - partyMax;
+            Log.Engine.Trace($"EnemyHDMinusPartyLevel: {enemy.CharacterName} HD={enemyHD} vs PartyMax={partyMax} -> margin={margin}");
+            return margin;
+        }
+
         static bool EvaluateAlly(Condition condition, UnitEntityData owner) {
             foreach (var ally in GetAllPartyMembers(owner)) {
                 if (ally == owner) continue;
@@ -520,6 +561,16 @@ namespace WrathTactics.Engine {
                         return false;
                     }
                     float margin = ComputeABMinusAC(unit);
+                    if (float.IsNaN(margin)) return false;
+                    return CompareFloat(margin, condition.Operator, threshold);
+                }
+
+                case ConditionProperty.EnemyHDMinusPartyLevel: {
+                    if (!IsEnemyScope(condition.Subject)) {
+                        Log.Engine.Trace($"EnemyHDMinusPartyLevel: subject {condition.Subject} is not Enemy-scope, returning false");
+                        return false;
+                    }
+                    float margin = ComputeHDMinusPartyLevel(unit);
                     if (float.IsNaN(margin)) return false;
                     return CompareFloat(margin, condition.Operator, threshold);
                 }
@@ -708,6 +759,15 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out threshold))
                         return false;
                     float margin = ComputeDCMinusSave(unit);
+                    if (float.IsNaN(margin)) return false;
+                    return CompareFloat(margin, condition.Operator, threshold);
+                }
+
+                case ConditionProperty.EnemyHDMinusPartyLevel: {
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    float margin = ComputeHDMinusPartyLevel(unit);
                     if (float.IsNaN(margin)) return false;
                     return CompareFloat(margin, condition.Operator, threshold);
                 }
