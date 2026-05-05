@@ -13,6 +13,18 @@ namespace WrathTactics.Engine {
             return progression?.CharacterLevel ?? 0;
         }
 
+        // Effective HD = CharacterLevel + MythicLevel. Used by margin-vs-party-level
+        // comparisons (EnemyHDMinusPartyLevel) so Mythic-buffed parties evaluate
+        // consistently against Mythic enemies. Distinct from GetHD() which deliberately
+        // excludes Mythic to mirror the engine's vanilla HD-cap rules (Sleep, Color
+        // Spray, Hold Person via ContextConditionHitDice) — those caps must NOT
+        // include Mythic. Don't unify the two helpers.
+        public static int GetEffectiveHD(UnitEntityData unit) {
+            var p = unit?.Descriptor?.Progression;
+            if (p == null) return 0;
+            return p.CharacterLevel + p.MythicLevel;
+        }
+
         // Looks up the target's modified save for the given save type. Returns 0
         // for SavingThrowType.Unknown — callers must pre-check the enum so "no
         // save" doesn't silently compare against 0.
