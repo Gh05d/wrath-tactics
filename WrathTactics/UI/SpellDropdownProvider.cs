@@ -141,6 +141,28 @@ namespace WrathTactics.UI {
                                 key, spell.Blueprint.Icon));
                         }
                     }
+                    // Special spells — Cleric Domain, Shaman Spirit, Sorcerer Bloodline,
+                    // Witch Patron lists (added by AddSpecialSpellList → Spellbook.AddSpecial).
+                    // Owlcat's own SpellBookView reads all three collections; mod parity.
+                    foreach (var spell in book.GetSpecialSpells(level)) {
+                        var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
+                        if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
+                            foreach (var variant in variants.Variants) {
+                                if (variant == null) continue;
+                                var key = MakeKey(spell, level, variant.AssetGuid.ToString());
+                                if (seen.Add(key))
+                                    result.Add(new SpellEntry(
+                                        FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                                        key, variant.Icon));
+                            }
+                        } else {
+                            var key = MakeKey(spell, level);
+                            if (seen.Add(key))
+                                result.Add(new SpellEntry(
+                                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
+                                    key, spell.Blueprint.Icon));
+                        }
+                    }
                 }
             }
 

@@ -110,8 +110,9 @@ namespace WrathTactics.Engine {
                 Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} ability '{ability.Name}' is not point-castable");
                 return false;
             }
+            // GetAvailableForCastSpellCount returns -1 for cantrips (unlimited); 0 = no slot.
             if (ability.Spellbook != null
-                && ability.Spellbook.GetAvailableForCastSpellCount(ability) <= 0)
+                && ability.Spellbook.GetAvailableForCastSpellCount(ability) == 0)
                 return false;
             var resource = ability.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
             if (resource != null && resource.IsSpendResource) {
@@ -154,12 +155,11 @@ namespace WrathTactics.Engine {
             }
             Log.Engine.Trace($"FindAbility OK: {ability.Name} for {owner.CharacterName}");
 
-            // Spellbook check: GetAvailableForCastSpellCount handles prepared (memorized+Available),
-            // spontaneous (GetSpontaneousSlots), and Arcanist-hybrid correctly. GetSpellsPerDay is
-            // the MAX per-day capacity and never decrements — using it here lets exhausted casters
-            // loop-queue the same spell forever.
+            // GetAvailableForCastSpellCount: -1 = cantrip unlimited, 0 = no slot / not in
+            // book, positive = remaining. Don't use GetSpellsPerDay (MAX capacity, never
+            // decrements — would let exhausted casters loop-queue the same spell forever).
             if (ability.Spellbook != null) {
-                if (ability.Spellbook.GetAvailableForCastSpellCount(ability) <= 0) {
+                if (ability.Spellbook.GetAvailableForCastSpellCount(ability) == 0) {
                     Log.Engine.Trace($"CanCastSpell: {owner.CharacterName} has no remaining slots for {ability.Name}");
                     return false;
                 }
@@ -261,6 +261,25 @@ namespace WrathTactics.Engine {
                             ? (int)spell.MetamagicData.MetamagicMask : 0;
                         if (spellMask == parsed.MetamagicMask)
                             return spell;
+                    }
+                    // Special spells — Cleric Domain / Shaman Spirit / Sorcerer Bloodline /
+                    // Witch Patron lists. Stored in Spellbook.m_SpecialSpells, not m_KnownSpells.
+                    foreach (var spell in book.GetSpecialSpells(level)) {
+                        if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
+                        if (parsed.MetamagicMask != 0) continue;
+
+                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
+                            var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
+                            if (variants?.m_Variants == null) continue;
+                            foreach (var variant in variants.Variants) {
+                                if (variant == null) continue;
+                                if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
+                                isSynthetic = true;
+                                return new AbilityData(spell, variant);
+                            }
+                            continue;
+                        }
+                        return spell;
                     }
                 }
             }
@@ -415,22 +434,31 @@ namespace WrathTactics.Engine {
             // Returns false for None (non-heal blueprints) and for the wrong energy type.
             bool MatchesEnergy(BlueprintAbility bp) => ClassifyHeal(bp) == requiredEnergy;
 
-            // Search spellbooks for cure/heal spells
+            // Search spellbooks for cure/heal spells. Iterates known + special lists; the
+            // latter covers Cleric domain Cure spells, Life-spirit Shaman heals, etc.
+            // GetAvailableForCastSpellCount returns -1 for cantrips (unlimited); 0 means
+            // no slot or spell-not-in-book.
             if (wantSpell) foreach (var book in owner.Spellbooks) {
                 int maxLevel = book.MaxSpellLevel;
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var spell in book.GetKnownSpells(level)) {
                         if (MatchesEnergy(spell.Blueprint)) {
-                            // GetSpellsPerDay is MAX capacity — always positive for a caster who
-                            // has ANY level-N slot, even if the specific spell isn't prepared.
-                            // GetAvailableForCastSpellCount is the correct per-spell "can I cast
-                            // this right now" check (handles prepared + spontaneous uniformly).
-                            if (book.GetAvailableForCastSpellCount(spell) <= 0) continue;
+                            if (book.GetAvailableForCastSpellCount(spell) == 0) continue;
                             if (!spell.IsAvailable) {
                                 Log.Engine.Trace($"Skipping heal spell {spell.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({spell.GetUnavailableReason()})");
                                 continue;
                             }
                             heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell)); // highest priority: spellbook spells
+                        }
+                    }
+                    foreach (var spell in book.GetSpecialSpells(level)) {
+                        if (MatchesEnergy(spell.Blueprint)) {
+                            if (book.GetAvailableForCastSpellCount(spell) == 0) continue;
+                            if (!spell.IsAvailable) {
+                                Log.Engine.Trace($"Skipping heal special-spell {spell.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({spell.GetUnavailableReason()})");
+                                continue;
+                            }
+                            heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell));
                         }
                     }
                 }
@@ -640,7 +668,7 @@ namespace WrathTactics.Engine {
                 var ability = FindAbility(owner, compoundKey);
                 if (ability != null
                     && ability.Spellbook != null
-                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) > 0
+                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) != 0
                     && ability.IsAvailable) {
                     return ability;
                 }
@@ -767,7 +795,11 @@ namespace WrathTactics.Engine {
                 for (int level = 0; level <= maxLevel; level++) {
                     foreach (var known in book.GetKnownSpells(level)) {
                         if (known?.Blueprint != spell) continue;
-                        if (book.GetAvailableForCastSpellCount(known) > 0) return true;
+                        if (book.GetAvailableForCastSpellCount(known) != 0) return true;
+                    }
+                    foreach (var special in book.GetSpecialSpells(level)) {
+                        if (special?.Blueprint != spell) continue;
+                        if (book.GetAvailableForCastSpellCount(special) != 0) return true;
                     }
                 }
             }
