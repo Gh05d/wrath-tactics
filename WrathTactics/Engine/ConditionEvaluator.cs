@@ -600,6 +600,15 @@ namespace WrathTactics.Engine {
                     return EqualsBool(isDead, condition);
                 }
 
+                case ConditionProperty.IsSummon: {
+                    // UnitPartSummonedMonster is engine-added (Ensure<>+Init) on every Summon
+                    // Monster / Animate Dead / Create Undead / etc. cast. Pets, animal companions,
+                    // Aivu, and Eidolons carry UnitPartPetMaster/UnitPartCompanion but NOT this
+                    // part — so this check excludes them, matching the user-facing semantic.
+                    bool isSummon = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartSummonedMonster>() != null;
+                    return EqualsBool(isSummon, condition);
+                }
+
                 case ConditionProperty.HasBuff: {
                     bool hasBuff = unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value);
@@ -709,6 +718,13 @@ namespace WrathTactics.Engine {
                     bool dead = unit.Descriptor?.State?.IsFinallyDead ?? false;
                     bool wantDead = ParseBoolValue(condition.Value);
                     bool match = dead == wantDead;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.IsSummon: {
+                    bool isSummon = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartSummonedMonster>() != null;
+                    bool wantSummon = ParseBoolValue(condition.Value);
+                    bool match = isSummon == wantSummon;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

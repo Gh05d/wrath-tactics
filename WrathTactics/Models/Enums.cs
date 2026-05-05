@@ -46,7 +46,8 @@ namespace WrathTactics.Models {
         IsTargetingSelf,     // Enemy-scope: this enemy targets the rule owner
         IsTargetingAlly,     // Enemy-scope: this enemy targets a non-owner ally
         IsTargetedByAlly,    // Enemy-scope: a non-owner ally targets this enemy
-        IsTargetedByEnemy    // Ally-scope: an enemy targets this ally
+        IsTargetedByEnemy,   // Ally-scope: an enemy targets this ally
+        IsSummon             // Yes/No — UnitPartSummonedMonster present (excludes pets/companions)
     }
 
     public enum ConditionOperator {

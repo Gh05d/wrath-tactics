@@ -152,6 +152,7 @@
   "enum.property.IsTargetingAlly": "Cible un allié",
   "enum.property.IsTargetedByAlly": "Ciblé par allié",
   "enum.property.IsTargetedByEnemy": "Ciblé par ennemi",
+  "enum.property.IsSummon": "Est une invocation",
 
   "enum.action.CastSpell": "Lancer un sort",
   "enum.action.CastAbility": "Capacité",

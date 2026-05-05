@@ -210,7 +210,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.IsTargetingSelf
                     || condition.Property == ConditionProperty.IsTargetingAlly
                     || condition.Property == ConditionProperty.IsTargetedByAlly
-                    || condition.Property == ConditionProperty.IsTargetedByEnemy;
+                    || condition.Property == ConditionProperty.IsTargetedByEnemy
+                    || condition.Property == ConditionProperty.IsSummon;
                 bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector
@@ -406,7 +407,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasCondition,
                         ConditionProperty.SpellSlotsAtLevel, ConditionProperty.SpellSlotsAboveLevel,
                         ConditionProperty.Alignment,
-                        ConditionProperty.HasClass
+                        ConditionProperty.HasClass,
+                        ConditionProperty.IsSummon
                     };
                 case ConditionSubject.Ally:
                     return new List<ConditionProperty> {
@@ -415,7 +417,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
-                        ConditionProperty.IsTargetedByEnemy
+                        ConditionProperty.IsTargetedByEnemy,
+                        ConditionProperty.IsSummon
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
@@ -423,7 +426,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
-                        ConditionProperty.WithinRange
+                        ConditionProperty.WithinRange,
+                        ConditionProperty.IsSummon
                     };
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyBiggestThreat:
@@ -453,7 +457,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsTargetingSelf,
                         ConditionProperty.IsTargetingAlly,
-                        ConditionProperty.IsTargetedByAlly
+                        ConditionProperty.IsTargetedByAlly,
+                        ConditionProperty.IsSummon
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
@@ -464,7 +469,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.SpellDCMinusSave,
                         ConditionProperty.ABMinusAC,
                         ConditionProperty.HasClass,
-                        ConditionProperty.WithinRange
+                        ConditionProperty.WithinRange,
+                        ConditionProperty.IsSummon
                     };
                 case ConditionSubject.Combat:
                     return new List<ConditionProperty> {
