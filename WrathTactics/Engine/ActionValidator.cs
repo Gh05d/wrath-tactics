@@ -249,7 +249,7 @@ namespace WrathTactics.Engine {
                                 if (variant == null) continue;
                                 if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
                                 isSynthetic = true;
-                                return new AbilityData(spell, variant);
+                                return MakeVariantData(spell, variant);
                             }
                             continue;
                         }
@@ -275,7 +275,7 @@ namespace WrathTactics.Engine {
                                 if (variant == null) continue;
                                 if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
                                 isSynthetic = true;
-                                return new AbilityData(spell, variant);
+                                return MakeVariantData(spell, variant);
                             }
                             continue;
                         }
@@ -303,12 +303,26 @@ namespace WrathTactics.Engine {
                         && variant.AssetGuid.ToString() == parsed.VariantGuid;
                     if (legacyMatch || explicitMatch) {
                         isSynthetic = true;
-                        return new AbilityData(ability.Data, variant);
+                        return MakeVariantData(ability.Data, variant);
                     }
                 }
             }
 
             return null;
+        }
+
+        // Constructs a variant AbilityData while preserving the parent's spellbook level.
+        // The 2-arg ctor `new AbilityData(parent, variant)` chains to the 4-arg base ctor
+        // and silently drops `SpellLevelInSpellbook`, so `Spellbook.GetSpellLevel(variant)`
+        // falls through to `GetMinSpellLevel(variant.Blueprint)` which returns -1 (variant
+        // blueprints aren't in m_KnownSpellLevels — only their parents are). That makes
+        // `GetAvailableForCastSpellCount` return 0 for any spellbook-spell variant, blocking
+        // the cast at the validator's slot-count gate. Class-ability variants are unaffected
+        // because their Spellbook==null branch skips the gate.
+        static AbilityData MakeVariantData(AbilityData parent, BlueprintAbility variant) {
+            var data = new AbilityData(parent, variant);
+            data.SpellLevelInSpellbook = parent.SpellLevelInSpellbook;
+            return data;
         }
 
         /// <summary>
