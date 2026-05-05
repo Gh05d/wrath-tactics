@@ -153,6 +153,7 @@
   "enum.property.IsTargetedByAlly": "被盟友瞄准",
   "enum.property.IsTargetedByEnemy": "被敌人瞄准",
   "enum.property.IsSummon": "是召唤生物",
+  "enum.property.EnemyHDMinusPartyLevel": "生命骰 − 队伍",
 
   "enum.action.CastSpell": "施放法术",
   "enum.action.CastAbility": "使用能力",

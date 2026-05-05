@@ -153,6 +153,7 @@
   "enum.property.IsTargetedByAlly": "Targeted by ally",
   "enum.property.IsTargetedByEnemy": "Targeted by enemy",
   "enum.property.IsSummon": "Is summon",
+  "enum.property.EnemyHDMinusPartyLevel": "HD − Party",
 
   "enum.action.CastSpell": "CastSpell",
   "enum.action.CastAbility": "CastAbility",

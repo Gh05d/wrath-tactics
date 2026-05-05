@@ -153,6 +153,7 @@
   "enum.property.IsTargetedByAlly": "Цель союзника",
   "enum.property.IsTargetedByEnemy": "Цель врага",
   "enum.property.IsSummon": "Призванное существо",
+  "enum.property.EnemyHDMinusPartyLevel": "КЗ − Группа",
 
   "enum.action.CastSpell": "Заклинание",
   "enum.action.CastAbility": "Способность",

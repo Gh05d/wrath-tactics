@@ -153,6 +153,7 @@
   "enum.property.IsTargetedByAlly": "Ciblé par allié",
   "enum.property.IsTargetedByEnemy": "Ciblé par ennemi",
   "enum.property.IsSummon": "Est une invocation",
+  "enum.property.EnemyHDMinusPartyLevel": "DV − Groupe",
 
   "enum.action.CastSpell": "Lancer un sort",
   "enum.action.CastAbility": "Capacité",

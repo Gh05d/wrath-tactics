@@ -153,6 +153,7 @@
   "enum.property.IsTargetedByAlly": "Wird von Verbündetem angegriffen",
   "enum.property.IsTargetedByEnemy": "Wird von Gegner angegriffen",
   "enum.property.IsSummon": "Ist Beschwörung",
+  "enum.property.EnemyHDMinusPartyLevel": "TW − Gruppe",
 
   "enum.action.CastSpell": "Zauber wirken",
   "enum.action.CastAbility": "Fähigkeit nutzen",
