@@ -244,5 +244,12 @@
   "enum.condition.Shaken": "动摇",
   "enum.condition.Sickened": "不适",
   "enum.condition.Sleeping": "睡眠",
-  "enum.condition.Petrified": "石化"
+  "enum.condition.Petrified": "石化",
+  "enum.condition.Slowed": "缓慢",
+  "enum.condition.Staggered": "蹒跚",
+  "enum.condition.Dazed": "茫然",
+  "enum.condition.Dazzled": "眩目",
+  "enum.condition.Helpless": "无助",
+  "enum.condition.Cowering": "畏缩",
+  "enum.condition.DeathDoor": "濒死"
 }

@@ -244,5 +244,12 @@
   "enum.condition.Shaken": "Shaken",
   "enum.condition.Sickened": "Sickened",
   "enum.condition.Sleeping": "Sleeping",
-  "enum.condition.Petrified": "Petrified"
+  "enum.condition.Petrified": "Petrified",
+  "enum.condition.Slowed": "Slowed",
+  "enum.condition.Staggered": "Staggered",
+  "enum.condition.Dazed": "Dazed",
+  "enum.condition.Dazzled": "Dazzled",
+  "enum.condition.Helpless": "Helpless",
+  "enum.condition.Cowering": "Cowering",
+  "enum.condition.DeathDoor": "Death's Door"
 }

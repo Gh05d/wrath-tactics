@@ -244,5 +244,12 @@
   "enum.condition.Shaken": "Secoué",
   "enum.condition.Sickened": "Souffrant",
   "enum.condition.Sleeping": "Endormi",
-  "enum.condition.Petrified": "Pétrifié"
+  "enum.condition.Petrified": "Pétrifié",
+  "enum.condition.Slowed": "Ralenti",
+  "enum.condition.Staggered": "Chancelant",
+  "enum.condition.Dazed": "Hébété",
+  "enum.condition.Dazzled": "Ébloui",
+  "enum.condition.Helpless": "Sans défense",
+  "enum.condition.Cowering": "Tremblant",
+  "enum.condition.DeathDoor": "Aux portes de la mort"
 }

@@ -919,6 +919,13 @@ namespace WrathTactics.Engine {
                 case "sickened":   return unit.State.HasCondition(UnitCondition.Sickened);
                 case "sleeping":   return unit.State.HasCondition(UnitCondition.Sleeping);
                 case "petrified":  return unit.State.HasCondition(UnitCondition.Petrified);
+                case "slowed":     return unit.State.HasCondition(UnitCondition.Slowed);
+                case "staggered":  return unit.State.HasCondition(UnitCondition.Staggered);
+                case "dazed":      return unit.State.HasCondition(UnitCondition.Dazed);
+                case "dazzled":    return unit.State.HasCondition(UnitCondition.Dazzled);
+                case "helpless":   return unit.State.HasCondition(UnitCondition.Helpless);
+                case "cowering":   return unit.State.HasCondition(UnitCondition.Cowering);
+                case "deathdoor":  return unit.State.HasCondition(UnitCondition.DeathDoor);
                 default:           return false;
             }
         }

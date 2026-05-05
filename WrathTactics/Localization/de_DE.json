@@ -244,5 +244,12 @@
   "enum.condition.Shaken": "Erschüttert",
   "enum.condition.Sickened": "Krank",
   "enum.condition.Sleeping": "Schlafend",
-  "enum.condition.Petrified": "Versteinert"
+  "enum.condition.Petrified": "Versteinert",
+  "enum.condition.Slowed": "Verlangsamt",
+  "enum.condition.Staggered": "Taumelnd",
+  "enum.condition.Dazed": "Benommen",
+  "enum.condition.Dazzled": "Geblendet",
+  "enum.condition.Helpless": "Hilflos",
+  "enum.condition.Cowering": "Kauernd",
+  "enum.condition.DeathDoor": "Todesnähe"
 }

@@ -37,6 +37,8 @@ namespace WrathTactics.Localization {
             "Paralyzed", "Stunned", "Frightened", "Nauseated", "Confused",
             "Blinded", "Prone", "Entangled", "Exhausted", "Fatigued",
             "Shaken", "Sickened", "Sleeping", "Petrified",
+            "Slowed", "Staggered", "Dazed", "Dazzled", "Helpless",
+            "Cowering", "DeathDoor",
         };
 
         public static List<string> LabelsForCreatureType() => Map(KeysForCreatureType(), k => $"enum.creature_type.{k}".i18n());

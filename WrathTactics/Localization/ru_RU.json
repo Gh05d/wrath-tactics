@@ -244,5 +244,12 @@
   "enum.condition.Shaken": "Потрясён",
   "enum.condition.Sickened": "Болен",
   "enum.condition.Sleeping": "Спит",
-  "enum.condition.Petrified": "Окаменел"
+  "enum.condition.Petrified": "Окаменел",
+  "enum.condition.Slowed": "Замедлен",
+  "enum.condition.Staggered": "Покачивается",
+  "enum.condition.Dazed": "Ошеломлён",
+  "enum.condition.Dazzled": "Ослеплён светом",
+  "enum.condition.Helpless": "Беспомощен",
+  "enum.condition.Cowering": "Скован страхом",
+  "enum.condition.DeathDoor": "На пороге смерти"
 }
