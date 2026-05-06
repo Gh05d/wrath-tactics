@@ -18,11 +18,12 @@ namespace WrathTactics.Engine {
         /// <summary>
         /// Loads a PNG from `<ModPath>/Assets/<folder>/<file>` as a Sprite.
         /// Returns null on missing file or load failure (logged at warn level).
-        /// Cached by filename — subsequent calls return the same Sprite instance.
+        /// Cached by <c>folder/file</c> key — subsequent calls return the same Sprite instance.
         /// </summary>
-        public static Sprite LoadInternal(string folder, string file, Vector2Int size) {
+        public static Sprite Load(string folder, string file, Vector2Int size) {
             var cacheKey = $"{folder}/{file}";
             if (SpriteCache.TryGetValue(cacheKey, out var cached)) return cached;
+            Texture2D texture = null;
             try {
                 var path = Path.Combine(Main.ModPath, "Assets", folder, file);
                 if (!File.Exists(path)) {
@@ -31,10 +32,11 @@ namespace WrathTactics.Engine {
                     return null;
                 }
                 var bytes = File.ReadAllBytes(path);
-                var texture = new Texture2D(size.x, size.y, TextureFormat.DXT5, false);
+                texture = new Texture2D(size.x, size.y, TextureFormat.DXT5, false);
                 texture.mipMapBias = 15.0f;
                 if (!texture.LoadImage(bytes)) {
                     Log.UI.Warn($"Sprite '{cacheKey}' failed Texture2D.LoadImage at {path}.");
+                    UnityEngine.Object.Destroy(texture);
                     SpriteCache[cacheKey] = null;
                     return null;
                 }
@@ -42,7 +44,8 @@ namespace WrathTactics.Engine {
                 SpriteCache[cacheKey] = sprite;
                 return sprite;
             } catch (Exception ex) {
-                Log.UI.Error(ex, $"AssetLoader.LoadInternal failed for {cacheKey}");
+                Log.UI.Error(ex, $"AssetLoader.Load failed for {cacheKey}");
+                if (texture != null) UnityEngine.Object.Destroy(texture);
                 SpriteCache[cacheKey] = null;
                 return null;
             }
