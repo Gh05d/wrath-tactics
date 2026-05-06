@@ -251,5 +251,19 @@
   "enum.condition.Dazzled": "Ébloui",
   "enum.condition.Helpless": "Sans défense",
   "enum.condition.Cowering": "Tremblant",
-  "enum.condition.DeathDoor": "Aux portes de la mort"
+  "enum.condition.DeathDoor": "Aux portes de la mort",
+
+  "cast.rod.label": "Bâton",
+  "cast.rod.none": "(aucun)",
+  "cast.rod.tooltip": "Le bâton doit se trouver dans le slot rapide du lanceur. Le mod l'active avant l'incantation ; le moteur applique la métamagie et consomme une charge. Bascule silencieusement vers une incantation normale si le bâton est indisponible, n'a plus de charges ou si le sort n'est pas éligible.",
+  "enum.metamagic.Empower": "Empower",
+  "enum.metamagic.Maximize": "Maximize",
+  "enum.metamagic.Quicken": "Quicken",
+  "enum.metamagic.Extend": "Extend",
+  "enum.metamagic.Heighten": "Heighten",
+  "enum.metamagic.Reach": "Reach",
+  "enum.metamagic.Persistent": "Persistent",
+  "enum.metamagic.Selective": "Selective",
+  "enum.metamagic.Bolstered": "Bolstered",
+  "enum.metamagic.CompletelyNormal": "Complètement normal"
 }

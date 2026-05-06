@@ -251,5 +251,19 @@
   "enum.condition.Dazzled": "Geblendet",
   "enum.condition.Helpless": "Hilflos",
   "enum.condition.Cowering": "Kauernd",
-  "enum.condition.DeathDoor": "Todesnähe"
+  "enum.condition.DeathDoor": "Todesnähe",
+
+  "cast.rod.label": "Rute",
+  "cast.rod.none": "(keine)",
+  "cast.rod.tooltip": "Die Rute muss im Quickslot des Zaubernden liegen. Der Mod aktiviert sie vor dem Zauber; die Engine wendet die Metamagie an und verbraucht eine Ladung. Fällt stillschweigend auf einen normalen Wirkvorgang zurück, wenn die Rute nicht verfügbar ist, keine Ladungen hat oder der Zauber nicht in Frage kommt.",
+  "enum.metamagic.Empower": "Empower",
+  "enum.metamagic.Maximize": "Maximize",
+  "enum.metamagic.Quicken": "Quicken",
+  "enum.metamagic.Extend": "Extend",
+  "enum.metamagic.Heighten": "Heighten",
+  "enum.metamagic.Reach": "Reach",
+  "enum.metamagic.Persistent": "Persistent",
+  "enum.metamagic.Selective": "Selective",
+  "enum.metamagic.Bolstered": "Bolstered",
+  "enum.metamagic.CompletelyNormal": "Vollständig normal"
 }

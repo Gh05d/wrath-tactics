@@ -251,5 +251,19 @@
   "enum.condition.Dazzled": "Ослеплён светом",
   "enum.condition.Helpless": "Беспомощен",
   "enum.condition.Cowering": "Скован страхом",
-  "enum.condition.DeathDoor": "На пороге смерти"
+  "enum.condition.DeathDoor": "На пороге смерти",
+
+  "cast.rod.label": "Жезл",
+  "cast.rod.none": "(нет)",
+  "cast.rod.tooltip": "Жезл должен находиться в быстром слоте заклинателя. Мод активирует его перед заклинанием; движок применяет метамагию и расходует один заряд. При отсутствии жезла, исчерпании зарядов или неподходящем заклинании молча возвращается к обычному наложению.",
+  "enum.metamagic.Empower": "Empower",
+  "enum.metamagic.Maximize": "Maximize",
+  "enum.metamagic.Quicken": "Quicken",
+  "enum.metamagic.Extend": "Extend",
+  "enum.metamagic.Heighten": "Heighten",
+  "enum.metamagic.Reach": "Reach",
+  "enum.metamagic.Persistent": "Persistent",
+  "enum.metamagic.Selective": "Selective",
+  "enum.metamagic.Bolstered": "Bolstered",
+  "enum.metamagic.CompletelyNormal": "Полностью обычное"
 }
