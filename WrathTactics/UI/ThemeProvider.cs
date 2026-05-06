@@ -99,12 +99,27 @@ namespace WrathTactics.UI {
         /// </summary>
         public static void ApplyTabHeader(GameObject obj, bool active) {
             if (obj == null) return;
-            var sprite = active ? TabHeaderActive : TabHeaderInactive;
-            if (sprite == null) return;
+            var normalSprite = active ? TabHeaderActive : TabHeaderInactive;
+            if (normalSprite == null) return;
             var img = obj.GetComponent<Image>() ?? obj.AddComponent<Image>();
-            img.sprite = sprite;
+            img.sprite = normalSprite;
             img.type = Image.Type.Sliced;
             img.color = Color.white;
+
+            // Hover always shows the active sprite; press feedback uses the same visual.
+            // If a Button is on this GO (added by AddTab), wire SpriteSwap so the hover
+            // is visible — otherwise the tab would look static like before.
+            var btn = obj.GetComponent<Button>();
+            if (btn != null && TabHeaderActive != null) {
+                btn.transition = Selectable.Transition.SpriteSwap;
+                btn.spriteState = new SpriteState {
+                    highlightedSprite = TabHeaderActive,
+                    pressedSprite     = TabHeaderActive,
+                    selectedSprite    = active ? TabHeaderActive : TabHeaderInactive,
+                    disabledSprite    = TabHeaderInactive,
+                };
+                btn.targetGraphic = img;
+            }
         }
     }
 }

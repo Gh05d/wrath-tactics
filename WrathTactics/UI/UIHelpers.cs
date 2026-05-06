@@ -120,6 +120,28 @@ namespace WrathTactics.UI {
         }
 
         /// <summary>
+        /// Walks the GameObject tree and ensures every Button has a visible hover state.
+        /// Buttons that already use SpriteSwap (themed via ThemeProvider) are left alone
+        /// because their hover sprites are already set. Color-tint Buttons get a darken
+        /// multiplier on hover/press so the user gets feedback regardless of base colour.
+        /// </summary>
+        public static void EnsureAllHoverable(GameObject root) {
+            if (root == null) return;
+            foreach (var btn in root.GetComponentsInChildren<Button>(true)) {
+                if (btn.transition == Selectable.Transition.SpriteSwap) continue;
+                btn.transition = Selectable.Transition.ColorTint;
+                if (btn.targetGraphic == null) btn.targetGraphic = btn.GetComponent<Graphic>();
+                var c = btn.colors;
+                c.normalColor      = Color.white;
+                c.highlightedColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+                c.pressedColor     = new Color(0.55f, 0.55f, 0.55f, 1f);
+                c.selectedColor    = c.highlightedColor;
+                c.fadeDuration     = 0.1f;
+                btn.colors = c;
+            }
+        }
+
+        /// <summary>
         /// Creates a TMP_InputField with proper text viewport setup.
         /// </summary>
         public static TMP_InputField CreateTMPInputField(GameObject parent, string name,

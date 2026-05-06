@@ -84,23 +84,26 @@ namespace WrathTactics.UI {
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Main panel container — full canvas; anchors are fractional so this
-            // tracks display resolution automatically.
+            // Outer backdrop: fullscreen black overlay that covers HUD and dims the world.
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
-
             rootRect.SetAnchor(0, 1, 0, 1);
             rootRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(root, new Color(0, 0, 0, 0.78f));
 
-            // Background — themed Owlcat panel sprite when available, dark fallback otherwise
+            // Inner book panel: themed parchment, centered, narrower than the backdrop
+            // so the black margin frames the book like a tabletop reading surface.
+            var (book, bookRect) = UIHelpers.Create("BookPanel", root.transform);
+            bookRect.SetAnchor(0.10, 0.90, 0.04, 0.96);
+            bookRect.sizeDelta = Vector2.zero;
             if (ThemeProvider.PanelBackground != null) {
-                ThemeProvider.ApplyPanel(root);
+                ThemeProvider.ApplyPanel(book);
             } else {
-                UIHelpers.AddBackground(root, new Color(0.1f, 0.1f, 0.1f, 0.95f));
+                UIHelpers.AddBackground(book, new Color(0.15f, 0.12f, 0.08f, 0.98f));
             }
 
             // Title bar
-            var (titleBar, titleRect) = UIHelpers.Create("TitleBar", root.transform);
+            var (titleBar, titleRect) = UIHelpers.Create("TitleBar", book.transform);
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
             if (ThemeProvider.TitleBarBackground != null) {
@@ -128,7 +131,7 @@ namespace WrathTactics.UI {
             closeBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
-            var (tabBar, tabRect) = UIHelpers.Create("TabBar", root.transform);
+            var (tabBar, tabRect) = UIHelpers.Create("TabBar", book.transform);
             tabRect.SetAnchor(0, 1, 0.84, 0.91);
             tabRect.sizeDelta = Vector2.zero;
             tabBarTransform = tabBar.transform;
@@ -141,16 +144,21 @@ namespace WrathTactics.UI {
             RebuildTabs();
 
             // Toggle + Add rule row
-            CreateControlRow(root.transform);
+            CreateControlRow(book.transform);
 
             // Filter strip (sticky — stays above the scroll area regardless of tab)
-            CreateFilterStrip(root.transform);
+            CreateFilterStrip(book.transform);
 
             // Scrollable rule list
-            CreateRuleList(root.transform);
+            CreateRuleList(book.transform);
 
             // Empty-state label for the rule list (hidden by default, driven by ApplyFilter)
-            CreateRuleFilterEmptyLabel(root.transform);
+            CreateRuleFilterEmptyLabel(book.transform);
+
+            // Retrofit hover-feedback on every flat-color Button in the panel tree.
+            // Themed buttons (SpriteSwap) are left untouched because their hover
+            // sprites are already wired.
+            UIHelpers.EnsureAllHoverable(panelRoot);
 
             panelRoot.SetActive(false);
             Log.UI.Info("Panel created");
@@ -187,6 +195,11 @@ namespace WrathTactics.UI {
             bool isSelected = (tabId == null && selectedUnitId == null)
                 || (tabId != null && tabId == selectedUnitId);
 
+            // Order matters: Button must exist BEFORE ApplyTabHeader so the theme code
+            // can wire its SpriteSwap states for hover/press visibility.
+            var button = btn.AddComponent<Button>();
+            button.onClick.AddListener(onClick);
+
             var themed = isSelected ? ThemeProvider.TabHeaderActive : ThemeProvider.TabHeaderInactive;
             if (themed != null) {
                 ThemeProvider.ApplyTabHeader(btn, isSelected);
@@ -195,7 +208,6 @@ namespace WrathTactics.UI {
             }
 
             UIHelpers.AddLabel(btn, label, 16f, TextAlignmentOptions.Midline);
-            btn.AddComponent<Button>().onClick.AddListener(onClick);
         }
 
         void SelectTab(string unitId) {
@@ -279,12 +291,16 @@ namespace WrathTactics.UI {
             ruleFilterClearButton.onClick.AddListener(() => {
                 ruleFilterInput.text = "";  // triggers onValueChanged -> ApplyFilter
             });
-            ruleFilterClearButton.interactable = false;
+            // Hide entirely when the filter is empty — a disabled-but-visible grey block
+            // looks like a UI leftover. Visibility is driven by UpdateFilterClearButton.
+            clearBtn.SetActive(false);
         }
 
         void UpdateFilterClearButton() {
             if (ruleFilterClearButton == null) return;
-            ruleFilterClearButton.interactable = !string.IsNullOrEmpty(currentRuleFilter);
+            bool hasFilter = !string.IsNullOrEmpty(currentRuleFilter);
+            ruleFilterClearButton.gameObject.SetActive(hasFilter);
+            ruleFilterClearButton.interactable = hasFilter;
         }
 
         void CreateRuleFilterEmptyLabel(Transform parent) {
