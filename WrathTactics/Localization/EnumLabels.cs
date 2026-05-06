@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Kingmaker.UnitLogic.Abilities;
 using WrathTactics.Models;
 
 namespace WrathTactics.Localization {
@@ -44,6 +45,35 @@ namespace WrathTactics.Localization {
         public static List<string> LabelsForCreatureType() => Map(KeysForCreatureType(), k => $"enum.creature_type.{k}".i18n());
         public static List<string> LabelsForAlignment() => Map(KeysForAlignment(), k => $"enum.alignment.{k}".i18n());
         public static List<string> LabelsForCondition() => Map(KeysForCondition(), k => $"enum.condition.{k}".i18n());
+
+        /// <summary>
+        /// The 10 vanilla Metamagic enum values — same order as the Metamagic enum,
+        /// excluding None. Used for the CastSpell Rod dropdown.
+        /// </summary>
+        public static readonly Metamagic[] MetamagicValues = new[] {
+            Metamagic.Empower,
+            Metamagic.Maximize,
+            Metamagic.Quicken,
+            Metamagic.Extend,
+            Metamagic.Heighten,
+            Metamagic.Reach,
+            Metamagic.Persistent,
+            Metamagic.Selective,
+            Metamagic.Bolstered,
+            Metamagic.CompletelyNormal,
+        };
+
+        /// <summary>
+        /// Dropdown labels for the CastSpell Rod selector: "(none)" first, then the
+        /// 10 metamagic types. The integer index matches RodDropdownLabels[i] →
+        /// (i==0 ? null : MetamagicValues[i-1]).
+        /// </summary>
+        public static List<string> RodDropdownLabels() {
+            var labels = new List<string>(MetamagicValues.Length + 1);
+            labels.Add("cast.rod.none".i18n());
+            foreach (var v in MetamagicValues) labels.Add($"enum.metamagic.{v}".i18n());
+            return labels;
+        }
 
         static List<string> Map(List<string> keys, Func<string, string> f) {
             var r = new List<string>(keys.Count);
