@@ -84,12 +84,12 @@ namespace WrathTactics.UI {
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Main panel container — fullscreen with a small margin so the parchment edges
-            // are visible against the game backdrop.
+            // Main panel container — full canvas; anchors are fractional so this
+            // tracks display resolution automatically.
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
 
-            rootRect.SetAnchor(0.02, 0.98, 0.04, 0.96);
+            rootRect.SetAnchor(0, 1, 0, 1);
             rootRect.sizeDelta = Vector2.zero;
 
             // Background — themed Owlcat panel sprite when available, dark fallback otherwise
