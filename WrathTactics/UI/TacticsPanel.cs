@@ -92,15 +92,9 @@ namespace WrathTactics.UI {
             rootRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(root, new Color(0, 0, 0, 1f));
 
-            // Inner book panel: open-book illustration centered.
-            // AspectRatioFitter requires center-pivot anchors (anchorMin == anchorMax) —
-            // a stretch anchor like (0,1,0,1) silently disables the fitter and the rect
-            // ends up canvas-sized, so children spill past the book art.
+            // Inner book panel: open-book illustration centered. AspectRatioFitter mode
+            // FitInParent enforces native 2:1 aspect — letterbox top/bottom on 16:9.
             var (book, bookRect) = UIHelpers.Create("BookPanel", root.transform);
-            bookRect.anchorMin = new Vector2(0.5f, 0.5f);
-            bookRect.anchorMax = new Vector2(0.5f, 0.5f);
-            bookRect.pivot = new Vector2(0.5f, 0.5f);
-            bookRect.anchoredPosition = Vector2.zero;
             var fitter = book.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fitter.aspectRatio = 2.0f;
@@ -110,8 +104,15 @@ namespace WrathTactics.UI {
                 UIHelpers.AddBackground(book, new Color(0.15f, 0.12f, 0.08f, 0.98f));
             }
 
+            // Inner content area — sits ON the book pages, leaves visible book frame
+            // around it (decorative edges + spine remain visible). All widgets parent
+            // under this rect, not under `book`, so the book art frames the menu.
+            var (bookContent, contentRect) = UIHelpers.Create("BookContent", book.transform);
+            contentRect.SetAnchor(0.06, 0.94, 0.10, 0.93);
+            contentRect.sizeDelta = Vector2.zero;
+
             // Title bar
-            var (titleBar, titleRect) = UIHelpers.Create("TitleBar", book.transform);
+            var (titleBar, titleRect) = UIHelpers.Create("TitleBar", bookContent.transform);
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
             if (ThemeProvider.TitleBarBackground != null) {
@@ -139,7 +140,7 @@ namespace WrathTactics.UI {
             closeBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
-            var (tabBar, tabRect) = UIHelpers.Create("TabBar", book.transform);
+            var (tabBar, tabRect) = UIHelpers.Create("TabBar", bookContent.transform);
             tabRect.SetAnchor(0, 1, 0.84, 0.91);
             tabRect.sizeDelta = Vector2.zero;
             tabBarTransform = tabBar.transform;
@@ -152,16 +153,16 @@ namespace WrathTactics.UI {
             RebuildTabs();
 
             // Toggle + Add rule row
-            CreateControlRow(book.transform);
+            CreateControlRow(bookContent.transform);
 
             // Filter strip (sticky — stays above the scroll area regardless of tab)
-            CreateFilterStrip(book.transform);
+            CreateFilterStrip(bookContent.transform);
 
             // Scrollable rule list
-            CreateRuleList(book.transform);
+            CreateRuleList(bookContent.transform);
 
             // Empty-state label for the rule list (hidden by default, driven by ApplyFilter)
-            CreateRuleFilterEmptyLabel(book.transform);
+            CreateRuleFilterEmptyLabel(bookContent.transform);
 
             // Retrofit hover-feedback on every flat-color Button in the panel tree.
             // Themed buttons (SpriteSwap) are left untouched because their hover
@@ -354,13 +355,11 @@ namespace WrathTactics.UI {
         }
 
         void CreateRuleList(Transform parent) {
-            // ScrollRect container — parchment background sheet behind the rules list
+            // ScrollRect container — no background; each rule card carries its own
+            // parchment sheet (see RuleEditorWidget.BuildUI).
             var (scrollObj, scrollRect) = UIHelpers.Create("RuleScroll", parent);
             scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             scrollRect.sizeDelta = Vector2.zero;
-            if (ThemeProvider.InnerParchment != null) {
-                ThemeProvider.ApplyInnerParchment(scrollObj);
-            }
 
             // Viewport with RectMask2D instead of Mask.
             // Reserve a gutter on the right for the permanent scrollbar (12 px track
