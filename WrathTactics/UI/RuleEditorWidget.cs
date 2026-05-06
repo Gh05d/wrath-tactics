@@ -48,13 +48,7 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            // Each rule card is its own parchment sheet — gives the visual that the
-            // rule "lies in the book" rather than being a dark UI block on top of it.
-            if (ThemeProvider.InnerParchment != null) {
-                ThemeProvider.ApplyInnerParchment(root);
-            } else {
-                UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
-            }
+            UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 

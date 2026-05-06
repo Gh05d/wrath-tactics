@@ -483,7 +483,7 @@ namespace WrathTactics.UI {
                 var charName = GetCharacterName(selectedUnitId);
                 var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
                 toggleLabel.text = string.Format(template, charName);
-                toggleLabel.color = enabled ? Color.green : Color.gray;
+                toggleLabel.color = enabled ? Color.white : Color.gray;
             }
         }
 

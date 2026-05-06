@@ -355,11 +355,13 @@ namespace WrathTactics.UI {
                 Mathf.Max(0, (options?.Count ?? 1) - 1));
             selector.onSelected = onSelected;
 
-            // Button label showing current selection
+            // Button label showing current selection. Left margin keeps the text from
+            // touching the rect edge; right margin reserves space for the arrow.
             string labelText = selector.selectedIndex < selector.options.Count
                 ? selector.options[selector.selectedIndex] : "";
             selector.buttonLabel = UIHelpers.AddLabel(obj, labelText, 15f,
                 TextAlignmentOptions.MidlineLeft);
+            selector.buttonLabel.margin = new Vector4(8f, 0f, 18f, 0f);
 
             // Arrow indicator on the right
             var (arrow, arrowRect) = UIHelpers.Create("Arrow", obj.transform);
