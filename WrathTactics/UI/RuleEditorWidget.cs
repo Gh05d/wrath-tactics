@@ -48,9 +48,13 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            // Parchment colour sampled from the book's center texture — rule cards
-            // visually merge into the page surface.
-            UIHelpers.AddBackground(root, new Color(0.824f, 0.804f, 0.769f, 1f));
+            // Use the actual parchment sprite as background so each card has the
+            // natural paper texture / gradient instead of a flat sampled colour.
+            if (ThemeProvider.InnerParchment != null) {
+                ThemeProvider.ApplyInnerParchment(root);
+            } else {
+                UIHelpers.AddBackground(root, new Color(0.824f, 0.804f, 0.769f, 1f));
+            }
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 

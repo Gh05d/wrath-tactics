@@ -68,14 +68,16 @@ namespace WrathTactics.UI {
 
         /// <summary>
         /// Applies the parchment / tutorial-paper sprite to obj's Image (adds Image if
-        /// missing). 9-sliced — appropriate for arbitrary inner-section sizes.
+        /// missing). Rendered as Simple (the whole sprite stretched to fit the rect)
+        /// because the original 9-slice borders (154 px top + bottom) exceed typical
+        /// rule-card heights and would produce squish artefacts under Sliced mode.
         /// No-op if InnerParchment is null.
         /// </summary>
         public static void ApplyInnerParchment(GameObject obj) {
             if (obj == null || InnerParchment == null) return;
             var img = obj.GetComponent<Image>() ?? obj.AddComponent<Image>();
             img.sprite = InnerParchment;
-            img.type = Image.Type.Sliced;
+            img.type = Image.Type.Simple;
             img.color = Color.white;
             img.raycastTarget = true;
         }
