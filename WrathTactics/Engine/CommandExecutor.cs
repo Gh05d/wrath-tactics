@@ -63,6 +63,11 @@ namespace WrathTactics.Engine {
 
             var targetWrapper = BuildTargetWrapper(target, owner);
 
+            // Rod activation (no-op when action.MetamagicRod == null or no rod matches).
+            // Done after resolution, before any cast path — applies whether we end up in
+            // the inventory branch, the spellbook branch, or the Rulebook fallback.
+            MaybeActivateRod(action, owner, ability);
+
             // Inventory source (scroll/potion) — synthetic AbilityData, Rulebook.Trigger + manual consume.
             // Mirror of ExecuteHeal's inventory path.
             if (inventorySource != null) {
@@ -100,6 +105,28 @@ namespace WrathTactics.Engine {
             } catch (Exception ex) {
                 Log.Engine.Error(ex, $"Rulebook.Trigger fallback failed for {ability.Name}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// If <paramref name="action"/>.MetamagicRod is set and a matching rod is equipped+quickslotted,
+        /// activates the rod's ActivatableAbility on <paramref name="owner"/> so the next cast picks it up.
+        /// Silent no-op when the field is null or no rod matches — caller proceeds with
+        /// a normal cast.
+        /// </summary>
+        static void MaybeActivateRod(ActionDef action, UnitEntityData owner, AbilityData ability) {
+            if (action.MetamagicRod == null) return;
+            var mech = MetamagicRodResolver.TryResolve(owner, ability, action.MetamagicRod.Value);
+            if (mech == null) return;
+            var rodAbilityBp = mech.RodAbility;
+            if (rodAbilityBp == null) return;
+            foreach (var aa in owner.ActivatableAbilities) {
+                if (aa.Blueprint != rodAbilityBp) continue;
+                if (aa.IsOn) return; // already toggled — engine will spend the charge on the upcoming cast
+                if (aa.TryStart()) {
+                    Log.Engine.Info($"Activated rod {rodAbilityBp.name} for {owner.CharacterName} ({mech.Metamagic} on {ability.Name})");
+                }
+                return;
             }
         }
 
