@@ -17,6 +17,7 @@ namespace WrathTactics.UI {
         GameObject panelRoot;
         GameObject hudButton;
         bool isVisible;
+        float panelBuiltAtFontScale; // tracks the FontScale used when panelRoot was last built
         string selectedUnitId; // null = Global, "presets" = Presets
         string lastNonPresetUnitId; // last selected tab that wasn't "presets"
         Transform ruleListContent; // parent for rule cards
@@ -54,7 +55,24 @@ namespace WrathTactics.UI {
         }
 
         public void Toggle() {
-            if (panelRoot == null) CreatePanel();
+            // Refresh once per open. The picked-up value drives every AddLabel /
+            // CreateTMPInputField fontSize during this session — settings changes
+            // made while the panel is visible take effect on the next Ctrl+T cycle.
+            if (panelRoot == null || !isVisible) {
+                UIHelpers.RefreshFontScale();
+                // Tab/rule chrome is rebuilt on every open; the static title bar etc.
+                // built in CreatePanel sticks at its build-time scale. Tear down the
+                // panel root if the user changed the scale slider between sessions so
+                // the next CreatePanel picks up the new value uniformly.
+                if (panelRoot != null && !Mathf.Approximately(panelBuiltAtFontScale, UIHelpers.FontScale)) {
+                    Destroy(panelRoot);
+                    panelRoot = null;
+                }
+            }
+            if (panelRoot == null) {
+                CreatePanel();
+                panelBuiltAtFontScale = UIHelpers.FontScale;
+            }
             isVisible = !isVisible;
             panelRoot.SetActive(isVisible);
             if (isVisible) {

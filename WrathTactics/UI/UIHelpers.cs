@@ -1,15 +1,42 @@
 using Kingmaker;
+using Kingmaker.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WrathTactics.Logging;
 
 namespace WrathTactics.UI {
     static class UIHelpers {
         public static Transform StaticRoot => Game.Instance.UI.Canvas.transform;
         public static Transform ServiceWindow => StaticRoot.Find("ServiceWindowsPCView");
+
+        /// <summary>
+        /// Multiplier applied to every <c>fontSize</c> argument passed to <see cref="AddLabel"/>
+        /// and <see cref="CreateTMPInputField"/>. Mirrors the game's UI font scale slider
+        /// (<c>SettingsRoot.Game.Main.FontSize</c> — same source the Journal etc. multiplies
+        /// by). Refreshed on-open via <see cref="RefreshFontScale"/>; settings changes made
+        /// while the panel is open take effect on the next Ctrl+T cycle.
+        /// </summary>
+        public static float FontScale { get; private set; } = 1f;
+
+        public static void RefreshFontScale() {
+            try {
+                var fontSetting = SettingsRoot.Game?.Main?.FontSize;
+                if (fontSetting != null) {
+                    float v = (float)fontSetting;
+                    // Defensive clamp — game slider never produces these, but a corrupt
+                    // settings file shouldn't render the panel unreadable.
+                    if (float.IsNaN(v) || v < 0.5f || v > 3f) v = 1f;
+                    FontScale = v;
+                }
+            } catch (Exception ex) {
+                Log.UI.Warn($"FontScale read failed, using 1.0: {ex.Message}");
+                FontScale = 1f;
+            }
+        }
 
         public static void SetAnchor(this RectTransform transform, double xMin, double xMax, double yMin, double yMax) {
             transform.anchorMin = new Vector2((float)xMin, (float)yMin);
@@ -60,7 +87,7 @@ namespace WrathTactics.UI {
             labelRect.FillParent();
             var tmp = labelObj.AddComponent<TextMeshProUGUI>();
             tmp.text = text;
-            tmp.fontSize = fontSize;
+            tmp.fontSize = fontSize * FontScale;
             tmp.alignment = alignment;
             tmp.color = color ?? Color.white;
             tmp.enableWordWrapping = false;
@@ -109,7 +136,7 @@ namespace WrathTactics.UI {
             var (textObj, textRect) = Create("Text", viewport.transform);
             textRect.FillParent();
             var textTmp = textObj.AddComponent<TextMeshProUGUI>();
-            textTmp.fontSize = fontSize;
+            textTmp.fontSize = fontSize * FontScale;
             textTmp.alignment = TextAlignmentOptions.MidlineLeft;
             textTmp.color = Color.white;
             textTmp.enableWordWrapping = false;
@@ -128,7 +155,7 @@ namespace WrathTactics.UI {
                 var (phObj, phRect) = Create("Placeholder", viewport.transform);
                 phRect.FillParent();
                 var phTmp = phObj.AddComponent<TextMeshProUGUI>();
-                phTmp.fontSize = fontSize;
+                phTmp.fontSize = fontSize * FontScale;
                 phTmp.alignment = TextAlignmentOptions.MidlineLeft;
                 phTmp.color = new Color(0.5f, 0.5f, 0.5f);
                 phTmp.enableWordWrapping = false;
@@ -391,9 +418,9 @@ namespace WrathTactics.UI {
             var (popup, popupRect) = UIHelpers.Create("PopupList", overlay.transform);
             UIHelpers.AddBackground(popup, new Color(0.15f, 0.15f, 0.15f, 0.98f));
 
-            float popupWidth = 350f;
-            float maxPopupHeight = 400f;
-            float itemHeight = 36f;
+            float popupWidth = 350f * UIHelpers.FontScale;
+            float maxPopupHeight = 400f * UIHelpers.FontScale;
+            float itemHeight = 36f * UIHelpers.FontScale;
             float totalHeight = Mathf.Min(options.Count * itemHeight + 8f, maxPopupHeight);
 
             popupRect.anchorMin = new Vector2(0.5f, 0.5f);
