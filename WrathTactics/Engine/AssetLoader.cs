@@ -20,15 +20,15 @@ namespace WrathTactics.Engine {
         /// Returns null on missing file or load failure (logged at warn level).
         /// Cached by <c>folder/file</c> key — subsequent calls return the same Sprite instance.
         /// </summary>
-        public static Sprite Load(string folder, string file, Vector2Int size) =>
-            Load(folder, file, size, Vector4.zero);
+        public static Sprite Load(string folder, string file) =>
+            Load(folder, file, Vector4.zero);
 
         /// <summary>
         /// Loads a PNG as a 9-slice Sprite with the given border (left, bottom, right, top in pixels).
         /// Returns null on missing file or load failure (logged at warn level).
         /// Cached by <c>folder/file</c> key — subsequent calls return the same Sprite instance.
         /// </summary>
-        public static Sprite Load(string folder, string file, Vector2Int size, Vector4 border) {
+        public static Sprite Load(string folder, string file, Vector4 border) {
             var cacheKey = $"{folder}/{file}";
             if (SpriteCache.TryGetValue(cacheKey, out var cached)) return cached;
             Texture2D texture = null;
@@ -40,7 +40,9 @@ namespace WrathTactics.Engine {
                     return null;
                 }
                 var bytes = File.ReadAllBytes(path);
-                texture = new Texture2D(size.x, size.y, TextureFormat.DXT5, false);
+                // Texture2D.LoadImage resizes the texture to the PNG's actual dimensions; the
+                // (2,2) seed is just a placeholder.
+                texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                 texture.mipMapBias = 15.0f;
                 if (!texture.LoadImage(bytes)) {
                     Log.UI.Warn($"Sprite '{cacheKey}' failed Texture2D.LoadImage at {path}.");
@@ -48,8 +50,8 @@ namespace WrathTactics.Engine {
                     SpriteCache[cacheKey] = null;
                     return null;
                 }
-                var sprite = Sprite.Create(texture, new Rect(0, 0, size.x, size.y), new Vector2(0.5f, 0.5f),
-                    100f, 0, SpriteMeshType.FullRect, border);
+                var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
                 SpriteCache[cacheKey] = sprite;
                 return sprite;
             } catch (Exception ex) {

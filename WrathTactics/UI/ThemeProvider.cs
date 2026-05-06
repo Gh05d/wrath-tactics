@@ -19,18 +19,20 @@ namespace WrathTactics.UI {
         public static Sprite ScrollbarHandle { get; private set; }
 
         public static void Init() {
-            PanelBackground    = Load("panel_background.png",     new Vector2Int(32, 32), new Vector4(8, 8, 8, 8));
-            TitleBarBackground = Load("titlebar_background.png",  new Vector2Int(32, 40), new Vector4(8, 8, 8, 8));
-            CloseButtonNormal  = Load("close_button_normal.png",  new Vector2Int(32, 32), Vector4.zero);
-            CloseButtonHover   = Load("close_button_hover.png",   new Vector2Int(32, 32), Vector4.zero);
-            CloseButtonPressed = Load("close_button_pressed.png", new Vector2Int(32, 32), Vector4.zero);
-            ActionButtonNormal = Load("action_button_normal.png", new Vector2Int(32, 40), new Vector4(6, 6, 6, 6));
-            ActionButtonHover  = Load("action_button_hover.png",  new Vector2Int(32, 40), new Vector4(6, 6, 6, 6));
-            ActionButtonPressed= Load("action_button_pressed.png",new Vector2Int(32, 40), new Vector4(6, 6, 6, 6));
-            TabHeaderActive    = Load("tab_header_active.png",    new Vector2Int(24, 40), new Vector4(4, 4, 4, 4));
-            TabHeaderInactive  = Load("tab_header_inactive.png",  new Vector2Int(24, 40), new Vector4(4, 4, 4, 4));
-            ScrollbarTrack     = Load("scrollbar_track.png",      new Vector2Int(16,  8), new Vector4(2, 2, 2, 2));
-            ScrollbarHandle    = Load("scrollbar_handle.png",     new Vector2Int(16, 16), new Vector4(2, 2, 2, 2));
+            // 9-slice border values are read directly from the original Owlcat sprite metadata
+            // (UnityPy `m_Border`, axis order = left, bottom, right, top in pixels).
+            PanelBackground    = Load("panel_background.png",     new Vector4(155, 147, 164, 86));
+            TitleBarBackground = Load("titlebar_background.png",  new Vector4( 85,  30,  85, 30));
+            CloseButtonNormal  = Load("close_button_normal.png",  Vector4.zero);
+            CloseButtonHover   = Load("close_button_hover.png",   Vector4.zero);
+            CloseButtonPressed = Load("close_button_pressed.png", Vector4.zero);
+            ActionButtonNormal = Load("action_button_normal.png", new Vector4( 62,  35,  62, 35));
+            ActionButtonHover  = Load("action_button_hover.png",  new Vector4( 62,  35,  62, 35));
+            ActionButtonPressed= Load("action_button_pressed.png",new Vector4( 62,  35,  62, 35));
+            TabHeaderActive    = Load("tab_header_active.png",    new Vector4( 28,  28,  20, 35));
+            TabHeaderInactive  = Load("tab_header_inactive.png",  new Vector4( 28,  28,  20, 35));
+            ScrollbarTrack     = Load("scrollbar_track.png",      new Vector4(  0,  79,   0, 67));
+            ScrollbarHandle    = Load("scrollbar_handle.png",     new Vector4(  7,  41,   8, 46));
 
             int loaded = 0;
             foreach (var s in new[] { PanelBackground, TitleBarBackground,
@@ -43,8 +45,8 @@ namespace WrathTactics.UI {
             Log.UI.Info($"ThemeProvider initialised — {loaded}/12 sprites loaded.");
         }
 
-        static Sprite Load(string file, Vector2Int size, Vector4 border) =>
-            AssetLoader.Load("icons", file, size, border);
+        static Sprite Load(string file, Vector4 border) =>
+            AssetLoader.Load("icons", file, border);
 
         /// <summary>
         /// Applies the panel background sprite to obj's Image (adds Image if missing).
