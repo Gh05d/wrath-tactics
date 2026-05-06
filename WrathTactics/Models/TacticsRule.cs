@@ -1,3 +1,4 @@
+using Kingmaker.UnitLogic.Abilities;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -44,6 +45,12 @@ namespace WrathTactics.Models {
         [JsonProperty] public SpellSourceMask Sources { get; set; } = SpellSourceMask.All;
         [JsonProperty] public ThrowSplashMode SplashMode { get; set; } = ThrowSplashMode.Any;
         [JsonProperty] public ToggleMode ToggleMode { get; set; } = ToggleMode.On;
+        // Optional metamagic-rod tag for CastSpell. When set, CommandExecutor activates the
+        // matching rod's ActivatableAbility before issuing the cast — the engine then
+        // applies the metamagic and spends one rod charge. Null = cast without rod
+        // (legacy behaviour). Falls back silently to a normal cast when no usable rod is
+        // equipped+quickslotted.
+        [JsonProperty] public Metamagic? MetamagicRod { get; set; }
     }
 
     public class TargetDef {
