@@ -48,9 +48,9 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            // Dark sepia in the same warm tone as the parchment so each rule reads
-            // as 'lying in the book' while keeping enough contrast for white text.
-            UIHelpers.AddBackground(root, new Color(0.32f, 0.25f, 0.18f, 1f));
+            // Parchment colour sampled from the book's center texture — rule cards
+            // visually merge into the page surface.
+            UIHelpers.AddBackground(root, new Color(0.824f, 0.804f, 0.769f, 1f));
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 
@@ -829,7 +829,7 @@ namespace WrathTactics.UI {
             lblRect.SetAnchor(0, 0.25, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
             UIHelpers.AddLabel(lbl, "cooldown.label".i18n(), 15f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.7f, 0.7f, 0.7f));
+                new Color(0.15f, 0.10f, 0.06f));
 
             var cdInput = UIHelpers.CreateTMPInputField(row, "CdInput",
                 0.26, 0.45, rule.CooldownRounds.ToString(), 16f,
