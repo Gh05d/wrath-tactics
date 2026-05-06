@@ -475,10 +475,36 @@ namespace WrathTactics.UI {
             }
 
             bool isCastSpell = rule.Action.Type == ActionType.CastSpell;
-            float pickerXMax = isCastSpell ? 0.65f : 1.0f;
+            float pickerXMax = isCastSpell ? 0.55f : 1.0f;
             BuildSpellPickerButton(row, 0.39f, pickerXMax);
 
             if (isCastSpell) {
+                // Rod dropdown — index 0 = (none) -> Action.MetamagicRod = null,
+                // indices 1..10 = MetamagicValues[i-1].
+                var rodLabels = EnumLabels.RodDropdownLabels();
+                int rodIdx = rule.Action.MetamagicRod == null
+                    ? 0
+                    : System.Array.IndexOf(EnumLabels.MetamagicValues, rule.Action.MetamagicRod.Value) + 1;
+                if (rodIdx < 0) rodIdx = 0;
+                PopupSelector.Create(row, "MetamagicRod", 0.56f, 0.72f, rodLabels, rodIdx, idx => {
+                    rule.Action.MetamagicRod = idx == 0
+                        ? (Kingmaker.UnitLogic.Abilities.Metamagic?)null
+                        : EnumLabels.MetamagicValues[idx - 1];
+                    PersistEdit();
+                });
+
+                // ⓘ info icon explaining the quickslot requirement (hover tooltip).
+                var (infoObj, infoRect) = UIHelpers.Create("RodInfo", row.transform);
+                infoRect.SetAnchor(0.73f, 0.76f, 0, 1);
+                infoRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(infoObj, "ⓘ", 18f, TMPro.TextAlignmentOptions.Midline,
+                    new Color(0.15f, 0.10f, 0.06f));
+                // Image so EventTrigger has a raycast target.
+                var infoBg = infoObj.AddComponent<Image>();
+                infoBg.color = new Color(0, 0, 0, 0); // invisible; raycast only
+                infoBg.raycastTarget = true;
+                UIHelpers.AddSimpleTooltip(infoObj, "cast.rod.tooltip".i18n());
+
                 // Source mask dropdown — 7 curated combinations, same pattern as HealSources.
                 var sourceLabels = new List<string> {
                     "source.all".i18n(), "source.spell_only".i18n(), "source.scroll_only".i18n(), "source.potion_only".i18n(),
@@ -495,7 +521,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.Sources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "SpellSources", 0.66f, 1.0f, sourceLabels, srcIdx, idx => {
+                PopupSelector.Create(row, "SpellSources", 0.77f, 1.0f, sourceLabels, srcIdx, idx => {
                     rule.Action.Sources = sourceValues[idx];
                     PersistEdit();
                 });
