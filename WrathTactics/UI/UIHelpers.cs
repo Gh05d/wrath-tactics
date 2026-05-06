@@ -153,13 +153,15 @@ namespace WrathTactics.UI {
             var parent = canvas != null ? canvas.transform : host.transform.root;
 
             var (root, rootRect) = Create("Tooltip", parent);
-            // Anchor at host's top-right; nudge up so it doesn't overlap the cursor.
+            // Position above the host. Pivot bottom-center so `position` places the
+            // tooltip's bottom edge a few px above the host top.
             rootRect.anchorMin = new Vector2(0, 0);
             rootRect.anchorMax = new Vector2(0, 0);
-            rootRect.pivot = new Vector2(0, 0);
+            rootRect.pivot = new Vector2(0.5f, 0f);
             var hostRect = host.GetComponent<RectTransform>();
-            var hostWorld = (Vector2)hostRect.position + new Vector2(hostRect.rect.width * 0.5f, hostRect.rect.height + 8f);
+            var hostWorld = (Vector2)hostRect.position + new Vector2(0f, hostRect.rect.height * 0.5f + 8f);
             rootRect.position = hostWorld;
+            // Width is fixed; height is driven by the ContentSizeFitter+VLG below.
             rootRect.sizeDelta = new Vector2(360f * FontScale, 0f);
 
             // Background
@@ -167,21 +169,28 @@ namespace WrathTactics.UI {
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.92f);
             bg.raycastTarget = false;
 
-            // Padded label
-            var (labelObj, labelRect) = Create("Label", root.transform);
-            labelRect.FillParent();
-            var tmp = labelObj.AddComponent<TMPro.TextMeshProUGUI>();
+            // VLG → ContentSizeFitter chain. ContentSizeFitter alone doesn't see TMP's
+            // preferred height — it needs a LayoutGroup on the same GameObject to
+            // aggregate child sizes. The VLG also gives us the inner padding cleanly.
+            var vlg = root.AddComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(8, 8, 6, 6);
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+
+            var fitter = root.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Label child — TMP reports its wrapped preferred height to the VLG above.
+            var (labelObj, _) = Create("Label", root.transform);
+            var tmp = labelObj.AddComponent<TextMeshProUGUI>();
             tmp.text = text;
             tmp.fontSize = 14f * FontScale;
-            tmp.alignment = TMPro.TextAlignmentOptions.TopLeft;
+            tmp.alignment = TextAlignmentOptions.TopLeft;
             tmp.color = new Color(0.95f, 0.92f, 0.85f);
             tmp.enableWordWrapping = true;
-            tmp.margin = new Vector4(8f, 6f, 8f, 6f);
             tmp.raycastTarget = false;
-
-            // Auto-size root to fit text height after layout
-            var fitter = root.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-            fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
 
             root.SetActive(false);
             return root;
