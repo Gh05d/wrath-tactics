@@ -84,11 +84,12 @@ namespace WrathTactics.UI {
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Main panel container — percentage-based: 70% wide, 80% tall
+            // Main panel container — fullscreen with a small margin so the parchment edges
+            // are visible against the game backdrop.
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
 
-            rootRect.SetAnchor(0.15, 0.85, 0.1, 0.9);
+            rootRect.SetAnchor(0.02, 0.98, 0.04, 0.96);
             rootRect.sizeDelta = Vector2.zero;
 
             // Background — themed Owlcat panel sprite when available, dark fallback otherwise
@@ -244,7 +245,7 @@ namespace WrathTactics.UI {
             var (strip, stripRect) = UIHelpers.Create("FilterStrip", parent);
             stripRect.SetAnchor(0.01, 0.99, 0.72, 0.76);
             stripRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(strip, new Color(0.14f, 0.14f, 0.14f, 1f));
+            UIHelpers.AddBackground(strip, new Color(0.10f, 0.08f, 0.06f, 0.45f));
 
             ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
                 0.02, 0.85, "", 15f,

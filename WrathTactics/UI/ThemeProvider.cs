@@ -21,7 +21,7 @@ namespace WrathTactics.UI {
         public static void Init() {
             // 9-slice border values are read directly from the original Owlcat sprite metadata
             // (UnityPy `m_Border`, axis order = left, bottom, right, top in pixels).
-            PanelBackground    = Load("panel_background.png",     new Vector4(155, 147, 164, 86));
+            PanelBackground    = Load("panel_background.png",     new Vector4(154, 154, 153, 154));
             TitleBarBackground = Load("titlebar_background.png",  new Vector4( 85,  30,  85, 30));
             CloseButtonNormal  = Load("close_button_normal.png",  Vector4.zero);
             CloseButtonHover   = Load("close_button_hover.png",   Vector4.zero);
