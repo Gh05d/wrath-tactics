@@ -27,6 +27,7 @@ namespace WrathTactics {
             harmony.PatchAll();
 
             Engine.AssetLoader.Init();
+            UI.ThemeProvider.Init();
 
             Engine.PresetRegistry.Reload();
 

@@ -20,7 +20,15 @@ namespace WrathTactics.Engine {
         /// Returns null on missing file or load failure (logged at warn level).
         /// Cached by <c>folder/file</c> key — subsequent calls return the same Sprite instance.
         /// </summary>
-        public static Sprite Load(string folder, string file, Vector2Int size) {
+        public static Sprite Load(string folder, string file, Vector2Int size) =>
+            Load(folder, file, size, Vector4.zero);
+
+        /// <summary>
+        /// Loads a PNG as a 9-slice Sprite with the given border (left, bottom, right, top in pixels).
+        /// Returns null on missing file or load failure (logged at warn level).
+        /// Cached by <c>folder/file</c> key — subsequent calls return the same Sprite instance.
+        /// </summary>
+        public static Sprite Load(string folder, string file, Vector2Int size, Vector4 border) {
             var cacheKey = $"{folder}/{file}";
             if (SpriteCache.TryGetValue(cacheKey, out var cached)) return cached;
             Texture2D texture = null;
@@ -40,7 +48,8 @@ namespace WrathTactics.Engine {
                     SpriteCache[cacheKey] = null;
                     return null;
                 }
-                var sprite = Sprite.Create(texture, new Rect(0, 0, size.x, size.y), new Vector2(0.5f, 0.5f));
+                var sprite = Sprite.Create(texture, new Rect(0, 0, size.x, size.y), new Vector2(0.5f, 0.5f),
+                    100f, 0, SpriteMeshType.FullRect, border);
                 SpriteCache[cacheKey] = sprite;
                 return sprite;
             } catch (Exception ex) {
