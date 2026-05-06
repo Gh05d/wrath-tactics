@@ -228,17 +228,27 @@ namespace WrathTactics.UI {
             var (addBtn, addRect) = UIHelpers.Create("AddRuleBtn", row.transform);
             addRect.SetAnchor(0.55, 0.76, 0, 1);
             addRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
+            if (ThemeProvider.ActionButtonNormal != null) {
+                ThemeProvider.ApplyActionButton(addBtn);
+            } else {
+                UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
+                addBtn.AddComponent<Button>();
+            }
             UIHelpers.AddLabel(addBtn, "button.new_rule".i18n(), 18f, TextAlignmentOptions.Midline);
-            addBtn.AddComponent<Button>().onClick.AddListener(AddNewRule);
+            addBtn.GetComponent<Button>().onClick.AddListener(AddNewRule);
 
             // "+ From Preset" button
             var (fromPresetBtn, fromPresetRect) = UIHelpers.Create("FromPresetBtn", row.transform);
             fromPresetRect.SetAnchor(0.77, 1, 0, 1);
             fromPresetRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(fromPresetBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
+            if (ThemeProvider.ActionButtonNormal != null) {
+                ThemeProvider.ApplyActionButton(fromPresetBtn);
+            } else {
+                UIHelpers.AddBackground(fromPresetBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
+                fromPresetBtn.AddComponent<Button>();
+            }
             UIHelpers.AddLabel(fromPresetBtn, "button.from_preset".i18n() + " \u25be", 16f, TextAlignmentOptions.Midline);
-            fromPresetBtn.AddComponent<Button>().onClick.AddListener(AddFromPreset);
+            fromPresetBtn.GetComponent<Button>().onClick.AddListener(AddFromPreset);
         }
 
         void CreateFilterStrip(Transform parent) {

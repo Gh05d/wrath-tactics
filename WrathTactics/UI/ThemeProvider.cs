@@ -56,7 +56,10 @@ namespace WrathTactics.UI {
             if (obj == null || PanelBackground == null) return;
             var img = obj.GetComponent<Image>() ?? obj.AddComponent<Image>();
             img.sprite = PanelBackground;
-            img.type = Image.Type.Sliced;
+            // Console-sized parchment texture (2048×1024, near-fullscreen native).
+            // Image.Type.Simple stretches the whole sprite slightly to fit the rect —
+            // the texture detail survives because the stretch is minimal.
+            img.type = Image.Type.Simple;
             img.color = Color.white;
             img.raycastTarget = true;
         }
