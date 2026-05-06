@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using WrathTactics.Logging;
 
@@ -117,6 +118,73 @@ namespace WrathTactics.UI {
             AddLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
             btn.GetComponent<Button>().onClick.AddListener(onClick);
             return btn;
+        }
+
+        /// <summary>
+        /// Attaches a hover-activated text tooltip to <paramref name="host"/>. The tooltip
+        /// GameObject is created lazily on first hover and parented to <paramref name="host"/>'s
+        /// root canvas so it isn't clipped by ScrollRect / RectMask2D ancestors.
+        /// Position: above-and-right of <paramref name="host"/>.
+        /// </summary>
+        public static void AddSimpleTooltip(GameObject host, string text) {
+            if (host == null || string.IsNullOrEmpty(text)) return;
+            var trigger = host.GetComponent<EventTrigger>() ?? host.AddComponent<EventTrigger>();
+            GameObject tooltip = null;
+
+            var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enterEntry.callback.AddListener(_ => {
+                if (tooltip == null) {
+                    tooltip = BuildTooltip(host, text);
+                }
+                tooltip.SetActive(true);
+            });
+            trigger.triggers.Add(enterEntry);
+
+            var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exitEntry.callback.AddListener(_ => {
+                if (tooltip != null) tooltip.SetActive(false);
+            });
+            trigger.triggers.Add(exitEntry);
+        }
+
+        static GameObject BuildTooltip(GameObject host, string text) {
+            // Parent to root canvas to escape any RectMask2D clipping.
+            var canvas = host.GetComponentInParent<Canvas>();
+            var parent = canvas != null ? canvas.transform : host.transform.root;
+
+            var (root, rootRect) = Create("Tooltip", parent);
+            // Anchor at host's top-right; nudge up so it doesn't overlap the cursor.
+            rootRect.anchorMin = new Vector2(0, 0);
+            rootRect.anchorMax = new Vector2(0, 0);
+            rootRect.pivot = new Vector2(0, 0);
+            var hostRect = host.GetComponent<RectTransform>();
+            var hostWorld = (Vector2)hostRect.position + new Vector2(hostRect.rect.width * 0.5f, hostRect.rect.height + 8f);
+            rootRect.position = hostWorld;
+            rootRect.sizeDelta = new Vector2(360f * FontScale, 0f);
+
+            // Background
+            var bg = root.AddComponent<Image>();
+            bg.color = new Color(0.05f, 0.04f, 0.03f, 0.92f);
+            bg.raycastTarget = false;
+
+            // Padded label
+            var (labelObj, labelRect) = Create("Label", root.transform);
+            labelRect.FillParent();
+            var tmp = labelObj.AddComponent<TMPro.TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = 14f * FontScale;
+            tmp.alignment = TMPro.TextAlignmentOptions.TopLeft;
+            tmp.color = new Color(0.95f, 0.92f, 0.85f);
+            tmp.enableWordWrapping = true;
+            tmp.margin = new Vector4(8f, 6f, 8f, 6f);
+            tmp.raycastTarget = false;
+
+            // Auto-size root to fit text height after layout
+            var fitter = root.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+            fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+
+            root.SetActive(false);
+            return root;
         }
 
         /// <summary>
