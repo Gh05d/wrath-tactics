@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Classes;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Items;
+using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.ActivatableAbilities;
@@ -12,29 +15,56 @@ using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class ActionValidator {
+        // GUID of CreatureAbilities/NegativeEnergyAffinity.jbp — the exact fact
+        // CureLightWounds.jbp's ContextConditionHasFact gates the heal-vs-damage flip on.
+        // Resolved lazily through ResourcesLibrary; cached for the session.
+        const string NegativeEnergyAffinityGuid = "d5ee498e19722854198439629c1841a5";
+        static BlueprintFeature s_negativeEnergyAffinity;
+        static bool s_negativeEnergyAffinityResolved;
+
+        static BlueprintFeature NegativeEnergyAffinityBp() {
+            if (s_negativeEnergyAffinityResolved) return s_negativeEnergyAffinity;
+            try {
+                s_negativeEnergyAffinity = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>(NegativeEnergyAffinityGuid);
+                if (s_negativeEnergyAffinity == null)
+                    Log.Engine.Warn($"NegativeEnergyAffinity blueprint {NegativeEnergyAffinityGuid} not found; falling back to feature-name detection.");
+            } catch (Exception ex) {
+                Log.Engine.Error(ex, "NegativeEnergyAffinity blueprint lookup failed");
+            }
+            s_negativeEnergyAffinityResolved = true;
+            return s_negativeEnergyAffinity;
+        }
+
         /// <summary>
-        /// True when positive energy damages and negative energy heals this unit. Matches
-        /// Vollform-Untote via Blueprint.Type ("UndeadType") plus Dhampir / NegativeEnergyAffinity
-        /// race-features by blueprint-name. Conservative: defaults false on null/unknown.
+        /// True when positive energy damages and negative energy heals this unit. Mirrors the
+        /// engine-authoritative check from CureLightWounds.jbp: ContextConditionHasFact on
+        /// blueprint <c>d5ee498e19722854198439629c1841a5</c> (NegativeEnergyAffinity). The
+        /// fact is added transitively to all vanilla undead via UndeadType → UndeadImmunities
+        /// → NegativeEnergyAffinity, and directly to Dhampir via NegativeEnergyAffinityDhampir.
+        /// Lich-MC picks it up post-LichTrueFeature through the same UndeadType chain.
+        ///
+        /// The legacy substring fallback on <c>Progression.Features</c> is kept as a defensive
+        /// net for mod-added units that name their affinity feature "Dhampir*" or
+        /// "NegativeEnergyAffinity*" without chaining through the canonical blueprint. The
+        /// dropped <c>Blueprint.Type.name.Contains("undead")</c> branch was dead code — every
+        /// vanilla undead carries a specific subtype name (Skeleton, VampireSpawn, Mummy, …);
+        /// none contain the literal "undead" substring.
         /// </summary>
         public static bool IsNegativeEnergyAffine(UnitEntityData unit) {
             var d = unit?.Descriptor;
             if (d == null) return false;
 
-            // Source 1: Blueprint.Type (Lich-MC post-Ascension, vampire companions, undead summons).
-            // Mirrors the substring-match pattern used by ConditionEvaluator.CheckCreatureType.
-            string bpTypeName = d.Blueprint?.Type?.name?.ToLowerInvariant() ?? "";
-            if (bpTypeName.Contains("undead")) return true;
+            var bp = NegativeEnergyAffinityBp();
+            if (bp != null && UnitHelper.HasFact(d, bp)) return true;
 
-            // Source 2: race / feature blueprint name (mod-added Dhampir races, mid-Lich-Ascension
-            // transition buffs that flip affinity before Type-switch). Substring is intentionally
-            // narrow — exact-name "NegativeEnergyAffinity" / "Dhampir" Owlcat-style identifiers.
+            // Legacy substring fallback for mod-added affinity sources that don't chain
+            // through the canonical blueprint. Cheap; only iterates progression features.
             var progression = d.Progression;
             if (progression?.Features != null) {
                 foreach (var fact in progression.Features.Enumerable) {
                     var fname = fact?.Blueprint?.name ?? "";
-                    if (fname.IndexOf("NegativeEnergyAffinity", System.StringComparison.OrdinalIgnoreCase) >= 0
-                     || fname.IndexOf("Dhampir", System.StringComparison.OrdinalIgnoreCase) >= 0) {
+                    if (fname.IndexOf("NegativeEnergyAffinity", StringComparison.OrdinalIgnoreCase) >= 0
+                     || fname.IndexOf("Dhampir", StringComparison.OrdinalIgnoreCase) >= 0) {
                         return true;
                     }
                 }
