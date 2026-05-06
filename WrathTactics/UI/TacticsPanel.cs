@@ -124,7 +124,9 @@ namespace WrathTactics.UI {
             } else {
                 UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
             }
-            UIHelpers.AddLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
+            var titleLabel = UIHelpers.AddLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
+            titleLabel.outlineWidth = 0.25f;
+            titleLabel.outlineColor = new Color32(0, 0, 0, 255);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
@@ -484,6 +486,8 @@ namespace WrathTactics.UI {
                 var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
                 toggleLabel.text = string.Format(template, charName);
                 toggleLabel.color = enabled ? Color.white : Color.gray;
+                toggleLabel.outlineWidth = 0.25f;
+                toggleLabel.outlineColor = new Color32(0, 0, 0, 255);
             }
         }
 

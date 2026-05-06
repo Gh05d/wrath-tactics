@@ -48,7 +48,9 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
+            // Dark sepia in the same warm tone as the parchment so each rule reads
+            // as 'lying in the book' while keeping enough contrast for white text.
+            UIHelpers.AddBackground(root, new Color(0.32f, 0.25f, 0.18f, 1f));
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 
