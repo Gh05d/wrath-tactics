@@ -91,23 +91,40 @@ namespace WrathTactics.UI {
             rootRect.SetAnchor(0.15, 0.85, 0.1, 0.9);
             rootRect.sizeDelta = Vector2.zero;
 
-            // Dark background
-            UIHelpers.AddBackground(root, new Color(0.1f, 0.1f, 0.1f, 0.95f));
+            // Background — themed Owlcat panel sprite when available, dark fallback otherwise
+            if (ThemeProvider.PanelBackground != null) {
+                ThemeProvider.ApplyPanel(root);
+            } else {
+                UIHelpers.AddBackground(root, new Color(0.1f, 0.1f, 0.1f, 0.95f));
+            }
 
             // Title bar
             var (titleBar, titleRect) = UIHelpers.Create("TitleBar", root.transform);
             titleRect.SetAnchor(0, 1, 0.92, 1);
             titleRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
+            if (ThemeProvider.TitleBarBackground != null) {
+                var img = titleBar.AddComponent<Image>();
+                img.sprite = ThemeProvider.TitleBarBackground;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+                img.raycastTarget = true;
+            } else {
+                UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
+            }
             UIHelpers.AddLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
             closeRect.SetAnchor(0.95, 1, 0, 1);
             closeRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(closeBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
+            if (ThemeProvider.CloseButtonNormal != null) {
+                ThemeProvider.ApplyCloseButton(closeBtn);
+            } else {
+                UIHelpers.AddBackground(closeBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
+                closeBtn.AddComponent<Button>();
+            }
             UIHelpers.AddLabel(closeBtn, "X", 22f, TextAlignmentOptions.Midline);
-            closeBtn.AddComponent<Button>().onClick.AddListener(Toggle);
+            closeBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
             var (tabBar, tabRect) = UIHelpers.Create("TabBar", root.transform);
@@ -168,7 +185,14 @@ namespace WrathTactics.UI {
             var (btn, _) = UIHelpers.Create($"Tab_{label}", parent.transform);
             bool isSelected = (tabId == null && selectedUnitId == null)
                 || (tabId != null && tabId == selectedUnitId);
-            UIHelpers.AddBackground(btn, isSelected ? TabSelected : TabNormal);
+
+            var themed = isSelected ? ThemeProvider.TabHeaderActive : ThemeProvider.TabHeaderInactive;
+            if (themed != null) {
+                ThemeProvider.ApplyTabHeader(btn, isSelected);
+            } else {
+                UIHelpers.AddBackground(btn, isSelected ? TabSelected : TabNormal);
+            }
+
             UIHelpers.AddLabel(btn, label, 16f, TextAlignmentOptions.Midline);
             btn.AddComponent<Button>().onClick.AddListener(onClick);
         }
@@ -333,11 +357,25 @@ namespace WrathTactics.UI {
             scrollbarRect.SetAnchor(1, 1, 0, 1);
             scrollbarRect.pivot = new Vector2(1, 0.5f);
             scrollbarRect.sizeDelta = new Vector2(12, 0);
-            UIHelpers.AddBackground(scrollbarObj, new Color(0.15f, 0.15f, 0.15f, 0.85f));
+            if (ThemeProvider.ScrollbarTrack != null) {
+                var trackImg = scrollbarObj.AddComponent<Image>();
+                trackImg.sprite = ThemeProvider.ScrollbarTrack;
+                trackImg.type = Image.Type.Sliced;
+                trackImg.color = Color.white;
+            } else {
+                UIHelpers.AddBackground(scrollbarObj, new Color(0.15f, 0.15f, 0.15f, 0.85f));
+            }
 
             var (handleObj, handleRect) = UIHelpers.Create("Handle", scrollbarObj.transform);
             handleRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(handleObj, new Color(0.7f, 0.7f, 0.7f, 1.0f));
+            if (ThemeProvider.ScrollbarHandle != null) {
+                var handleImg = handleObj.AddComponent<Image>();
+                handleImg.sprite = ThemeProvider.ScrollbarHandle;
+                handleImg.type = Image.Type.Sliced;
+                handleImg.color = Color.white;
+            } else {
+                UIHelpers.AddBackground(handleObj, new Color(0.7f, 0.7f, 0.7f, 1.0f));
+            }
 
             var scrollbar = scrollbarObj.AddComponent<Scrollbar>();
             scrollbar.handleRect = handleRect;

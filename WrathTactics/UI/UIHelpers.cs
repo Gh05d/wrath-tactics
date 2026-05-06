@@ -106,9 +106,16 @@ namespace WrathTactics.UI {
         public static GameObject MakeButton(Transform parent, string name, string label, float fontSize,
             Color bgColor, UnityEngine.Events.UnityAction onClick) {
             var (btn, btnRect) = Create(name, parent);
-            AddBackground(btn, bgColor);
+
+            if (ThemeProvider.ActionButtonNormal != null) {
+                ThemeProvider.ApplyActionButton(btn);
+            } else {
+                AddBackground(btn, bgColor);
+                btn.AddComponent<Button>();
+            }
+
             AddLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
-            btn.AddComponent<Button>().onClick.AddListener(onClick);
+            btn.GetComponent<Button>().onClick.AddListener(onClick);
             return btn;
         }
 
