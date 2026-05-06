@@ -123,7 +123,8 @@ namespace WrathTactics.Engine {
             foreach (var aa in owner.ActivatableAbilities) {
                 if (aa.Blueprint != rodAbilityBp) continue;
                 if (aa.IsOn) return; // already toggled — engine will spend the charge on the upcoming cast
-                if (aa.TryStart()) {
+                aa.TryStart();
+                if (aa.IsOn) {
                     Log.Engine.Info($"Activated rod {rodAbilityBp.name} for {owner.CharacterName} ({mech.Metamagic} on {ability.Name})");
                 }
                 return;
