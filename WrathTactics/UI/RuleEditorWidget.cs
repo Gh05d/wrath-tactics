@@ -360,7 +360,7 @@ namespace WrathTactics.UI {
             var (labelObj, _) = UIHelpers.Create("SectionLabel_" + text, parent);
             labelObj.AddComponent<LayoutElement>().preferredHeight = 20;
             UIHelpers.AddLabel(labelObj, text, 15f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.7f, 0.7f, 0.5f));
+                new Color(0.15f, 0.10f, 0.06f));
         }
 
         void AddSpacer(Transform parent, float height) {
@@ -379,7 +379,7 @@ namespace WrathTactics.UI {
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
             UIHelpers.AddLabel(lbl, "section.then".i18n(), 16f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.7f, 0.7f, 0.5f));
+                new Color(0.15f, 0.10f, 0.06f));
 
             // Action type popup selector
             var actionNames = EnumLabels.NamesFor<ActionType>();
@@ -787,7 +787,7 @@ namespace WrathTactics.UI {
             lblRect.SetAnchor(0, 0.1, 0, 1);
             lblRect.sizeDelta = Vector2.zero;
             UIHelpers.AddLabel(lbl, "section.target".i18n(), 16f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.7f, 0.7f, 0.5f));
+                new Color(0.15f, 0.10f, 0.06f));
 
             // Target type popup selector — rebuilds body so filter shows/hides
             var targetNames = EnumLabels.NamesFor<TargetType>();
