@@ -5,7 +5,7 @@ Sprites extracted from Wrath of the Righteous 1.4 via UnityPy
 
 | File | Source asset | Substitution / notes |
 |---|---|---|
-| panel_background.png | `UI_BackgroundPaper_Console_3756_2000` Texture2D (2048×1024) | Substitute: `UI_BackgroundModalWindow` (Sliced 749×554) and `UI_BackgroundTutorialPaper` (Sliced 761×823) both stretched into a flat tan center when applied to a fullscreen panel via 9-slice. The Console-sized Texture2D rendered with `Image.Type.Simple` keeps the parchment detail because the stretch from 2048×1024 to ~1843×994 is minimal. |
+| panel_background.png | `UI_BookEvent_Book_3796_1972` Sprite (4096×2048 native, downscaled to 2048×1024 in the bundled PNG to keep the mod ZIP small) | Used by the in-game Book Event illustration system — an open-book illustration, not a stretchable parchment. Rendered with `Image.Type.Simple` inside an `AspectRatioFitter` (mode=FitInParent, ratio=2.0). Earlier candidates (`UI_BackgroundModalWindow`, `UI_BackgroundTutorialPaper`, `UI_BackgroundPaper_Console_3756_2000`) all looked flat-tan because they're meant to be 9-sliced or panel-tiled, not standalone book illustrations. |
 | titlebar_background.png | `UI_Loot_BackgroundCaption` (740×134) | Substitute: no UI_Window_Title_Bg in 1.4 atlas; loot caption is the closest title-bar style |
 | close_button_normal.png | `UI_EscButton_Default` (75×77) |  |
 | close_button_hover.png | `UI_EscButton_Hover` (75×77) |  |

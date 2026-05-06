@@ -91,11 +91,16 @@ namespace WrathTactics.UI {
             rootRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(root, new Color(0, 0, 0, 0.78f));
 
-            // Inner book panel: themed parchment, centered, narrower than the backdrop
-            // so the black margin frames the book like a tabletop reading surface.
+            // Inner book panel: open-book sprite, centered. AspectRatioFitter constrains
+            // the rect to the sprite's native 2:1 ratio — on a 16:9 display the book takes
+            // full width with letterbox top/bottom; on ultrawide it'd be height-constrained
+            // with letterbox left/right.
             var (book, bookRect) = UIHelpers.Create("BookPanel", root.transform);
-            bookRect.SetAnchor(0.10, 0.90, 0.04, 0.96);
+            bookRect.SetAnchor(0, 1, 0, 1);
             bookRect.sizeDelta = Vector2.zero;
+            var fitter = book.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = 2.0f;
             if (ThemeProvider.PanelBackground != null) {
                 ThemeProvider.ApplyPanel(book);
             } else {
