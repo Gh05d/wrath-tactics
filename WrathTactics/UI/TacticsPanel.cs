@@ -92,12 +92,15 @@ namespace WrathTactics.UI {
             rootRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(root, new Color(0, 0, 0, 1f));
 
-            // Inner book panel: open-book illustration centered. AspectRatioFitter keeps
-            // the sprite at its native 2:1 ratio — on a 16:9 display the book takes full
-            // width with black letterbox above/below.
+            // Inner book panel: open-book illustration centered.
+            // AspectRatioFitter requires center-pivot anchors (anchorMin == anchorMax) —
+            // a stretch anchor like (0,1,0,1) silently disables the fitter and the rect
+            // ends up canvas-sized, so children spill past the book art.
             var (book, bookRect) = UIHelpers.Create("BookPanel", root.transform);
-            bookRect.SetAnchor(0, 1, 0, 1);
-            bookRect.sizeDelta = Vector2.zero;
+            bookRect.anchorMin = new Vector2(0.5f, 0.5f);
+            bookRect.anchorMax = new Vector2(0.5f, 0.5f);
+            bookRect.pivot = new Vector2(0.5f, 0.5f);
+            bookRect.anchoredPosition = Vector2.zero;
             var fitter = book.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fitter.aspectRatio = 2.0f;

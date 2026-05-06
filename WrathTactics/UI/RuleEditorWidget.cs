@@ -48,7 +48,8 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
+            // Translucent so the parchment under RuleScroll shows through each rule card.
+            UIHelpers.AddBackground(root, new Color(0.10f, 0.08f, 0.06f, 0.55f));
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 
