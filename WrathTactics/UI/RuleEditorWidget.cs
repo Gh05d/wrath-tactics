@@ -48,9 +48,7 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            // Translucent dark wash so each rule reads as a card on top of the parchment
-            // panel background, without hiding the parchment texture entirely.
-            UIHelpers.AddBackground(root, new Color(0.10f, 0.08f, 0.06f, 0.55f));
+            UIHelpers.AddBackground(root, new Color(0.18f, 0.18f, 0.18f, 1f));
             layoutElement = root.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 200;
 

@@ -6,6 +6,7 @@ using WrathTactics.Logging;
 namespace WrathTactics.UI {
     public static class ThemeProvider {
         public static Sprite PanelBackground { get; private set; }
+        public static Sprite InnerParchment { get; private set; }
         public static Sprite TitleBarBackground { get; private set; }
         public static Sprite CloseButtonNormal { get; private set; }
         public static Sprite CloseButtonHover { get; private set; }
@@ -21,7 +22,8 @@ namespace WrathTactics.UI {
         public static void Init() {
             // 9-slice border values are read directly from the original Owlcat sprite metadata
             // (UnityPy `m_Border`, axis order = left, bottom, right, top in pixels).
-            PanelBackground    = Load("panel_background.png",     new Vector4(154, 154, 153, 154));
+            PanelBackground    = Load("panel_background.png",     Vector4.zero);
+            InnerParchment     = Load("inner_parchment.png",      new Vector4(154, 154, 153, 154));
             TitleBarBackground = Load("titlebar_background.png",  new Vector4( 85,  30,  85, 30));
             CloseButtonNormal  = Load("close_button_normal.png",  Vector4.zero);
             CloseButtonHover   = Load("close_button_hover.png",   Vector4.zero);
@@ -35,14 +37,14 @@ namespace WrathTactics.UI {
             ScrollbarHandle    = Load("scrollbar_handle.png",     new Vector4(  7,  41,   8, 46));
 
             int loaded = 0;
-            foreach (var s in new[] { PanelBackground, TitleBarBackground,
+            foreach (var s in new[] { PanelBackground, InnerParchment, TitleBarBackground,
                 CloseButtonNormal, CloseButtonHover, CloseButtonPressed,
                 ActionButtonNormal, ActionButtonHover, ActionButtonPressed,
                 TabHeaderActive, TabHeaderInactive,
                 ScrollbarTrack, ScrollbarHandle }) {
                 if (s != null) loaded++;
             }
-            Log.UI.Info($"ThemeProvider initialised — {loaded}/12 sprites loaded.");
+            Log.UI.Info($"ThemeProvider initialised — {loaded}/13 sprites loaded.");
         }
 
         static Sprite Load(string file, Vector4 border) =>
@@ -56,10 +58,24 @@ namespace WrathTactics.UI {
             if (obj == null || PanelBackground == null) return;
             var img = obj.GetComponent<Image>() ?? obj.AddComponent<Image>();
             img.sprite = PanelBackground;
-            // Console-sized parchment texture (2048×1024, near-fullscreen native).
-            // Image.Type.Simple stretches the whole sprite slightly to fit the rect —
-            // the texture detail survives because the stretch is minimal.
+            // Open-book illustration (4096×2048 native, downscaled to 2048×1024 in the
+            // shipped PNG). Image.Type.Simple stretches the whole sprite — paired with
+            // an AspectRatioFitter on the same GameObject the book keeps its 2:1 ratio.
             img.type = Image.Type.Simple;
+            img.color = Color.white;
+            img.raycastTarget = true;
+        }
+
+        /// <summary>
+        /// Applies the parchment / tutorial-paper sprite to obj's Image (adds Image if
+        /// missing). 9-sliced — appropriate for arbitrary inner-section sizes.
+        /// No-op if InnerParchment is null.
+        /// </summary>
+        public static void ApplyInnerParchment(GameObject obj) {
+            if (obj == null || InnerParchment == null) return;
+            var img = obj.GetComponent<Image>() ?? obj.AddComponent<Image>();
+            img.sprite = InnerParchment;
+            img.type = Image.Type.Sliced;
             img.color = Color.white;
             img.raycastTarget = true;
         }

@@ -84,17 +84,17 @@ namespace WrathTactics.UI {
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Outer backdrop: fullscreen black overlay that covers HUD and dims the world.
+            // Outer backdrop: opaque fullscreen black so the game world does not show
+            // through the book's letterbox margin.
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
             rootRect.SetAnchor(0, 1, 0, 1);
             rootRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(root, new Color(0, 0, 0, 0.78f));
+            UIHelpers.AddBackground(root, new Color(0, 0, 0, 1f));
 
-            // Inner book panel: open-book sprite, centered. AspectRatioFitter constrains
-            // the rect to the sprite's native 2:1 ratio — on a 16:9 display the book takes
-            // full width with letterbox top/bottom; on ultrawide it'd be height-constrained
-            // with letterbox left/right.
+            // Inner book panel: open-book illustration centered. AspectRatioFitter keeps
+            // the sprite at its native 2:1 ratio — on a 16:9 display the book takes full
+            // width with black letterbox above/below.
             var (book, bookRect) = UIHelpers.Create("BookPanel", root.transform);
             bookRect.SetAnchor(0, 1, 0, 1);
             bookRect.sizeDelta = Vector2.zero;
@@ -272,7 +272,7 @@ namespace WrathTactics.UI {
             var (strip, stripRect) = UIHelpers.Create("FilterStrip", parent);
             stripRect.SetAnchor(0.01, 0.99, 0.72, 0.76);
             stripRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(strip, new Color(0.10f, 0.08f, 0.06f, 0.45f));
+            UIHelpers.AddBackground(strip, new Color(0.14f, 0.14f, 0.14f, 1f));
 
             ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
                 0.02, 0.85, "", 15f,
@@ -351,10 +351,13 @@ namespace WrathTactics.UI {
         }
 
         void CreateRuleList(Transform parent) {
-            // ScrollRect container
+            // ScrollRect container — parchment background sheet behind the rules list
             var (scrollObj, scrollRect) = UIHelpers.Create("RuleScroll", parent);
             scrollRect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             scrollRect.sizeDelta = Vector2.zero;
+            if (ThemeProvider.InnerParchment != null) {
+                ThemeProvider.ApplyInnerParchment(scrollObj);
+            }
 
             // Viewport with RectMask2D instead of Mask.
             // Reserve a gutter on the right for the permanent scrollbar (12 px track
