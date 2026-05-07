@@ -174,6 +174,14 @@ namespace WrathTactics.UI {
             // dimensions instead.
             rootRect.sizeDelta = new Vector2(420f * FontScale, 100f * FontScale);
 
+            // Override-sorting canvas so the tooltip renders on TOP of every other UI
+            // layer (Wrath's StaticCanvas hosts dozens of panels with their own sorting
+            // — without this the tooltip silently renders behind whatever's nearby).
+            var ttCanvas = root.AddComponent<Canvas>();
+            ttCanvas.overrideSorting = true;
+            ttCanvas.sortingOrder = 999;
+            root.AddComponent<GraphicRaycaster>();
+
             var bg = root.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.94f);
             bg.raycastTarget = false;
@@ -191,6 +199,7 @@ namespace WrathTactics.UI {
             tmp.raycastTarget = false;
 
             root.SetActive(false);
+            Log.UI.Debug($"Tooltip built: parent={parent.name} pos={(Vector2)rootRect.position} size={rootRect.sizeDelta} hostScreen={(Vector2)hostRect.position}");
             return root;
         }
 
