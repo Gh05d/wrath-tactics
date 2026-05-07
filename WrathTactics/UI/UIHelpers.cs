@@ -133,10 +133,15 @@ namespace WrathTactics.UI {
 
             var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
             enterEntry.callback.AddListener(_ => {
-                if (tooltip == null) {
-                    tooltip = BuildTooltip(host, text);
+                try {
+                    if (tooltip == null) {
+                        Log.UI.Debug($"Tooltip Enter on {host.name}; building");
+                        tooltip = BuildTooltip(host, text);
+                    }
+                    tooltip.SetActive(true);
+                } catch (Exception ex) {
+                    Log.UI.Error(ex, $"Tooltip Enter handler failed on {host.name}");
                 }
-                tooltip.SetActive(true);
             });
             trigger.triggers.Add(enterEntry);
 
@@ -153,43 +158,36 @@ namespace WrathTactics.UI {
             var parent = canvas != null ? canvas.transform : host.transform.root;
 
             var (root, rootRect) = Create("Tooltip", parent);
-            // Position above the host. Pivot bottom-center so `position` places the
-            // tooltip's bottom edge a few px above the host top.
+            // Pivot bottom-center: setting `position` places the tooltip's bottom-center
+            // anchor at the world coordinate, i.e. directly above whatever world point
+            // we hand it.
             rootRect.anchorMin = new Vector2(0, 0);
             rootRect.anchorMax = new Vector2(0, 0);
             rootRect.pivot = new Vector2(0.5f, 0f);
+
             var hostRect = host.GetComponent<RectTransform>();
             var hostWorld = (Vector2)hostRect.position + new Vector2(0f, hostRect.rect.height * 0.5f + 8f);
             rootRect.position = hostWorld;
-            // Width is fixed; height is driven by the ContentSizeFitter+VLG below.
-            rootRect.sizeDelta = new Vector2(360f * FontScale, 0f);
+            // Fixed size — wide enough for ~3 lines of word-wrapped tooltip text. The
+            // earlier ContentSizeFitter+VLG approach was fragile (TMP preferred-height
+            // didn't propagate cleanly through the chain on first hover), so we hard-code
+            // dimensions instead.
+            rootRect.sizeDelta = new Vector2(420f * FontScale, 100f * FontScale);
 
-            // Background
             var bg = root.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.04f, 0.03f, 0.92f);
+            bg.color = new Color(0.05f, 0.04f, 0.03f, 0.94f);
             bg.raycastTarget = false;
 
-            // VLG → ContentSizeFitter chain. ContentSizeFitter alone doesn't see TMP's
-            // preferred height — it needs a LayoutGroup on the same GameObject to
-            // aggregate child sizes. The VLG also gives us the inner padding cleanly.
-            var vlg = root.AddComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(8, 8, 6, 6);
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-
-            var fitter = root.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            // Label child — TMP reports its wrapped preferred height to the VLG above.
-            var (labelObj, _) = Create("Label", root.transform);
+            // Label fills the rect with internal padding.
+            var (labelObj, labelRect) = Create("Label", root.transform);
+            labelRect.FillParent();
             var tmp = labelObj.AddComponent<TextMeshProUGUI>();
             tmp.text = text;
             tmp.fontSize = 14f * FontScale;
             tmp.alignment = TextAlignmentOptions.TopLeft;
             tmp.color = new Color(0.95f, 0.92f, 0.85f);
             tmp.enableWordWrapping = true;
+            tmp.margin = new Vector4(10f, 8f, 10f, 8f);
             tmp.raycastTarget = false;
 
             root.SetActive(false);

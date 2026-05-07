@@ -499,7 +499,7 @@ namespace WrathTactics.UI {
                 infoRect.SetAnchor(0.73f, 0.78f, 0, 1);
                 infoRect.sizeDelta = Vector2.zero;
                 UIHelpers.AddLabel(infoObj, "?", 26f, TMPro.TextAlignmentOptions.Midline,
-                    new Color(0.95f, 0.92f, 0.65f));
+                    new Color(0.85f, 0.30f, 0.25f));
                 // Image so EventTrigger has a raycast target.
                 var infoBg = infoObj.AddComponent<Image>();
                 infoBg.color = new Color(0, 0, 0, 0); // invisible; raycast only
