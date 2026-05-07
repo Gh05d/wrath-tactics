@@ -493,12 +493,13 @@ namespace WrathTactics.UI {
                     PersistEdit();
                 });
 
-                // ⓘ info icon explaining the quickslot requirement (hover tooltip).
+                // [?] info icon explaining the quickslot requirement (hover tooltip).
+                // Light cream colour stands out against the dark action-row background.
                 var (infoObj, infoRect) = UIHelpers.Create("RodInfo", row.transform);
-                infoRect.SetAnchor(0.73f, 0.76f, 0, 1);
+                infoRect.SetAnchor(0.73f, 0.78f, 0, 1);
                 infoRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(infoObj, "ⓘ", 18f, TMPro.TextAlignmentOptions.Midline,
-                    new Color(0.15f, 0.10f, 0.06f));
+                UIHelpers.AddLabel(infoObj, "?", 26f, TMPro.TextAlignmentOptions.Midline,
+                    new Color(0.95f, 0.92f, 0.65f));
                 // Image so EventTrigger has a raycast target.
                 var infoBg = infoObj.AddComponent<Image>();
                 infoBg.color = new Color(0, 0, 0, 0); // invisible; raycast only
@@ -521,7 +522,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.Sources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "SpellSources", 0.77f, 1.0f, sourceLabels, srcIdx, idx => {
+                PopupSelector.Create(row, "SpellSources", 0.79f, 1.0f, sourceLabels, srcIdx, idx => {
                     rule.Action.Sources = sourceValues[idx];
                     PersistEdit();
                 });
