@@ -254,8 +254,7 @@
   "enum.condition.DeathDoor": "濒死",
 
   "cast.rod.label": "法杖",
-  "cast.rod.none": "(无法杖)",
-  "cast.rod.tooltip": "法杖必须放在施法者的快捷栏中。模组会在施法前激活它；引擎应用超魔效果并消耗一次充能。当法杖不可用、无充能或法术不符合条件时，会静默回退到普通施法。",
+  "cast.rod.none": "(无超魔法杖)",
   "enum.metamagic.Empower": "Empower",
   "enum.metamagic.Maximize": "Maximize",
   "enum.metamagic.Quicken": "Quicken",

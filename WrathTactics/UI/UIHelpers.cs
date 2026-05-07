@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using WrathTactics.Logging;
 
@@ -118,89 +117,6 @@ namespace WrathTactics.UI {
             AddLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
             btn.GetComponent<Button>().onClick.AddListener(onClick);
             return btn;
-        }
-
-        /// <summary>
-        /// Attaches a hover-activated text tooltip to <paramref name="host"/>. The tooltip
-        /// GameObject is created lazily on first hover and parented to <paramref name="host"/>'s
-        /// root canvas so it isn't clipped by ScrollRect / RectMask2D ancestors.
-        /// Position: above-and-right of <paramref name="host"/>.
-        /// </summary>
-        public static void AddSimpleTooltip(GameObject host, string text) {
-            if (host == null || string.IsNullOrEmpty(text)) return;
-            var trigger = host.GetComponent<EventTrigger>() ?? host.AddComponent<EventTrigger>();
-            GameObject tooltip = null;
-
-            var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            enterEntry.callback.AddListener(_ => {
-                try {
-                    if (tooltip == null) {
-                        Log.UI.Debug($"Tooltip Enter on {host.name}; building");
-                        tooltip = BuildTooltip(host, text);
-                    }
-                    tooltip.SetActive(true);
-                } catch (Exception ex) {
-                    Log.UI.Error(ex, $"Tooltip Enter handler failed on {host.name}");
-                }
-            });
-            trigger.triggers.Add(enterEntry);
-
-            var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exitEntry.callback.AddListener(_ => {
-                if (tooltip != null) tooltip.SetActive(false);
-            });
-            trigger.triggers.Add(exitEntry);
-        }
-
-        static GameObject BuildTooltip(GameObject host, string text) {
-            // Parent to root canvas to escape any RectMask2D clipping.
-            var canvas = host.GetComponentInParent<Canvas>();
-            var parent = canvas != null ? canvas.transform : host.transform.root;
-
-            var (root, rootRect) = Create("Tooltip", parent);
-            // Pivot bottom-center: setting `position` places the tooltip's bottom-center
-            // anchor at the world coordinate, i.e. directly above whatever world point
-            // we hand it.
-            rootRect.anchorMin = new Vector2(0, 0);
-            rootRect.anchorMax = new Vector2(0, 0);
-            rootRect.pivot = new Vector2(0.5f, 0f);
-
-            var hostRect = host.GetComponent<RectTransform>();
-            var hostWorld = (Vector2)hostRect.position + new Vector2(0f, hostRect.rect.height * 0.5f + 8f);
-            rootRect.position = hostWorld;
-            // Fixed size — wide enough for ~3 lines of word-wrapped tooltip text. The
-            // earlier ContentSizeFitter+VLG approach was fragile (TMP preferred-height
-            // didn't propagate cleanly through the chain on first hover), so we hard-code
-            // dimensions instead.
-            rootRect.sizeDelta = new Vector2(420f * FontScale, 100f * FontScale);
-
-            // Override-sorting canvas so the tooltip renders on TOP of every other UI
-            // layer (Wrath's StaticCanvas hosts dozens of panels with their own sorting
-            // — without this the tooltip silently renders behind whatever's nearby).
-            var ttCanvas = root.AddComponent<Canvas>();
-            ttCanvas.overrideSorting = true;
-            ttCanvas.sortingOrder = 999;
-            root.AddComponent<GraphicRaycaster>();
-
-            var bg = root.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.04f, 0.03f, 0.94f);
-            bg.raycastTarget = false;
-
-            // Label fills the rect with internal padding.
-            var (labelObj, labelRect) = Create("Label", root.transform);
-            labelRect.FillParent();
-            var tmp = labelObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = text;
-            tmp.fontSize = 14f * FontScale;
-            tmp.alignment = TextAlignmentOptions.TopLeft;
-            tmp.color = new Color(0.95f, 0.92f, 0.85f);
-            tmp.enableWordWrapping = true;
-            tmp.margin = new Vector4(10f, 8f, 10f, 8f);
-            tmp.raycastTarget = false;
-
-            root.SetActive(false);
-            Log.UI.Debug($"Tooltip built: parent={parent.name} pos={(Vector2)rootRect.position} size={rootRect.sizeDelta} hostScreen={(Vector2)hostRect.position}");
-            return root;
         }
 
         /// <summary>

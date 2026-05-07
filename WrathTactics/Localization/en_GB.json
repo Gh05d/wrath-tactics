@@ -254,8 +254,7 @@
   "enum.condition.DeathDoor": "Death's Door",
 
   "cast.rod.label": "Rod",
-  "cast.rod.none": "(no rod)",
-  "cast.rod.tooltip": "Rod must sit in the caster's quickslot. The mod activates it before the cast; the engine applies the metamagic and spends one charge. Falls back to a normal cast silently if the rod is unavailable, has no charges, or the spell isn't eligible.",
+  "cast.rod.none": "(no metamagic rod)",
   "enum.metamagic.Empower": "Empower",
   "enum.metamagic.Maximize": "Maximize",
   "enum.metamagic.Quicken": "Quicken",

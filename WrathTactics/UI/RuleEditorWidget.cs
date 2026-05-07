@@ -486,25 +486,12 @@ namespace WrathTactics.UI {
                     ? 0
                     : System.Array.IndexOf(EnumLabels.MetamagicValues, rule.Action.MetamagicRod.Value) + 1;
                 if (rodIdx < 0) rodIdx = 0;
-                PopupSelector.Create(row, "MetamagicRod", 0.56f, 0.72f, rodLabels, rodIdx, idx => {
+                PopupSelector.Create(row, "MetamagicRod", 0.56f, 0.77f, rodLabels, rodIdx, idx => {
                     rule.Action.MetamagicRod = idx == 0
                         ? (Kingmaker.UnitLogic.Abilities.Metamagic?)null
                         : EnumLabels.MetamagicValues[idx - 1];
                     PersistEdit();
                 });
-
-                // [?] info icon explaining the quickslot requirement (hover tooltip).
-                // Light cream colour stands out against the dark action-row background.
-                var (infoObj, infoRect) = UIHelpers.Create("RodInfo", row.transform);
-                infoRect.SetAnchor(0.73f, 0.78f, 0, 1);
-                infoRect.sizeDelta = Vector2.zero;
-                UIHelpers.AddLabel(infoObj, "?", 26f, TMPro.TextAlignmentOptions.Midline,
-                    new Color(0.85f, 0.30f, 0.25f));
-                // Image so EventTrigger has a raycast target.
-                var infoBg = infoObj.AddComponent<Image>();
-                infoBg.color = new Color(0, 0, 0, 0); // invisible; raycast only
-                infoBg.raycastTarget = true;
-                UIHelpers.AddSimpleTooltip(infoObj, "cast.rod.tooltip".i18n());
 
                 // Source mask dropdown — 7 curated combinations, same pattern as HealSources.
                 var sourceLabels = new List<string> {
@@ -522,7 +509,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.Sources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "SpellSources", 0.79f, 1.0f, sourceLabels, srcIdx, idx => {
+                PopupSelector.Create(row, "SpellSources", 0.78f, 1.0f, sourceLabels, srcIdx, idx => {
                     rule.Action.Sources = sourceValues[idx];
                     PersistEdit();
                 });

@@ -254,8 +254,7 @@
   "enum.condition.DeathDoor": "Todesnähe",
 
   "cast.rod.label": "Rute",
-  "cast.rod.none": "(keine Rute)",
-  "cast.rod.tooltip": "Die Rute muss im Quickslot des Zaubernden liegen. Der Mod aktiviert sie vor dem Zauber; die Engine wendet die Metamagie an und verbraucht eine Ladung. Fällt stillschweigend auf einen normalen Wirkvorgang zurück, wenn die Rute nicht verfügbar ist, keine Ladungen hat oder der Zauber nicht in Frage kommt.",
+  "cast.rod.none": "(keine Metamagie-Rute)",
   "enum.metamagic.Empower": "Empower",
   "enum.metamagic.Maximize": "Maximize",
   "enum.metamagic.Quicken": "Quicken",
