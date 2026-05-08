@@ -660,6 +660,15 @@ namespace WrathTactics.Engine {
                     return EqualsBool(isSummon, condition);
                 }
 
+                case ConditionProperty.IsPet: {
+                    // UnitPartPet is the engine's canonical pet marker — covers all PetType
+                    // values (AnimalCompanion / MythicSkeletalChampion / AzataHavocDragon / Clone
+                    // / NightHag) plus Eidolons. Symmetric to IsSummon for filtering pets out of
+                    // (or into) global rules.
+                    bool isPet = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartPet>() != null;
+                    return EqualsBool(isPet, condition);
+                }
+
                 case ConditionProperty.HasBuff: {
                     bool hasBuff = unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value);
@@ -785,6 +794,13 @@ namespace WrathTactics.Engine {
                     bool isSummon = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartSummonedMonster>() != null;
                     bool wantSummon = ParseBoolValue(condition.Value);
                     bool match = isSummon == wantSummon;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.IsPet: {
+                    bool isPet = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartPet>() != null;
+                    bool wantPet = ParseBoolValue(condition.Value);
+                    bool match = isPet == wantPet;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

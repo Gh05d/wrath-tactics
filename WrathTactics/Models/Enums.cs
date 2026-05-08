@@ -48,7 +48,8 @@ namespace WrathTactics.Models {
         IsTargetedByAlly,    // Enemy-scope: a non-owner ally targets this enemy
         IsTargetedByEnemy,        // Ally-scope: an enemy targets this ally
         IsSummon,                 // Yes/No — UnitPartSummonedMonster present (excludes pets/companions)
-        EnemyHDMinusPartyLevel    // enemyEffectiveHD − partyMaxEffectiveLevel — Enemy-scope only
+        EnemyHDMinusPartyLevel,   // enemyEffectiveHD − partyMaxEffectiveLevel — Enemy-scope only
+        IsPet                     // Yes/No — UnitPartPet present (Animal Companion / Aivu / Lich-Skelett / Clone / Night Hag / Eidolon)
     }
 
     public enum ConditionOperator {
