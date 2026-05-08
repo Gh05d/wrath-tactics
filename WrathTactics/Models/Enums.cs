@@ -19,7 +19,8 @@ namespace WrathTactics.Models {
         EnemyLowestWill,     // the single enemy with lowest Will save
         EnemyHighestWill,    // the single enemy with highest Will save
         EnemyHighestHD,      // the single enemy with highest HD
-        EnemyLowestHD        // the single enemy with lowest HD
+        EnemyLowestHD,       // the single enemy with lowest HD
+        AllyByName           // a specific ally pinned by UniqueId stored in Condition.Value2
     }
 
     public enum ConditionProperty {
@@ -155,7 +156,8 @@ namespace WrathTactics.Models {
         EnemyHighestHD,
         EnemyLowestHD,
         PointAtSelf,            // ~1 square in front of caster
-        PointAtConditionTarget  // ~1 square toward caster from matched unit
+        PointAtConditionTarget, // ~1 square toward caster from matched unit
+        SpecificAlly            // ally pinned by UniqueId stored in TargetDef.Filter
     }
 
     public enum RangeBracket { Melee, Cone, Short, Medium, Long }

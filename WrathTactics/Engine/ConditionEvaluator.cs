@@ -156,7 +156,25 @@ namespace WrathTactics.Engine {
             if (allies.Count == 0 && conds.All(c => c.Subject != ConditionSubject.AllyCount))
                 return false;
 
-            var nonCountConds = conds.Where(c => c.Subject != ConditionSubject.AllyCount).ToList();
+            // AllyByName conditions pin a specific ally per condition (Value2 = UniqueId).
+            // They short-circuit the iterative match below: each must pass against its
+            // own pinned ally, or the whole group fails. LastMatchedAlly latches onto
+            // the first pinned ally so ConditionTarget / PointAtConditionTarget can
+            // find it downstream.
+            var byNameConds = conds.Where(c => c.Subject == ConditionSubject.AllyByName).ToList();
+            foreach (var c in byNameConds) {
+                var pinned = AllyProvider.Resolve(c.Value2);
+                if (pinned == null) {
+                    Log.Engine.Trace($"AllyByName: cannot resolve UniqueId='{c.Value2}' (Property={c.Property})");
+                    return false;
+                }
+                if (!EvaluateUnitProperty(c, pinned)) return false;
+                if (LastMatchedAlly == null) LastMatchedAlly = pinned;
+            }
+
+            var nonCountConds = conds.Where(c =>
+                c.Subject != ConditionSubject.AllyCount
+                && c.Subject != ConditionSubject.AllyByName).ToList();
             var countConds    = conds.Where(c => c.Subject == ConditionSubject.AllyCount).ToList();
 
             UnitEntityData matchedAlly = null;
@@ -169,7 +187,7 @@ namespace WrathTactics.Engine {
                     if (allPass) { matchedAlly = ally; break; }
                 }
                 if (matchedAlly == null) return false;
-                LastMatchedAlly = matchedAlly;
+                if (LastMatchedAlly == null) LastMatchedAlly = matchedAlly;
             }
 
             if (countConds.Count > 0) {
@@ -590,11 +608,14 @@ namespace WrathTactics.Engine {
                         Log.Engine.Trace($"IsTargetingAlly: subject {condition.Subject} is not Enemy-scope, returning false");
                         return false;
                     }
+                    // Value2 = optional UniqueId pin. Empty = any ally (legacy behaviour).
+                    var pinned = AllyProvider.Resolve(condition.Value2);
                     bool match = false;
                     foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
                         if (ally == null || ally == CurrentOwner) continue;
                         if (!ally.IsInGame) continue;
                         if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+                        if (pinned != null && ally != pinned) continue;
                         if (TargetingRelations.Has(unit, ally)) {
                             Log.Engine.Trace($"IsTargetingAlly: {unit?.CharacterName} targets {ally.CharacterName}");
                             match = true;
@@ -609,11 +630,13 @@ namespace WrathTactics.Engine {
                         Log.Engine.Trace($"IsTargetedByAlly: subject {condition.Subject} is not Enemy-scope, returning false");
                         return false;
                     }
+                    var pinned = AllyProvider.Resolve(condition.Value2);
                     bool match = false;
                     foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
                         if (ally == null || ally == CurrentOwner) continue;
                         if (!ally.IsInGame) continue;
                         if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+                        if (pinned != null && ally != pinned) continue;
                         if (TargetingRelations.Has(ally, unit)) {
                             Log.Engine.Trace($"IsTargetedByAlly: {ally.CharacterName} targets {unit?.CharacterName}");
                             match = true;
@@ -1015,7 +1038,9 @@ namespace WrathTactics.Engine {
         }
 
         static bool IsAllyScope(ConditionSubject s) {
-            return s == ConditionSubject.Ally || s == ConditionSubject.AllyCount;
+            return s == ConditionSubject.Ally
+                || s == ConditionSubject.AllyCount
+                || s == ConditionSubject.AllyByName;
         }
 
         static Func<UnitEntityData, float> PickMetric(ConditionSubject s, out bool biggest) {

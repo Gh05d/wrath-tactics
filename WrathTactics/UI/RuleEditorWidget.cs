@@ -816,6 +816,7 @@ namespace WrathTactics.UI {
             bool needsFilter = rule.Target.Type == TargetType.AllyWithCondition
                 || rule.Target.Type == TargetType.AllyMissingBuff
                 || rule.Target.Type == TargetType.EnemyCreatureType;
+            bool needsAllyPicker = rule.Target.Type == TargetType.SpecificAlly;
 
             if (needsFilter) {
                 string filterLabel = rule.Target.Type == TargetType.AllyWithCondition ? "target.filter.condition".i18n()
@@ -834,6 +835,35 @@ namespace WrathTactics.UI {
                     rule.Target.Filter = v;
                     PersistEdit();
                 });
+            } else if (needsAllyPicker) {
+                // SpecificAlly: pick a concrete companion. Filter stores the UniqueId (per-save).
+                var (allyLbl, allyLblRect) = UIHelpers.Create("AllyLabel", row.transform);
+                allyLblRect.SetAnchor(0.51, 0.65, 0, 1);
+                allyLblRect.sizeDelta = Vector2.zero;
+                UIHelpers.AddLabel(allyLbl, "target.filter.ally".i18n(), 15f, TextAlignmentOptions.MidlineLeft,
+                    new Color(0.7f, 0.7f, 0.7f));
+
+                var entries = Engine.AllyProvider.GetAll();
+                if (entries.Count == 0) {
+                    var input = UIHelpers.CreateTMPInputField(row, "TargetFilter",
+                        0.66, 1.0, rule.Target.Filter ?? "", 15f);
+                    input.onEndEdit.AddListener(v => { rule.Target.Filter = v; PersistEdit(); });
+                } else {
+                    var labels = entries.Select(e => e.DisplayName).ToList();
+                    int idx = -1;
+                    for (int i = 0; i < entries.Count; i++) {
+                        if (entries[i].UniqueId == rule.Target.Filter) { idx = i; break; }
+                    }
+                    if (idx < 0) {
+                        idx = 0;
+                        rule.Target.Filter = entries[0].UniqueId;
+                        PersistEdit();
+                    }
+                    PopupSelector.Create(row, "TargetSpecificAlly", 0.66f, 1.0f, labels, idx, v => {
+                        rule.Target.Filter = entries[v].UniqueId;
+                        PersistEdit();
+                    });
+                }
             }
         }
 

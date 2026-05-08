@@ -73,29 +73,38 @@ namespace WrathTactics.UI {
 
             bool isCountSubject = condition.Subject == ConditionSubject.AllyCount
                 || condition.Subject == ConditionSubject.EnemyCount;
+            bool isAllyByNameSubject = condition.Subject == ConditionSubject.AllyByName;
             bool isHasCondition = condition.Property == ConditionProperty.HasCondition;
 
-            if (isCountSubject) {
-                // Layout: [Subject 0→0.15] [op 0.16→0.22] [count 0.23→0.30] ["with" 0.31→0.37]
-                //         [Property 0.38→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
-                // Reads: "AllyCount >= 2 with HpPercent < 60" (operator now user-selectable)
+            if (isCountSubject || isAllyByNameSubject) {
+                // Compressed layout shared with count subjects:
+                // [Subject 0→0.15] [LeftWidget 0.16→0.30] ["with" 0.31→0.37]
+                //   [Property 0.38→0.58] [Op/Value 0.58→0.88] [X 0.9→1.0]
+                // Count form reads "AllyCount >= 2 with HpPercent < 60";
+                // AllyByName form reads "AllyByName: Pet1 with HpPercent < 60".
 
-                // Count-threshold operator dropdown (replaces fixed ">=" label)
-                var countOpNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
-                PopupSelector.Create(root, "CountThresholdOperator", 0.16f, 0.22f,
-                    countOpNames, (int)condition.CountOperator, v => {
-                        condition.CountOperator = (ConditionOperator)v;
+                if (isCountSubject) {
+                    // Count-threshold operator + integer input occupies 0.16-0.30
+                    var countOpNames = new List<string> { "<", ">", "=", "!=", ">=", "<=" };
+                    PopupSelector.Create(root, "CountThresholdOperator", 0.16f, 0.22f,
+                        countOpNames, (int)condition.CountOperator, v => {
+                            condition.CountOperator = (ConditionOperator)v;
+                            onChanged?.Invoke();
+                        });
+
+                    var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
+                        0.23, 0.30, condition.Value2 ?? "1", 16f,
+                        TMP_InputField.ContentType.IntegerNumber);
+                    countInput.onEndEdit.AddListener(v => {
+                        condition.Value2 = v;
                         onChanged?.Invoke();
                     });
-
-                // Value2 = count threshold
-                var countInput = UIHelpers.CreateTMPInputField(root, "CountValue",
-                    0.23, 0.30, condition.Value2 ?? "1", 16f,
-                    TMP_InputField.ContentType.IntegerNumber);
-                countInput.onEndEdit.AddListener(v => {
-                    condition.Value2 = v;
-                    onChanged?.Invoke();
-                });
+                } else {
+                    // AllyByName: ally picker (live PartyAndPets). Stored in Value2 as UniqueId.
+                    CreateAllyPicker(root, 0.16f, 0.30f, "AllyByNamePicker",
+                        allowAny: false, condition.Value2,
+                        v => { condition.Value2 = v; onChanged?.Invoke(); });
+                }
 
                 // "with" label
                 var (withLbl, withLblRect) = UIHelpers.Create("WithLabel", root.transform);
@@ -188,16 +197,33 @@ namespace WrathTactics.UI {
                         });
                     }
                 } else {
-                    // Bool / free-text props (IsDead, IsInCombat etc.) on count subjects:
-                    // fall back to a plain text input — the count path doesn't render a
-                    // Yes/No dropdown here, so users type "true"/"false" directly.
+                    // Bool props (IsDead/IsSummon/IsPet/etc.): Yes/No dropdown for both Count
+                    // and AllyByName subjects. Free-text fallback covers anything not classified.
+                    bool isBool = condition.Property == ConditionProperty.IsDead
+                        || condition.Property == ConditionProperty.IsInCombat
+                        || condition.Property == ConditionProperty.IsTargetingSelf
+                        || condition.Property == ConditionProperty.IsTargetingAlly
+                        || condition.Property == ConditionProperty.IsTargetedByAlly
+                        || condition.Property == ConditionProperty.IsTargetedByEnemy
+                        || condition.Property == ConditionProperty.IsSummon
+                        || condition.Property == ConditionProperty.IsPet;
                     condition.Operator = ConditionOperator.Equal;
-                    var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                        0.58, 0.88, condition.Value ?? "", 16f);
-                    valueInput.onEndEdit.AddListener(v => {
-                        condition.Value = v;
-                        onChanged?.Invoke();
-                    });
+                    if (isBool) {
+                        var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
+                        int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                        if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
+                        PopupSelector.Create(root, "CompactBoolValue", 0.58f, 0.88f, yesNo, yIdx, v => {
+                            condition.Value = v == 0 ? "true" : "false";
+                            onChanged?.Invoke();
+                        });
+                    } else {
+                        var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
+                            0.58, 0.88, condition.Value ?? "", 16f);
+                        valueInput.onEndEdit.AddListener(v => {
+                            condition.Value = v;
+                            onChanged?.Invoke();
+                        });
+                    }
                 }
             } else {
                 bool isCreatureType = condition.Property == ConditionProperty.CreatureType;
@@ -292,15 +318,27 @@ namespace WrathTactics.UI {
                         onChanged?.Invoke();
                     });
                 } else if (isBoolProperty) {
+                    // IsTargetingAlly / IsTargetedByAlly accept an optional Value2 ally pin —
+                    // empty = any ally (legacy), set = only that specific ally counts.
+                    bool hasAllyFilter = condition.Property == ConditionProperty.IsTargetingAlly
+                        || condition.Property == ConditionProperty.IsTargetedByAlly;
+
                     var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
-                    // Map: "true" -> index 0 (Yes), anything else -> index 1 (No)
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
                     if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
-                    PopupSelector.Create(root, "BoolPropertyValue", 0.38f, 0.88f, yesNo, yIdx, v => {
+
+                    float yesNoEnd = hasAllyFilter ? 0.55f : 0.88f;
+                    PopupSelector.Create(root, "BoolPropertyValue", 0.38f, yesNoEnd, yesNo, yIdx, v => {
                         condition.Value = v == 0 ? "true" : "false";
                         onChanged?.Invoke();
                     });
+
+                    if (hasAllyFilter) {
+                        CreateAllyPicker(root, 0.56f, 0.88f, "TargetingAllyFilter",
+                            allowAny: true, condition.Value2,
+                            v => { condition.Value2 = v; onChanged?.Invoke(); });
+                    }
                 } else {
                     // Normal single value input
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
@@ -359,6 +397,35 @@ namespace WrathTactics.UI {
             }
         }
 
+        void CreateAllyPicker(GameObject root, float xMin, float xMax, string name,
+                              bool allowAny, string current, Action<string> onSelect) {
+            var entries = AllyProvider.GetAll();
+            var labels = new List<string>();
+            var values = new List<string>();
+            if (allowAny) {
+                labels.Add("ally.picker.any".i18n());
+                values.Add("");
+            }
+            foreach (var e in entries) {
+                labels.Add(e.DisplayName);
+                values.Add(e.UniqueId);
+            }
+
+            // Fallback to text input when not in-game (main menu): party list is empty.
+            if (labels.Count == 0) {
+                var input = UIHelpers.CreateTMPInputField(root, name, xMin, xMax, current ?? "", 14f);
+                input.onEndEdit.AddListener(v => onSelect(v));
+                return;
+            }
+
+            int idx = values.IndexOf(current ?? "");
+            if (idx < 0) {
+                idx = 0;
+                onSelect(values[0]);
+            }
+            PopupSelector.Create(root, name, xMin, xMax, labels, idx, v => onSelect(values[v]));
+        }
+
         void CreateBuffSelector(GameObject root, float xMin, float xMax) {
             var buffs = BuffBlueprintProvider.GetBuffs();
 
@@ -414,6 +481,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsPet
                     };
                 case ConditionSubject.Ally:
+                case ConditionSubject.AllyByName:
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,

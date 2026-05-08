@@ -49,6 +49,8 @@
   "target.filter.condition": "État :",
   "target.filter.buff_guid": "GUID buff :",
   "target.filter.creature_type": "Type de créature :",
+  "target.filter.ally": "Allié :",
+  "ally.picker.any": "(N'importe quel allié)",
 
   "cooldown.label": "Recharge (rounds) :",
 
@@ -127,6 +129,7 @@
   "enum.subject.EnemyHighestWill": "Ennemi : Vol max",
   "enum.subject.EnemyHighestHD": "Ennemi : DV max",
   "enum.subject.EnemyLowestHD": "Ennemi : DV min",
+  "enum.subject.AllyByName": "Allié précis",
 
   "enum.property.HpPercent": "PV%",
   "enum.property.AC": "CA",
@@ -187,6 +190,7 @@
   "enum.target.EnemyLowestHD": "Ennemi : DV min",
   "enum.target.PointAtSelf": "Point devant soi",
   "enum.target.PointAtConditionTarget": "Point sur cible de condition",
+  "enum.target.SpecificAlly": "Allié précis",
 
   "enum.heal_mode.Any": "Au choix",
   "enum.heal_mode.Strongest": "Plus puissant",

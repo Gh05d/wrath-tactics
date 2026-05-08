@@ -49,6 +49,8 @@
   "target.filter.condition": "Zustand:",
   "target.filter.buff_guid": "Buff-GUID:",
   "target.filter.creature_type": "Kreaturenart:",
+  "target.filter.ally": "Verbündeter:",
+  "ally.picker.any": "(Beliebiger Verbündeter)",
 
   "cooldown.label": "Abklingzeit (Runden):",
 
@@ -127,6 +129,7 @@
   "enum.subject.EnemyHighestWill": "Gegner: höchster Willen",
   "enum.subject.EnemyHighestHD": "Gegner: höchste TW",
   "enum.subject.EnemyLowestHD": "Gegner: niedrigste TW",
+  "enum.subject.AllyByName": "Bestimmter Verbündeter",
 
   "enum.property.HpPercent": "TP%",
   "enum.property.AC": "RK",
@@ -187,6 +190,7 @@
   "enum.target.EnemyLowestHD": "Gegner: niedrigste TW",
   "enum.target.PointAtSelf": "Punkt vor sich selbst",
   "enum.target.PointAtConditionTarget": "Punkt am Bedingungs-Ziel",
+  "enum.target.SpecificAlly": "Bestimmter Verbündeter",
 
   "enum.heal_mode.Any": "Beliebig",
   "enum.heal_mode.Strongest": "Stärkste",

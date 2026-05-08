@@ -49,6 +49,8 @@
   "target.filter.condition": "Condition:",
   "target.filter.buff_guid": "Buff GUID:",
   "target.filter.creature_type": "Creature Type:",
+  "target.filter.ally": "Ally:",
+  "ally.picker.any": "(Any ally)",
 
   "cooldown.label": "Cooldown (rounds):",
 
@@ -127,6 +129,7 @@
   "enum.subject.EnemyHighestWill": "Enemy: highest Will",
   "enum.subject.EnemyHighestHD": "Enemy: highest HD",
   "enum.subject.EnemyLowestHD": "Enemy: lowest HD",
+  "enum.subject.AllyByName": "Specific ally",
 
   "enum.property.HpPercent": "HP%",
   "enum.property.AC": "AC",
@@ -187,6 +190,7 @@
   "enum.target.EnemyLowestHD": "Enemy: lowest HD",
   "enum.target.PointAtSelf": "Point at self",
   "enum.target.PointAtConditionTarget": "Point at condition target",
+  "enum.target.SpecificAlly": "Specific ally",
 
   "enum.heal_mode.Any": "Any",
   "enum.heal_mode.Strongest": "Strongest",

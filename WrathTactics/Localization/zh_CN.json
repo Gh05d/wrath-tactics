@@ -49,6 +49,8 @@
   "target.filter.condition": "状态:",
   "target.filter.buff_guid": "增益 GUID:",
   "target.filter.creature_type": "生物类型:",
+  "target.filter.ally": "盟友:",
+  "ally.picker.any": "(任意盟友)",
 
   "cooldown.label": "冷却 (回合):",
 
@@ -127,6 +129,7 @@
   "enum.subject.EnemyHighestWill": "敌人: 意志 最高",
   "enum.subject.EnemyHighestHD": "敌人: HD 最高",
   "enum.subject.EnemyLowestHD": "敌人: HD 最低",
+  "enum.subject.AllyByName": "特定盟友",
 
   "enum.property.HpPercent": "HP%",
   "enum.property.AC": "AC",
@@ -187,6 +190,7 @@
   "enum.target.EnemyLowestHD": "敌人: HD 最低",
   "enum.target.PointAtSelf": "自身前方",
   "enum.target.PointAtConditionTarget": "条件目标处",
+  "enum.target.SpecificAlly": "特定盟友",
 
   "enum.heal_mode.Any": "任意",
   "enum.heal_mode.Strongest": "最强",

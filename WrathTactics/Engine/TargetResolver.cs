@@ -66,6 +66,7 @@ namespace WrathTactics.Engine {
                 case TargetType.AllyLowestHp:       return GetAllyLowestHp(owner);
                 case TargetType.AllyWithCondition:  return GetAllyWithCondition(owner, target.Filter);
                 case TargetType.AllyMissingBuff:    return GetAllyMissingBuff(owner, target.Filter);
+                case TargetType.SpecificAlly:       return AllyProvider.Resolve(target.Filter);
                 case TargetType.EnemyNearest:       return GetEnemyNearest(owner);
                 case TargetType.EnemyLowestHp:      return GetEnemyLowestHp(owner);
                 case TargetType.EnemyHighestHp:     return GetEnemyHighestHp(owner);

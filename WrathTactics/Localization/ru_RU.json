@@ -49,6 +49,8 @@
   "target.filter.condition": "Состояние:",
   "target.filter.buff_guid": "GUID баффа:",
   "target.filter.creature_type": "Тип существа:",
+  "target.filter.ally": "Союзник:",
+  "ally.picker.any": "(Любой союзник)",
 
   "cooldown.label": "Перезарядка (раунды):",
 
@@ -127,6 +129,7 @@
   "enum.subject.EnemyHighestWill": "Враг: макс. Воля",
   "enum.subject.EnemyHighestHD": "Враг: макс. КЗ",
   "enum.subject.EnemyLowestHD": "Враг: мин. КЗ",
+  "enum.subject.AllyByName": "Конкретный союзник",
 
   "enum.property.HpPercent": "HP%",
   "enum.property.AC": "КБ",
@@ -187,6 +190,7 @@
   "enum.target.EnemyLowestHD": "Враг: мин. КЗ",
   "enum.target.PointAtSelf": "Точка перед собой",
   "enum.target.PointAtConditionTarget": "Точка у цели условия",
+  "enum.target.SpecificAlly": "Конкретный союзник",
 
   "enum.heal_mode.Any": "Любой",
   "enum.heal_mode.Strongest": "Сильнейший",
