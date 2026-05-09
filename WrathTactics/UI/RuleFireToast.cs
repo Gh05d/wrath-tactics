@@ -16,6 +16,7 @@ namespace WrathTactics.UI {
         const float FadeStartFraction = 0.55f; // hold full alpha for the first 55% of duration
 
         static GameObject container;
+        static int activeToastCount;
 
         public static void Show(string text) {
             if (string.IsNullOrEmpty(text)) return;
@@ -29,6 +30,7 @@ namespace WrathTactics.UI {
                 new Color(0.95f, 0.95f, 0.82f));
             label.margin = new Vector4(10, 0, 10, 0);
 
+            activeToastCount++;
             var driver = container.GetComponent<RuleFireToast>();
             driver.StartCoroutine(driver.FadeOut(toast));
         }
@@ -85,6 +87,16 @@ namespace WrathTactics.UI {
             }
 
             if (toast != null) Destroy(toast);
+
+            // Tear the container down once the last toast finishes — keeps the
+            // VerticalLayoutGroup + ContentSizeFitter off the canvas-layout path
+            // when no feedback is active. Without this, even with toasts disabled,
+            // the container layout pass would run every frame the panel is visible.
+            activeToastCount = System.Math.Max(0, activeToastCount - 1);
+            if (activeToastCount == 0 && container != null) {
+                Destroy(container);
+                container = null;
+            }
         }
     }
 }

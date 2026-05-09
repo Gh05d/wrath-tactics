@@ -9,7 +9,7 @@ namespace WrathTactics.Models {
         [JsonProperty] public float TickIntervalSeconds { get; set; } = 3f;
         [JsonProperty] public float OutOfCombatTickIntervalSeconds { get; set; } = 2f;
         [JsonProperty] public bool DebugLogging { get; set; }
-        [JsonProperty] public bool ShowRuleFireToasts { get; set; } = true;
+        [JsonProperty] public bool ShowRuleFireToasts { get; set; } = false;
         [JsonProperty] public List<string> RecentBuffGuids { get; set; } = new();
 
         static readonly List<TacticsRule> EmptyRules = new List<TacticsRule>();

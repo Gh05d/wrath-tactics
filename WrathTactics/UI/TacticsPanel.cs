@@ -141,6 +141,29 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(closeBtn, "X", 22f, TextAlignmentOptions.Midline);
             closeBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
+            // Toast on/off toggle — left of the close button. Default off; the icon
+            // colour reflects the current state so the user sees at a glance whether
+            // rule-fire feedback toasts will appear.
+            var (toastBtn, toastBtnRect) = UIHelpers.Create("ToastToggleBtn", titleBar.transform);
+            toastBtnRect.SetAnchor(0.86, 0.94, 0, 1);
+            toastBtnRect.sizeDelta = Vector2.zero;
+            UIHelpers.AddBackground(toastBtn, new Color(0.18f, 0.15f, 0.10f, 0.9f));
+            var toastLabel = UIHelpers.AddLabel(toastBtn,
+                "settings.toasts.short".i18n(), 13f, TextAlignmentOptions.Midline);
+            void RefreshToastBtn() {
+                bool on = ConfigManager.Current?.ShowRuleFireToasts ?? false;
+                toastLabel.color = on ? new Color(0.85f, 0.78f, 0.5f) : new Color(0.55f, 0.55f, 0.55f);
+                toastLabel.text = string.Format("settings.toasts.short".i18n(),
+                    on ? "bool.yes".i18n() : "bool.no".i18n());
+            }
+            RefreshToastBtn();
+            toastBtn.AddComponent<Button>().onClick.AddListener(() => {
+                if (ConfigManager.Current == null) return;
+                ConfigManager.Current.ShowRuleFireToasts = !ConfigManager.Current.ShowRuleFireToasts;
+                ConfigManager.Save();
+                RefreshToastBtn();
+            });
+
             // Tab bar
             var (tabBar, tabRect) = UIHelpers.Create("TabBar", bookContent.transform);
             tabRect.SetAnchor(0, 1, 0.84, 0.91);

@@ -273,5 +273,6 @@
   "enum.metamagic.Bolstered": "Bolstered",
   "enum.metamagic.CompletelyNormal": "Vollständig normal",
 
-  "rule.fire.toast.format": "{0} → {1}"
+  "rule.fire.toast.format": "{0} → {1}",
+  "settings.toasts.short": "Hinweise: {0}"
 }
