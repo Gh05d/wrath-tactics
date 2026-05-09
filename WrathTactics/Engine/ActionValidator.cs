@@ -508,6 +508,19 @@ namespace WrathTactics.Engine {
                             heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell));
                         }
                     }
+                    // Custom spells: prepared metamagic variants (Empowered/Quickened CMW etc.)
+                    // live here, not in m_KnownSpells. Skipping this list made metamagic-prepared
+                    // cures invisible to the heal picker.
+                    foreach (var spell in book.GetCustomSpells(level)) {
+                        if (MatchesEnergy(spell.Blueprint)) {
+                            if (book.GetAvailableForCastSpellCount(spell) == 0) continue;
+                            if (!spell.IsAvailable) {
+                                Log.Engine.Trace($"Skipping heal custom-spell {spell.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({spell.GetUnavailableReason()})");
+                                continue;
+                            }
+                            heals.Add((spell, 100 + level * 10, null, HealSourceMask.Spell));
+                        }
+                    }
                 }
             }
 
