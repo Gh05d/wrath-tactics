@@ -54,7 +54,7 @@ namespace WrathTactics.Engine {
         /// Roleplay-mode players should never see these in the HasBuff/MissingBuff picker.
         /// Owlcat uses the "Army" prefix by convention for army-only buffs.
         /// </summary>
-        static bool IsCrusadeOnlyBuff(string name) {
+        internal static bool IsCrusadeOnlyBuff(string name) {
             return name.StartsWith("Army", StringComparison.OrdinalIgnoreCase);
         }
 
