@@ -122,6 +122,8 @@ namespace WrathTactics.Engine {
 
             // Count path: count enemies that pass every non-Count condition AND every Count
             // condition's property-threshold. Threshold = max Value2 across Count conditions.
+            // Operator = first Count row's CountOperator — bucket UI emits one count row, so
+            // mixed operators across multiple Count rows is a misuse; take the first.
             if (countConds.Count > 0) {
                 float countThreshold = 1f;
                 foreach (var cc in countConds) {
@@ -129,6 +131,7 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
                         countThreshold = v;
                 }
+                var countOp = countConds[0].CountOperator;
 
                 int count = 0;
                 foreach (var enemy in enemies) {
@@ -142,7 +145,7 @@ namespace WrathTactics.Engine {
                     }
                     if (allPass) count++;
                 }
-                if (count < countThreshold) return false;
+                if (!CompareCount(count, countThreshold, countOp)) return false;
             }
 
             return true;
@@ -197,6 +200,7 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
                         countThreshold = v;
                 }
+                var countOp = countConds[0].CountOperator;
 
                 int count = 0;
                 var perAlly = new List<string>();
@@ -219,8 +223,8 @@ namespace WrathTactics.Engine {
                     float dist = UnityEngine.Vector3.Distance(owner.Position, ally.Position);
                     perAlly.Add($"{ally.CharacterName}(hp={hpPct}%,d={dist:F1}m):{(allPass ? "pass" : "fail@" + failReason)}");
                 }
-                if (count < countThreshold) {
-                    Log.Engine.Trace($"AllyBucket miss: count={count} < threshold={countThreshold} [{string.Join(", ", perAlly)}]");
+                if (!CompareCount(count, countThreshold, countOp)) {
+                    Log.Engine.Trace($"AllyBucket miss: count={count} {countOp} threshold={countThreshold} [{string.Join(", ", perAlly)}]");
                     return false;
                 }
             }
