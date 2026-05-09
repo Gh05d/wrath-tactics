@@ -198,14 +198,22 @@ namespace WrathTactics.UI {
             var all_matches = new List<BuffBlueprintProvider.BuffEntry>();
             foreach (var entry in all) {
                 if (string.IsNullOrEmpty(entry.Name)) continue;
-                if (entry.Name.ToLowerInvariant().Contains(needle)) {
+                var locName = entry.Name.ToLowerInvariant();
+                var intName = entry.InternalName?.ToLowerInvariant() ?? "";
+                if (locName.Contains(needle) || intName.Contains(needle)) {
                     all_matches.Add(entry);
                 }
             }
 
             all_matches.Sort((a, b) => {
-                int ap = a.Name.ToLowerInvariant().StartsWith(needle) ? 0 : 1;
-                int bp = b.Name.ToLowerInvariant().StartsWith(needle) ? 0 : 1;
+                // Tier-1: localized name starts with query. Tier-2: internal name starts.
+                // Tier-3: substring-only match. Within tier: shorter localized first, then alpha.
+                int ap = a.Name.ToLowerInvariant().StartsWith(needle) ? 0
+                    : (a.InternalName?.ToLowerInvariant().StartsWith(needle) ?? false) ? 1
+                    : 2;
+                int bp = b.Name.ToLowerInvariant().StartsWith(needle) ? 0
+                    : (b.InternalName?.ToLowerInvariant().StartsWith(needle) ?? false) ? 1
+                    : 2;
                 if (ap != bp) return ap - bp;
                 if (a.Name.Length != b.Name.Length) return a.Name.Length - b.Name.Length;
                 return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);

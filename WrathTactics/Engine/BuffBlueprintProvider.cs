@@ -10,7 +10,8 @@ namespace WrathTactics.Engine {
         static List<BuffEntry> cachedBuffs;
 
         public struct BuffEntry {
-            public string Name;
+            public string Name;          // Localized display name (e.g. "Bless"/"Segen").
+            public string InternalName;  // Blueprint identifier (e.g. "BlessBuff") — kept for search fallback.
             public string Guid;
         }
 
@@ -29,8 +30,13 @@ namespace WrathTactics.Engine {
                 ResourcesLibrary.BlueprintsCache.ForEachLoaded((guid, bp) => {
                     if (!(bp is BlueprintBuff buff) || string.IsNullOrEmpty(buff.name)) return;
                     if (IsCrusadeOnlyBuff(buff.name)) { skipped++; return; }
+                    // BlueprintBuff.Name = localized display name; .name = internal id.
+                    // Fallback to the internal id when the localized string is empty
+                    // (some hidden/system buffs ship without a display name).
+                    var localized = string.IsNullOrEmpty(buff.Name) ? buff.name : buff.Name;
                     results.Add(new BuffEntry {
-                        Name = buff.name,
+                        Name = localized,
+                        InternalName = buff.name,
                         Guid = guid.ToString()
                     });
                 });
