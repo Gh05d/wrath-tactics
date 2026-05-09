@@ -161,7 +161,7 @@ namespace WrathTactics.Engine {
                     cooldowns[cooldownKey] = gameTimeSec;
                     fireCounts[entry.Id] = fireCounts.TryGetValue(entry.Id, out int n) ? n + 1 : 1;
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
-                    if (ConfigManager.Current?.ShowRuleFireToasts ?? false) {
+                    if (ConfigManager.Current?.ShowRuleFireToasts ?? true) {
                         RuleFireToast.Show(string.Format("rule.fire.toast.format".i18n(),
                             unit.CharacterName, rule.Name));
                     }
