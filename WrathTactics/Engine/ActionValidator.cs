@@ -530,12 +530,15 @@ namespace WrathTactics.Engine {
                 if (ability.Data.SourceItem != null) continue;
                 if (!MatchesEnergy(ability.Blueprint)) continue;
 
-                // Check resource cost — skip if no uses left
+                // Engine-authoritative cost — honors ResourceCostIncreasing/DecreasingFacts and
+                // custom IAbilityResourceCostCalculator. Plain .Amount underreports for
+                // abilities with cost-modifier facts.
                 var resource = ability.Data.Blueprint.GetComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityResourceLogic>();
                 if (resource?.RequiredResource != null) {
                     int available = owner.Resources.GetResourceAmount(resource.RequiredResource);
-                    if (available < resource.Amount) {
-                        Log.Engine.Trace($"Skipping heal ability {ability.Blueprint.name} for {owner.CharacterName}: resource {resource.RequiredResource.name}={available}/{resource.Amount}");
+                    int cost = resource.CalculateCost(ability.Data);
+                    if (available < cost) {
+                        Log.Engine.Trace($"Skipping heal ability {ability.Blueprint.name} for {owner.CharacterName}: resource {resource.RequiredResource.name}={available}/{cost}");
                         continue;
                     }
                 }
