@@ -1074,10 +1074,6 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static IEnumerable<UnitEntityData> GetLivingPartyMembers(UnitEntityData owner) {
-            return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame && u.HPLeft > 0);
-        }
-
         static IEnumerable<UnitEntityData> GetAllPartyMembers(UnitEntityData owner) {
             return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame);
         }
