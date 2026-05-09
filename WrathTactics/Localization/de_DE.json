@@ -150,7 +150,7 @@
   "enum.property.SpellDCMinusSave": "SG − Rettung",
   "enum.property.HasClass": "Hat Klasse",
   "enum.property.WithinRange": "In Reichweite",
-  "enum.property.ABMinusAC": "AB − RK",
+  "enum.property.ABMinusAC": "Trefferspanne (AB − RK)",
   "enum.property.IsTargetingSelf": "Zielt auf mich",
   "enum.property.IsTargetingAlly": "Zielt auf Verbündeten",
   "enum.property.IsTargetedByAlly": "Wird von Verbündetem angegriffen",

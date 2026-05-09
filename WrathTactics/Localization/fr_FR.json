@@ -150,7 +150,7 @@
   "enum.property.SpellDCMinusSave": "DD − Sauvegarde",
   "enum.property.HasClass": "A classe",
   "enum.property.WithinRange": "À portée",
-  "enum.property.ABMinusAC": "BAB − CA",
+  "enum.property.ABMinusAC": "Marge de touche (BAB − CA)",
   "enum.property.IsTargetingSelf": "Me cible",
   "enum.property.IsTargetingAlly": "Cible un allié",
   "enum.property.IsTargetedByAlly": "Ciblé par allié",

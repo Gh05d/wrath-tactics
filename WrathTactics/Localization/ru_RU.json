@@ -150,7 +150,7 @@
   "enum.property.SpellDCMinusSave": "СЛ − Спасбросок",
   "enum.property.HasClass": "Есть класс",
   "enum.property.WithinRange": "В радиусе",
-  "enum.property.ABMinusAC": "БА − КБ",
+  "enum.property.ABMinusAC": "Запас попадания (БА − КБ)",
   "enum.property.IsTargetingSelf": "Цель — я",
   "enum.property.IsTargetingAlly": "Цель — союзник",
   "enum.property.IsTargetedByAlly": "Цель союзника",

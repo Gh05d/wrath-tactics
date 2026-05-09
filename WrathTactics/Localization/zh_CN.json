@@ -150,7 +150,7 @@
   "enum.property.SpellDCMinusSave": "DC − 豁免",
   "enum.property.HasClass": "拥有职业",
   "enum.property.WithinRange": "在范围内",
-  "enum.property.ABMinusAC": "AB − AC",
+  "enum.property.ABMinusAC": "命中余量 (AB − AC)",
   "enum.property.IsTargetingSelf": "瞄准我",
   "enum.property.IsTargetingAlly": "瞄准盟友",
   "enum.property.IsTargetedByAlly": "被盟友瞄准",

@@ -150,7 +150,7 @@
   "enum.property.SpellDCMinusSave": "DC − Save",
   "enum.property.HasClass": "HasClass",
   "enum.property.WithinRange": "WithinRange",
-  "enum.property.ABMinusAC": "AB − AC",
+  "enum.property.ABMinusAC": "Hit margin (AB − AC)",
   "enum.property.IsTargetingSelf": "Targeting me",
   "enum.property.IsTargetingAlly": "Targeting ally",
   "enum.property.IsTargetedByAlly": "Targeted by ally",
