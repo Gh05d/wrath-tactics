@@ -279,21 +279,21 @@ namespace WrathTactics.UI {
             // 2. Shared-inventory potions/scrolls. These do NOT register as facts on the unit —
             //    Wrath's own inventory-drink flow scans the shared inventory directly.
             //
-            //    Three-pass scan ordered POTION → SCROLL → WAND. Multiple item forms share an
-            //    ability blueprint GUID (Scroll of Invisibility, Potion of Invisibility, Wand of
+            //    Four-pass scan ordered POTION → SCROLL → WAND → UTILITY. Multiple item forms share
+            //    an ability blueprint GUID (Scroll of Invisibility, Potion of Invisibility, Wand of
             //    Invisibility all cast "Invisibility"). Iterating in storage order and deduping
             //    by GUID silently drops later entries. Potions are preferred (no UMD, no silence
-            //    gate, CL1 reliable); scrolls next; wands last — wand handling is new and putting
-            //    it at the end preserves existing rule semantics for users already targeting a
-            //    potion/scroll. Wand inventory charges decrement via ConsumeInventoryItem's Wand
-            //    branch (item.Charges--) when the runtime casts the synthetic AbilityData.
-            //    ActionValidator.FindUseItemSource uses the same ordering so the runtime pick
-            //    matches the dropdown label.
+            //    gate, CL1 reliable); scrolls next; wands; finally Utility (rods, special-power
+            //    devices). Utility is last so existing potion/scroll/wand rules keep resolving
+            //    to their original consumable; a user adding a rule against a rod-only ability
+            //    explicitly opts in. ActionValidator.FindUseItemSource mirrors this ordering so
+            //    the runtime pick matches the dropdown label.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory != null) {
                 EnumerateInventoryByType(inventory, UsableItemType.Potion, "item.prefix.potion".i18n(), seen, result);
                 EnumerateInventoryByType(inventory, UsableItemType.Scroll, "item.prefix.scroll".i18n(), seen, result);
                 EnumerateInventoryByType(inventory, UsableItemType.Wand, "item.prefix.wand".i18n(), seen, result);
+                EnumerateInventoryByType(inventory, UsableItemType.Utility, "item.prefix.item".i18n(), seen, result);
             }
 
             return result.OrderBy(e => e.Name).ToList();

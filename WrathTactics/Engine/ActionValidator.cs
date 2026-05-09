@@ -373,12 +373,12 @@ namespace WrathTactics.Engine {
                     return ability.Data;
             }
 
-            // 2. Shared inventory — potions, then scrolls, then wands. Mirrors
-            // SpellDropdownProvider's three-pass ordering so "UseItem: Invisibility" labelled
+            // 2. Shared inventory — potions, then scrolls, then wands, then Utility. Mirrors
+            // SpellDropdownProvider's four-pass ordering so "UseItem: Invisibility" labelled
             // "(Potion)" consumes a potion, not whichever form of Invisibility happens to appear
-            // first in storage order. Wands are last so existing user rules (which could only
-            // target potions/scrolls before wands landed in the dropdown) keep resolving to
-            // their original consumable; a user who adds a Wand-labelled rule explicitly opts in.
+            // first in storage order. Utility (rods, special-power devices) is last so existing
+            // potion/scroll/wand rules keep resolving to their original consumable; a user adding
+            // a rod-only ability rule explicitly opts in.
             var inventory = Kingmaker.Game.Instance?.Player?.Inventory;
             if (inventory == null) return null;
             var potion = FindInventoryUsable(inventory, owner, abilityGuid,
@@ -387,8 +387,11 @@ namespace WrathTactics.Engine {
             var scroll = FindInventoryUsable(inventory, owner, abilityGuid,
                 Kingmaker.Blueprints.Items.Equipment.UsableItemType.Scroll, out inventorySource);
             if (scroll != null) return scroll;
-            return FindInventoryUsable(inventory, owner, abilityGuid,
+            var wand = FindInventoryUsable(inventory, owner, abilityGuid,
                 Kingmaker.Blueprints.Items.Equipment.UsableItemType.Wand, out inventorySource);
+            if (wand != null) return wand;
+            return FindInventoryUsable(inventory, owner, abilityGuid,
+                Kingmaker.Blueprints.Items.Equipment.UsableItemType.Utility, out inventorySource);
         }
 
         static AbilityData FindInventoryUsable(
