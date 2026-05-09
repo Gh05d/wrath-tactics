@@ -989,8 +989,14 @@ namespace WrathTactics.Engine {
         }
 
         static int CountAvailableSlotsAboveLevel(UnitEntityData unit, int minLevel) {
+            // Use the highest MaxSpellLevel across the unit's spellbooks. Mythic
+            // books cap at 10; hardcoding 9 silently dropped mythic level-10 slots.
+            int maxLevel = 0;
+            foreach (var book in unit.Spellbooks) {
+                if (book.MaxSpellLevel > maxLevel) maxLevel = book.MaxSpellLevel;
+            }
             int total = 0;
-            for (int l = minLevel; l <= 9; l++) {
+            for (int l = minLevel; l <= maxLevel; l++) {
                 total += CountAvailableSlotsAtLevel(unit, l);
             }
             return total;
