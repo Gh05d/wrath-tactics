@@ -17,7 +17,7 @@ Steam Deck.
 
 ### In scope
 
-- New sibling project `WrathTactics.Tests/` targeting `net48`
+- New sibling project `WrathTactics.Tests/` targeting `net481`
 - xUnit 2.x test framework
 - Tests for four pure-logic surfaces:
   - `ConditionEvaluator.CompareCount(int, float, ConditionOperator)`
@@ -28,8 +28,8 @@ Steam Deck.
 - Visibility: privates that are testable surface get promoted to
   `internal`; `WrathTactics/Properties/AssemblyInfo.cs` exposes them
   via `[assembly: InternalsVisibleTo("WrathTactics.Tests")]`
-- GitHub Actions workflow `.github/workflows/test.yml` — runs
-  `dotnet test` on every push and pull_request
+- Local-only execution via `dotnet test` — invoked manually before
+  release / smoke-test on Steam Deck
 
 ### Out of scope
 
@@ -40,6 +40,11 @@ Steam Deck.
   on Steam Deck remains the only verification.
 - Refactoring existing engine files. Reserved for Phase 2c.
 - Test runner inside the game (UMM-mod-as-test-driver). Out of scope.
+- **CI workflow.** Game-DLLs are unreachable from GitHub-Runners
+  without bundling stub assemblies or extracting a Pure-Logic
+  sub-project — both rejected as overkill for a solo-dev mod.
+  Tests run locally before push; the existing release pipeline
+  (Nexus upload via `nexus-upload.yml`) is unchanged.
 
 ## Constraints
 
@@ -76,15 +81,16 @@ wrath-tactics/
     BuffBlueprintProviderTests.cs
     CommonBuffRegistryTests.cs
     RangeBracketsTests.cs
-
-  .github/workflows/
-    test.yml                     (new)
-    nexus-upload.yml             (existing — untouched)
 ```
+
+The test project sits next to `WrathTactics/` and references it via
+`<ProjectReference>`. The Mod's Game-DLL refs resolve through the
+local `GameInstall/` symlink as today; tests run on the developer's
+machine where that symlink exists.
 
 ### Test-project csproj
 
-`net48` target, package references:
+`net481` target, package references:
 
 - `Microsoft.NET.Test.Sdk` (test host)
 - `xunit` (framework)
@@ -187,31 +193,21 @@ behaviour for unknown brackets.
 
 **Total: ~31 tests, ~250 LOC.**
 
-## CI Workflow
+## Local execution
 
-`.github/workflows/test.yml`:
-
-```yaml
-name: tests
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      - run: dotnet test WrathTactics.Tests/WrathTactics.Tests.csproj --logger "console;verbosity=normal"
+```bash
+~/.dotnet/dotnet test WrathTactics.Tests/WrathTactics.Tests.csproj \
+  -p:SolutionDir=$(pwd)/
 ```
 
-The test project does NOT need `GamePath.props` (no game DLLs are
-referenced). CI runs without checking out game assets.
+`SolutionDir` is required so the transitively-loaded
+`WrathTactics.csproj` can find `GamePath.props` and resolve its
+Game-DLL references. The test code itself does not touch any Game
+type, but the Mod assembly must build for the `ProjectReference` to
+resolve.
+
+Convention: run before every `git push` on a feature branch, and as
+part of the `/release` flow's pre-flight check.
 
 ## Error handling
 
@@ -233,7 +229,7 @@ cases (e.g. `null` to `IsCrusadeOnlyBuff` if that's the pinned contract).
 ## Open questions
 
 None. Scope is small, decisions are made:
-- xUnit (industry standard for net48 + dotnet test)
+- xUnit (industry standard for net481 + dotnet test)
 - `internal` + `InternalsVisibleTo` (idiomatic .NET)
 - One test class per SUT class
 - CI on push + PR via GitHub Actions
