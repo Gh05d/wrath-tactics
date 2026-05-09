@@ -211,9 +211,11 @@ namespace WrathTactics.Engine {
                 activatable.IsOn = false;
                 Log.Engine.Info($"Toggled {activatable.Blueprint.name} OFF for {owner.CharacterName}");
             } else {
+                // IsOn setter routes through ActivatableAbility.SetIsOn, which runs
+                // CanTurnOn(), flips m_IsOn, sets m_TurnOnTime, and resolves the target
+                // wrapper if IsWaitingForTarget. Calling TryStart afterwards is redundant
+                // and asymmetric with the OFF path (single setter).
                 activatable.IsOn = true;
-                if (!activatable.IsStarted)
-                    activatable.TryStart();
                 Log.Engine.Info($"Toggled {activatable.Blueprint.name} ON for {owner.CharacterName}");
             }
             return true;
