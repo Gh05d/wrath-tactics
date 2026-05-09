@@ -482,7 +482,7 @@ namespace WrathTactics.Engine {
             return CompareCount(count, countThreshold, condition.CountOperator);
         }
 
-        static bool CompareCount(int actual, float threshold, ConditionOperator op) {
+        internal static bool CompareCount(int actual, float threshold, ConditionOperator op) {
             int t = (int)threshold;
             switch (op) {
                 case ConditionOperator.LessThan:       return actual <  threshold;
