@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -37,7 +38,7 @@ namespace WrathTactics.Localization {
         public static Locale Current {
             get {
                 try { return LocalizationManager.CurrentLocale; }
-                catch { return Locale.enGB; }
+                catch (NullReferenceException) { return Locale.enGB; }
             }
         }
 
@@ -46,7 +47,10 @@ namespace WrathTactics.Localization {
         public static string Format(string key, params object[] args) {
             var template = Get(key, Current);
             if (args == null || args.Length == 0) return template;
-            try { return string.Format(template, args); } catch { return template; }
+            // Bad format strings (e.g. mismatched {0} index) throw FormatException; fall back
+            // to the raw template so a localization typo never blanks a UI label.
+            try { return string.Format(template, args); }
+            catch (FormatException) { return template; }
         }
 
         static void AddLanguage(Locale locale, string fileName) {
@@ -66,8 +70,12 @@ namespace WrathTactics.Localization {
         }
 
         static void TryAddLanguage(Locale locale, string fileName) {
-            try { AddLanguage(locale, fileName); } catch (System.Exception ex) {
-                Logging.Log.Engine.Warn($"Failed to load {fileName}: {ex.Message}");
+            try {
+                AddLanguage(locale, fileName);
+            } catch (Newtonsoft.Json.JsonException ex) {
+                Logging.Log.Engine.Error(ex, $"Failed to load {fileName}: malformed JSON");
+            } catch (IOException ex) {
+                Logging.Log.Engine.Error(ex, $"Failed to load {fileName}: I/O error");
             }
         }
     }

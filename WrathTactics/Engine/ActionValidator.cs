@@ -28,8 +28,11 @@ namespace WrathTactics.Engine {
                 s_negativeEnergyAffinity = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>(NegativeEnergyAffinityGuid);
                 if (s_negativeEnergyAffinity == null)
                     Log.Engine.Warn($"NegativeEnergyAffinity blueprint {NegativeEnergyAffinityGuid} not found; falling back to feature-name detection.");
-            } catch (Exception ex) {
-                Log.Engine.Error(ex, "NegativeEnergyAffinity blueprint lookup failed");
+            } catch (InvalidOperationException ex) {
+                // ResourcesLibrary throws this if accessed before BlueprintsCache is initialised.
+                // Other exceptions (NRE, etc.) indicate a real defect; let them propagate so we
+                // notice rather than permanently caching a missing blueprint.
+                Log.Engine.Error(ex, "NegativeEnergyAffinity blueprint lookup failed (engine not ready)");
             }
             s_negativeEnergyAffinityResolved = true;
             return s_negativeEnergyAffinity;

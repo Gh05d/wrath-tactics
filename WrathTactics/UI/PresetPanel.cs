@@ -129,8 +129,10 @@ namespace WrathTactics.UI {
                 try {
                     System.IO.Directory.CreateDirectory(dir);
                     Application.OpenURL("file://" + dir);
-                } catch (Exception ex) {
+                } catch (System.IO.IOException ex) {
                     Log.UI.Warn($"Could not open presets folder '{dir}': {ex.Message}");
+                } catch (UnauthorizedAccessException ex) {
+                    Log.UI.Warn($"Could not open presets folder '{dir}' (permission): {ex.Message}");
                 }
             });
 
