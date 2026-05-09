@@ -14,7 +14,7 @@ using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
-    public static class ActionValidator {
+    public static partial class ActionValidator {
         // GUID of CreatureAbilities/NegativeEnergyAffinity.jbp — the exact fact
         // CureLightWounds.jbp's ContextConditionHasFact gates the heal-vs-damage flip on.
         // Resolved lazily through ResourcesLibrary; cached for the session.
@@ -245,14 +245,6 @@ namespace WrathTactics.Engine {
             return true;
         }
 
-        static bool CanToggleActivatable(string abilityGuid, UnitEntityData owner, ToggleMode mode) {
-            var activatable = FindActivatable(owner, abilityGuid);
-            if (activatable == null) return false;
-            if (mode == ToggleMode.Off)
-                return activatable.IsOn;
-            return !activatable.IsOn && activatable.IsAvailable;
-        }
-
         public static AbilityData FindAbility(UnitEntityData owner, string abilityGuid) {
             return FindAbilityEx(owner, abilityGuid, out _);
         }
@@ -430,12 +422,6 @@ namespace WrathTactics.Engine {
                 if (c is T typed) return typed;
             }
             return null;
-        }
-
-        public static ActivatableAbility FindActivatable(UnitEntityData owner, string abilityGuid) {
-            if (string.IsNullOrEmpty(abilityGuid)) return null;
-            return owner.ActivatableAbilities.RawFacts
-                .FirstOrDefault(a => a.Blueprint.AssetGuid.ToString() == abilityGuid);
         }
 
         public static AbilityData FindBestHeal(
