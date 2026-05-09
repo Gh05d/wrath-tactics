@@ -17,10 +17,8 @@ namespace WrathTactics.Tests {
         [InlineData(ConditionSubject.AllyCount,          false)]
         [InlineData(ConditionSubject.AllyByName,         false)]
         [InlineData(ConditionSubject.Combat,             false)]
-        // EnemyHighestHD / EnemyLowestHD intentionally fall through to false today.
-        // If that classification ever changes, this test pins the current contract.
-        [InlineData(ConditionSubject.EnemyHighestHD,     false)]
-        [InlineData(ConditionSubject.EnemyLowestHD,      false)]
+        [InlineData(ConditionSubject.EnemyHighestHD,     true)]
+        [InlineData(ConditionSubject.EnemyLowestHD,      true)]
         public void IsEnemySubject_classifies_correctly(ConditionSubject subject, bool expected) {
             Assert.Equal(expected, CommonBuffRegistry.IsEnemySubject(subject));
         }

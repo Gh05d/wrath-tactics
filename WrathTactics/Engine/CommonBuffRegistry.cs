@@ -95,6 +95,8 @@ namespace WrathTactics.Engine {
                 case ConditionSubject.EnemyHighestReflex:
                 case ConditionSubject.EnemyLowestWill:
                 case ConditionSubject.EnemyHighestWill:
+                case ConditionSubject.EnemyLowestHD:
+                case ConditionSubject.EnemyHighestHD:
                     return true;
                 default:
                     return false;
