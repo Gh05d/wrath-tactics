@@ -192,8 +192,12 @@ namespace WrathTactics.Engine {
         }
 
         static UnitEntityData GetEnemyByCreatureType(UnitEntityData owner, string creatureType) {
+            // Use the same substring + feature-fallback matcher as the condition path
+            // (ConditionEvaluator.CheckCreatureType). Exact ToString-match silently
+            // failed for swarms / units whose creature type lives in Features rather
+            // than Blueprint.Type.
             return GetVisibleEnemies(owner)
-                .FirstOrDefault(e => e.Blueprint.Type?.ToString() == creatureType);
+                .FirstOrDefault(e => ConditionEvaluator.CheckCreatureType(e, creatureType));
         }
 
         static UnitEntityData GetConditionTarget(UnitEntityData owner) {

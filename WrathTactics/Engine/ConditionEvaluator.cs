@@ -877,7 +877,7 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool CheckCreatureType(UnitEntityData unit, string typeValue) {
+        internal static bool CheckCreatureType(UnitEntityData unit, string typeValue) {
             if (string.IsNullOrEmpty(typeValue)) return false;
             string target = typeValue.ToLowerInvariant();
 
