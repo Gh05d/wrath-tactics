@@ -269,5 +269,7 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "Vollständig normal"
+  "enum.metamagic.CompletelyNormal": "Vollständig normal",
+
+  "rule.fire.toast.format": "{0} → {1}"
 }

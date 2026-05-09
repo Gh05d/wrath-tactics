@@ -198,6 +198,7 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 ## Logs
 
 - **Mod session logs**: `<game>/Mods/WrathTactics/Logs/wrath-tactics-YYYY-MM-DD-HHMMSS.log` (separate from `Player.log`). Latest: `ssh deck-direct "ls -t '<game>/Mods/WrathTactics/Logs/' | head -1"`.
+- **In-game rule-fire toasts**: `RuleFireToast.Show(text)` spawns a fading text near the top of `Game.Instance.UI.Canvas`. Each toast self-destructs via a coroutine on the persistent container's MonoBehaviour. Driven by `TacticsEvaluator` after a successful `CommandExecutor.Execute`. Disable via `tactics-{GameId}.json` `"ShowRuleFireToasts": false`. Per-rule fire counter (`TacticsEvaluator.GetFireCount(ruleId)`) is session-only — reset on save load via `TacticsEvaluator.Reset()` — and surfaces in the rule editor's header as "× N".
 
 ## Code Style
 
