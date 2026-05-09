@@ -271,7 +271,5 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "Полностью обычное",
-
-  "rule.fire.toast.format": "{0} → {1}"
+  "enum.metamagic.CompletelyNormal": "Полностью обычное"
 }

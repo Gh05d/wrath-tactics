@@ -100,19 +100,6 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(delObj, "X", 18f, TextAlignmentOptions.Midline);
             delObj.AddComponent<Button>().onClick.AddListener(() => DeleteRule());
 
-            // Fire-count badge — small gray "× N" suffix showing how often this rule
-            // fired this session. Hidden at N=0; not live-updating (refreshes on next
-            // body rebuild). The counter resets on save load (TacticsEvaluator.Reset).
-            int fireCount = Engine.TacticsEvaluator.GetFireCount(rule.Id);
-            if (fireCount > 0) {
-                var (countObj, _) = UIHelpers.Create("FireCount", header.transform);
-                var countLE = countObj.AddComponent<LayoutElement>();
-                countLE.preferredWidth = 56;
-                countLE.flexibleWidth = 0;
-                UIHelpers.AddLabel(countObj, "× " + fireCount, 14f,
-                    TextAlignmentOptions.Midline, new Color(0.85f, 0.78f, 0.5f));
-            }
-
             // Name input — fills remaining space on the right
             string displayName = isLinked
                 ? string.Format("linked.name_format".i18n(), linkedPreset.Name)

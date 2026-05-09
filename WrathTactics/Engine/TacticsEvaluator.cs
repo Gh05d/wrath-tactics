@@ -4,11 +4,9 @@ using System.Linq;
 using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
 using WrathTactics.Compatibility;
-using WrathTactics.Localization;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 using WrathTactics.Persistence;
-using WrathTactics.UI;
 
 namespace WrathTactics.Engine {
     public static class TacticsEvaluator {
@@ -19,17 +17,6 @@ namespace WrathTactics.Engine {
 
         // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
         static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
-
-        // Session-only fire counter, keyed on rule.Id. Reset on Reset() (= save load).
-        // Used by the rule-editor header to show "(× N)" feedback. NOT persisted; the
-        // counter resets when a save loads, which matches the user-facing semantic of
-        // "how often did this rule fire in the current play session".
-        static readonly Dictionary<string, int> fireCounts = new Dictionary<string, int>();
-
-        public static int GetFireCount(string ruleId) {
-            if (string.IsNullOrEmpty(ruleId)) return 0;
-            return fireCounts.TryGetValue(ruleId, out int n) ? n : 0;
-        }
 
         public static void Tick(float gameTimeSec) {
             bool inCombat = Game.Instance.Player.IsInCombat;
@@ -159,12 +146,7 @@ namespace WrathTactics.Engine {
 
                 if (CommandExecutor.Execute(rule.Action, unit, target)) {
                     cooldowns[cooldownKey] = gameTimeSec;
-                    fireCounts[entry.Id] = fireCounts.TryGetValue(entry.Id, out int n) ? n + 1 : 1;
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
-                    if (ConfigManager.Current?.ShowRuleFireToasts ?? true) {
-                        RuleFireToast.Show(string.Format("rule.fire.toast.format".i18n(),
-                            unit.CharacterName, rule.Name));
-                    }
                     return true;
                 }
             }
@@ -182,7 +164,6 @@ namespace WrathTactics.Engine {
             wasInCombat = false;
             tickCounter = 0;
             cooldowns.Clear();
-            fireCounts.Clear();
         }
 
         static string FormatTarget(ResolvedTarget target) {
