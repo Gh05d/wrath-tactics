@@ -19,6 +19,21 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 
 **Version bump** requires TWO files: `WrathTactics/Info.json` (UMM reads this) and `WrathTactics/WrathTactics.csproj` `<Version>` (drives the release zip filename). Bumping only one ships a zip with the stale version in its name.
 
+## Tests
+
+Pure-logic unit tests in `WrathTactics.Tests/` (xUnit, net481). Cover `ConditionEvaluator.CompareCount`, `BuffBlueprintProvider.IsCrusadeOnlyBuff`, `CommonBuffRegistry.IsEnemySubject` / `GetDefaultGuids`, and `RangeBrackets.MaxMeters`. No Game.Instance / Unity runtime needed; Mono hosts the .NET-Framework test runner on Linux.
+
+```bash
+~/.dotnet/dotnet test WrathTactics.Tests/WrathTactics.Tests.csproj -p:SolutionDir=$(pwd)/
+```
+
+Run before pushing changes that touch `ConditionEvaluator`, `BuffBlueprintProvider`, `CommonBuffRegistry`, or `Models/Enums.cs` (`RangeBrackets`).
+
+- **Mono required on Linux**: `sudo apt install mono-complete` (one-time). Without it, `dotnet test` fails with "Could not find 'mono' host".
+- **Game DLLs at test runtime**: Mod marks Game refs as `Private="false"` (no copy to its output). Tests-csproj has an `AfterTargets="Build"` target that copies `GameInstall/Wrath_Data/Managed/*.dll` and `WrathTactics/obj/Debug/publicized/*.dll` into the test output. Without the copy, `TypeLoadException` fires on the first `ConditionEvaluator` field load (`UnitEntityData LastMatchedEnemy`).
+- **InternalsVisibleTo**: `WrathTactics/Properties/AssemblyInfo.cs` exposes the Mod's `internal` members to the test assembly. Promote a private static to `internal static` to make it testable; no further wiring.
+- **No CI by design**: Game-DLLs are unreachable from GitHub-Runners; extracting a Pure sub-project was rejected as overkill for this codebase. Tests run locally before release; the existing `nexus-upload.yml` is unchanged.
+
 ## Deploy
 
 ```bash
