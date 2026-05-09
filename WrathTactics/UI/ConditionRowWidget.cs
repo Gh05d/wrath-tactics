@@ -206,7 +206,8 @@ namespace WrathTactics.UI {
                         || condition.Property == ConditionProperty.IsTargetedByAlly
                         || condition.Property == ConditionProperty.IsTargetedByEnemy
                         || condition.Property == ConditionProperty.IsSummon
-                        || condition.Property == ConditionProperty.IsPet;
+                        || condition.Property == ConditionProperty.IsPet
+                        || condition.Property == ConditionProperty.IsFlanked;
                     condition.Operator = ConditionOperator.Equal;
                     if (isBool) {
                         var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
@@ -239,7 +240,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.IsTargetedByAlly
                     || condition.Property == ConditionProperty.IsTargetedByEnemy
                     || condition.Property == ConditionProperty.IsSummon
-                    || condition.Property == ConditionProperty.IsPet;
+                    || condition.Property == ConditionProperty.IsPet
+                    || condition.Property == ConditionProperty.IsFlanked;
                 bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector

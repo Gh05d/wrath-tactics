@@ -157,6 +157,8 @@
   "enum.property.IsTargetedByEnemy": "Wird von Gegner angegriffen",
   "enum.property.IsSummon": "Ist Beschwörung",
   "enum.property.IsPet": "Ist Tiergefährte",
+  "enum.property.IsFlanked": "Wird flankiert",
+  "enum.property.AdjacentEnemyCount": "Gegner angrenzend",
   "enum.property.EnemyHDMinusPartyLevel": "TW − Gruppe",
 
   "enum.action.CastSpell": "Zauber wirken",

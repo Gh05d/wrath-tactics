@@ -214,6 +214,27 @@ namespace WrathTactics.Engine {
                     }
                 }
 
+                case ConditionProperty.IsFlanked: {
+                    // Engine-authoritative positional flank: UnitCombatState.IsFlanked
+                    // tracks current threat-from-multiple-attackers state.
+                    bool flanked = unit.CombatState?.IsFlanked ?? false;
+                    return EqualsBool(flanked, condition);
+                }
+
+                case ConditionProperty.AdjacentEnemyCount: {
+                    // Counts visible in-combat enemies within Melee range (≤2 m / 5 ft) of
+                    // the evaluated unit. Re-uses RangeBrackets.Melee for consistency with
+                    // the WithinRange property.
+                    if (CurrentOwner == null) return false;
+                    float meleeRange = RangeBrackets.MaxMeters(RangeBracket.Melee);
+                    int count = 0;
+                    foreach (var e in GetVisibleEnemies(CurrentOwner)) {
+                        if (Vector3.Distance(unit.Position, e.Position) <= meleeRange)
+                            count++;
+                    }
+                    return CompareFloat(count, condition.Operator, threshold);
+                }
+
                 default:
                     return false;
             }
@@ -334,6 +355,27 @@ namespace WrathTactics.Engine {
                         case ConditionOperator.GreaterThan:    return d > hi;
                         default:                               return false;
                     }
+                }
+
+                case ConditionProperty.IsFlanked: {
+                    bool flanked = unit.CombatState?.IsFlanked ?? false;
+                    bool wantFlanked = ParseBoolValue(condition.Value);
+                    bool match = flanked == wantFlanked;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.AdjacentEnemyCount: {
+                    if (CurrentOwner == null) return false;
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    float meleeRange = RangeBrackets.MaxMeters(RangeBracket.Melee);
+                    int count = 0;
+                    foreach (var e in GetVisibleEnemies(CurrentOwner)) {
+                        if (Vector3.Distance(unit.Position, e.Position) <= meleeRange)
+                            count++;
+                    }
+                    return CompareFloat(count, condition.Operator, threshold);
                 }
 
                 default:

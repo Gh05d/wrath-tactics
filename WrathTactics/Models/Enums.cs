@@ -50,7 +50,9 @@ namespace WrathTactics.Models {
         IsTargetedByEnemy,        // Ally-scope: an enemy targets this ally
         IsSummon,                 // Yes/No — UnitPartSummonedMonster present (excludes pets/companions)
         EnemyHDMinusPartyLevel,   // enemyEffectiveHD − partyMaxEffectiveLevel — Enemy-scope only
-        IsPet                     // Yes/No — UnitPartPet present (Animal Companion / Aivu / Lich-Skelett / Clone / Night Hag / Eidolon)
+        IsPet,                    // Yes/No — UnitPartPet present (Animal Companion / Aivu / Lich-Skelett / Clone / Night Hag / Eidolon)
+        IsFlanked,                // Yes/No — engine UnitCombatState.IsFlanked (positional flanking)
+        AdjacentEnemyCount        // numeric — enemies within Melee range (≤2 m / 5 ft); see RangeBrackets.MaxMeters
     }
 
     public enum ConditionOperator {
