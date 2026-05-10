@@ -102,35 +102,59 @@ namespace WrathTactics.Engine {
         static float PartyBestAB(UnitEntityData owner) {
             int best = int.MinValue;
             foreach (var ally in GetAllPartyMembers(owner)) {
-                if (ally == null || !ally.IsInGame) continue;
-                if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
-
-                var weapon = ally.Body?.PrimaryHand?.MaybeWeapon
-                          ?? ally.Body?.SecondaryHand?.MaybeWeapon
-                          ?? ally.Body?.EmptyHandWeapon;
-                if (weapon == null) continue;
-
-                var rule = Rulebook.Trigger(new RuleCalculateAttackBonusWithoutTarget(ally, weapon, 0));
-                if (rule.Result > best) best = rule.Result;
+                int ab = ComputeAB(ally);
+                if (ab > best) best = ab;
             }
             return best == int.MinValue ? float.NaN : (float)best;
         }
 
-        // Computes partyBestAB - enemy.AC for the ABMinusAC condition property.
+        // Per-ally AB calculation. Returns int.MinValue for ineligible (dead, no weapon,
+        // not in game) so the caller can detect "no usable AB" without a separate flag.
+        static int ComputeAB(UnitEntityData ally) {
+            if (ally == null || !ally.IsInGame) return int.MinValue;
+            if (ally.Descriptor?.State?.IsFinallyDead ?? false) return int.MinValue;
+
+            var weapon = ally.Body?.PrimaryHand?.MaybeWeapon
+                      ?? ally.Body?.SecondaryHand?.MaybeWeapon
+                      ?? ally.Body?.EmptyHandWeapon;
+            if (weapon == null) return int.MinValue;
+
+            var rule = Rulebook.Trigger(new RuleCalculateAttackBonusWithoutTarget(ally, weapon, 0));
+            return rule.Result;
+        }
+
+        // Computes ab - enemy.AC for the ABMinusAC condition property. `allyPinUniqueId`
+        // is optional: empty / null ⇒ use the party-best AB (cached across the rule's
+        // enemy scan); set ⇒ AllyProvider.Resolve and use that specific ally's AB.
+        // Pinned-AB is NOT cached because each pin is a different ally and the helper is
+        // called once per enemy — caching would need a (pin, AB) dict that pays for
+        // itself only on multi-enemy bucket scans. Skipping it is fine for rules with
+        // single-target picks (the common case for "Wenduag low-AB → Sosiel buffs her").
         // Rule-scoped: CurrentOwner is the rule's owning unit (set in Evaluate, cleared in finally).
-        // NaN when the party has no eligible attacker or the enemy is null.
-        static float ComputeABMinusAC(UnitEntityData enemy) {
+        // NaN when the party / pinned ally is empty/dead/weaponless or the enemy is null.
+        static float ComputeABMinusAC(UnitEntityData enemy, string allyPinUniqueId) {
             if (enemy == null || CurrentOwner == null) return float.NaN;
-            // Cache party-best-AB once per Evaluate call: enemy-independent, but this
-            // helper is called once per enemy in the bucket scan. Ten enemies = ten
-            // identical PartyBestAB calls without the cache.
-            if (float.IsNaN(CurrentPartyBestAB))
-                CurrentPartyBestAB = PartyBestAB(CurrentOwner);
-            float ab = CurrentPartyBestAB;
+
+            float ab;
+            if (string.IsNullOrEmpty(allyPinUniqueId)) {
+                if (float.IsNaN(CurrentPartyBestAB))
+                    CurrentPartyBestAB = PartyBestAB(CurrentOwner);
+                ab = CurrentPartyBestAB;
+            } else {
+                var pinned = AllyProvider.Resolve(allyPinUniqueId);
+                if (pinned == null) {
+                    Log.Engine.Trace($"ABMinusAC: ally pin '{allyPinUniqueId}' did not resolve");
+                    return float.NaN;
+                }
+                int rawAb = ComputeAB(pinned);
+                ab = rawAb == int.MinValue ? float.NaN : (float)rawAb;
+            }
+
             if (float.IsNaN(ab)) return float.NaN;
             int ac = enemy.Stats.AC.ModifiedValue;
             float margin = ab - ac;
-            Log.Engine.Trace($"ABMinusAC: {enemy.CharacterName} AC={ac}, partyBestAB={ab} -> margin={margin}");
+            string source = string.IsNullOrEmpty(allyPinUniqueId) ? "partyBestAB" : $"ally='{allyPinUniqueId}'";
+            Log.Engine.Trace($"ABMinusAC: {enemy.CharacterName} AC={ac}, AB={ab} ({source}) -> margin={margin}");
             return margin;
         }
 

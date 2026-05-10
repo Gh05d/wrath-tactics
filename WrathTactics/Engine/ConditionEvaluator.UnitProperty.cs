@@ -46,7 +46,9 @@ namespace WrathTactics.Engine {
                         Log.Engine.Trace($"ABMinusAC: subject {condition.Subject} is not Enemy-scope, returning false");
                         return false;
                     }
-                    float margin = ComputeABMinusAC(unit);
+                    // Value2 is an optional ally UniqueId pin. Empty = party-best (legacy);
+                    // set = this specific ally's AB (e.g. "Wenduag struggles to hit → Sosiel buffs her").
+                    float margin = ComputeABMinusAC(unit, condition.Value2);
                     if (float.IsNaN(margin)) return false;
                     return CompareFloat(margin, condition.Operator, threshold);
                 }

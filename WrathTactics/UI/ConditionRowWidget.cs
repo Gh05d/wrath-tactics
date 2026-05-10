@@ -342,13 +342,24 @@ namespace WrathTactics.UI {
                             v => { condition.Value2 = v; onChanged?.Invoke(); });
                     }
                 } else {
-                    // Normal single value input
+                    // Normal numeric input. ABMinusAC additionally exposes an optional
+                    // Value2 ally-pin: empty = use party-best AB (legacy), set = compute
+                    // margin against THIS ally's AB ("Wenduag struggles to hit → buff her").
+                    bool hasAbAllyPin = condition.Property == ConditionProperty.ABMinusAC;
+                    float valEnd = hasAbAllyPin ? 0.65f : 0.88f;
+
                     var valueInput = UIHelpers.CreateTMPInputField(root, "Value",
-                        0.51, 0.88, condition.Value ?? "", 16f);
+                        0.51, valEnd, condition.Value ?? "", 16f);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
                         onChanged?.Invoke();
                     });
+
+                    if (hasAbAllyPin) {
+                        CreateAllyPicker(root, 0.66f, 0.88f, "ABAllyPin",
+                            allowAny: true, condition.Value2,
+                            v => { condition.Value2 = v; onChanged?.Invoke(); });
+                    }
                 }
             }
 
