@@ -238,7 +238,8 @@ namespace WrathTactics.UI {
         // (indent arrow + picker button + delete X) plus a "+ Fallback" button at the bottom.
         // Rebuilds the entire body on add/delete to keep index-capture semantics simple.
         void SetupFallbackRows(Transform parent) {
-            if (rule.Action.Type != ActionType.CastSpell) return;
+            if (rule.Action.Type != ActionType.CastSpell
+                && rule.Action.Type != ActionType.CastAbility) return;
             if (rule.Action.FallbackAbilityIds == null)
                 rule.Action.FallbackAbilityIds = new List<string>();
 
@@ -259,7 +260,7 @@ namespace WrathTactics.UI {
         }
 
         void BuildFallbackRow(Transform parent, int index) {
-            var entries = GetSpellEntries(ActionType.CastSpell);
+            var entries = GetSpellEntries(rule.Action.Type);
             string current = rule.Action.FallbackAbilityIds[index];
             SpellDropdownProvider.SpellEntry selected = default;
             bool found = false;

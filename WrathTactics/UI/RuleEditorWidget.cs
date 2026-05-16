@@ -231,10 +231,12 @@ namespace WrathTactics.UI {
             // Child count reflects the widgets rendered below — ~condCount + groupCount*2
             // rows plus 6 fixed sections. Close enough to estimate VLG gaps.
             int childEstimate = condCount + groupCount * 2 + 7 + (hideHeader ? 0 : 1);
-            int fallbackCount = rule.Action.Type == ActionType.CastSpell
+            bool chainCapable = rule.Action.Type == ActionType.CastSpell
+                             || rule.Action.Type == ActionType.CastAbility;
+            int fallbackCount = chainCapable
                 ? (rule.Action.FallbackAbilityIds?.Count ?? 0)
                 : 0;
-            bool showAddFallback = rule.Action.Type == ActionType.CastSpell;
+            bool showAddFallback = chainCapable;
             float height = headerH
                 + 20f           // IF: label
                 + condCount * 34f
