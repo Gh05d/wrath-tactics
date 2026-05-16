@@ -28,7 +28,8 @@ namespace WrathTactics.UI {
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
-                    if ((ActionType)idx != ActionType.CastSpell) {
+                    if ((ActionType)idx != ActionType.CastSpell
+                        && (ActionType)idx != ActionType.CastAbility) {
                         rule.Action.Sources = SpellSourceMask.All;
                         rule.Action.FallbackAbilityIds?.Clear();
                     }
@@ -234,7 +235,7 @@ namespace WrathTactics.UI {
             }
         }
 
-        // Fallback-chain rendering for CastSpell rules. Renders one row per fallback id
+        // Fallback-chain rendering for CastSpell / CastAbility rules. Renders one row per fallback id
         // (indent arrow + picker button + delete X) plus a "+ Fallback" button at the bottom.
         // Rebuilds the entire body on add/delete to keep index-capture semantics simple.
         void SetupFallbackRows(Transform parent) {
@@ -330,11 +331,13 @@ namespace WrathTactics.UI {
         }
 
         void RefreshSpellSelector(ActionType actionType) {
-            // Heal/ThrowSplash/ToggleActivatable/CastSpell need a full body rebuild (different row shape).
-            // CastSpell is in this list because the Sources dropdown is an extra sibling in the row —
-            // without a full rebuild the dropdown becomes orphaned when switching away.
+            // Heal/ThrowSplash/ToggleActivatable/CastSpell/CastAbility need a full body rebuild (different row shape).
+            // CastSpell/CastAbility are in this list because they show fallback-chain rows (and CastSpell
+            // adds a Sources dropdown sibling) — without a full rebuild those would not appear when
+            // switching to these types.
             if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
-                || actionType == ActionType.ToggleActivatable || actionType == ActionType.CastSpell) {
+                || actionType == ActionType.ToggleActivatable
+                || actionType == ActionType.CastSpell || actionType == ActionType.CastAbility) {
                 RebuildBody();
                 return;
             }

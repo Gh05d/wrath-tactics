@@ -190,7 +190,7 @@ namespace WrathTactics.UI {
             // THEN: action row
             SetupActionRow(bodyContainer.transform);
 
-            // Fallback chain rows (CastSpell only)
+            // Fallback chain rows (CastSpell / CastAbility)
             SetupFallbackRows(bodyContainer.transform);
 
             // TARGET: target row
