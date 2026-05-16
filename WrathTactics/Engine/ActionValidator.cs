@@ -22,8 +22,17 @@ namespace WrathTactics.Engine {
                         }
                         return true;
                     }
-                    case ActionType.CastAbility:
-                        return CanCastAbilityAtPoint(action.AbilityId, owner);
+                    case ActionType.CastAbility: {
+                        ItemEntity _unused;
+                        string _unusedId;
+                        var ability = ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId);
+                        if (ability == null) return false;
+                        if (!ability.CanTargetPoint) {
+                            Log.Engine.Trace($"CanCastAbilityAtPoint: {owner.CharacterName} ability '{ability.Name}' is not point-castable");
+                            return false;
+                        }
+                        return true;
+                    }
                     case ActionType.UseItem:
                         return CanUseItemAtPoint(action.AbilityId, owner);
                     default:
@@ -38,8 +47,11 @@ namespace WrathTactics.Engine {
                     string _unusedId;
                     return ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId) != null;
                 }
-                case ActionType.CastAbility:
-                    return CanCastSpell(action.AbilityId, owner, unit);
+                case ActionType.CastAbility: {
+                    ItemEntity _unused;
+                    string _unusedId;
+                    return ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId) != null;
+                }
                 case ActionType.UseItem:
                     return CanUseItem(action.AbilityId, owner, unit);
                 case ActionType.ToggleActivatable:
