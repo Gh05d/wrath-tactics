@@ -18,9 +18,8 @@ namespace WrathTactics.Engine {
             try {
                 switch (action.Type) {
                     case ActionType.CastSpell:
-                        return ExecuteCastSpell(action, owner, target);
                     case ActionType.CastAbility:
-                        return ExecuteCastSpell(action.AbilityId, owner, target);
+                        return ExecuteCastSpell(action, owner, target);
                     case ActionType.UseItem:
                         return ExecuteUseItem(action.AbilityId, owner, target);
                     case ActionType.ToggleActivatable:
@@ -128,37 +127,6 @@ namespace WrathTactics.Engine {
                     Log.Engine.Info($"Activated rod {rodAbilityBp.name} for {owner.CharacterName} ({mech.Metamagic} on {ability.Name})");
                 }
                 return;
-            }
-        }
-
-        static bool ExecuteCastSpell(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
-            bool isSynthetic;
-            var ability = ActionValidator.FindAbilityEx(owner, abilityGuid, out isSynthetic);
-            if (ability == null) {
-                Log.Engine.Warn($"Spell {abilityGuid} not found on {owner.CharacterName}");
-                return false;
-            }
-
-            var targetWrapper = BuildTargetWrapper(target, owner);
-
-            var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
-            if (command != null) {
-                owner.Commands.Run(command);
-                PlayerCommandGuard.Track(owner, command);
-                string tgtDesc = target.IsPoint
-                    ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
-                    : (target.Unit?.CharacterName ?? "self");
-                Log.Engine.Debug($"Queued ANIMATED {(isSynthetic ? "VARIANT" : "spell")} {ability.Name} on {owner.CharacterName} -> {tgtDesc}");
-                return true;
-            }
-
-            try {
-                Rulebook.Trigger<RuleCastSpell>(new RuleCastSpell(ability, targetWrapper));
-                Log.Engine.Debug($"Rulebook-triggered {ability.Name} on {owner.CharacterName} (no animation)");
-                return true;
-            } catch (Exception ex) {
-                Log.Engine.Error(ex, $"Rulebook.Trigger fallback failed for {ability.Name}");
-                return false;
             }
         }
 
