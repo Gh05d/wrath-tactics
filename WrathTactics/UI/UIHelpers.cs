@@ -491,6 +491,41 @@ namespace WrathTactics.UI {
             scroll.vertical = true;
             scroll.scrollSensitivity = 30f;
 
+            // Visible vertical scrollbar — 12px wide, anchored to popup's right edge.
+            // AutoHideAndExpandViewport leaves short popups uncluttered (bar hidden +
+            // viewport reclaims the 12px) and only shows the bar when content overflows.
+            float sbWidth = 12f * UIHelpers.FontScale;
+            var (sbObj, sbRect) = UIHelpers.Create("Scrollbar", scrollObj.transform);
+            sbRect.anchorMin = new Vector2(1, 0);
+            sbRect.anchorMax = new Vector2(1, 1);
+            sbRect.pivot = new Vector2(1, 0.5f);
+            sbRect.sizeDelta = new Vector2(sbWidth, 0);
+            sbRect.anchoredPosition = Vector2.zero;
+            UIHelpers.AddBackground(sbObj, new Color(0.10f, 0.10f, 0.10f, 0.7f));
+
+            var (slidingArea, slidingRect) = UIHelpers.Create("SlidingArea", sbObj.transform);
+            slidingRect.anchorMin = new Vector2(0, 0);
+            slidingRect.anchorMax = new Vector2(1, 1);
+            slidingRect.sizeDelta = new Vector2(-4, -4);
+            slidingRect.anchoredPosition = Vector2.zero;
+
+            var (handleObj, handleRect) = UIHelpers.Create("Handle", slidingArea.transform);
+            handleRect.anchorMin = new Vector2(0, 0);
+            handleRect.anchorMax = new Vector2(1, 1);
+            handleRect.sizeDelta = Vector2.zero;
+            var handleImg = handleObj.AddComponent<Image>();
+            handleImg.color = new Color(0.45f, 0.45f, 0.45f, 1f);
+            handleImg.raycastTarget = true;
+
+            var sb = sbObj.AddComponent<Scrollbar>();
+            sb.direction = Scrollbar.Direction.BottomToTop;
+            sb.handleRect = handleRect;
+            sb.targetGraphic = handleImg;
+
+            scroll.verticalScrollbar = sb;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+            scroll.verticalScrollbarSpacing = 0f;
+
             // Option buttons
             for (int i = 0; i < options.Count; i++) {
                 var capturedIndex = i;
