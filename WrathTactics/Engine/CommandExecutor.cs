@@ -8,26 +8,28 @@ using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules.Abilities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Commands;
+using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.Utility;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 
 namespace WrathTactics.Engine {
     public static class CommandExecutor {
-        public static bool Execute(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
+        public static bool Execute(ActionDef action, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
             try {
                 switch (action.Type) {
                     case ActionType.CastSpell:
                     case ActionType.CastAbility:
-                        return ExecuteCastSpell(action, owner, target);
+                        return ExecuteCastSpell(action, owner, target, out issuedCommand);
                     case ActionType.UseItem:
-                        return ExecuteUseItem(action.AbilityId, owner, target);
+                        return ExecuteUseItem(action.AbilityId, owner, target, out issuedCommand);
                     case ActionType.ToggleActivatable:
                         return ExecuteToggleActivatable(action.AbilityId, owner, action.ToggleMode);
                     case ActionType.AttackTarget:
-                        return ExecuteAttack(owner, target.Unit);
+                        return ExecuteAttack(owner, target.Unit, out issuedCommand);
                     case ActionType.Heal:
-                        return ExecuteHeal(action, owner, target.Unit);
+                        return ExecuteHeal(action, owner, target.Unit, out issuedCommand);
                     case ActionType.ThrowSplash:
                         return ExecuteThrowSplash(action, owner, target.Unit);
                     case ActionType.DoNothing:
@@ -47,7 +49,8 @@ namespace WrathTactics.Engine {
             return new TargetWrapper(owner); // fallback preserves pre-refactor "no target = self" behavior
         }
 
-        static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target) {
+        static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
             ItemEntity inventorySource;
             string usedAbilityId;
             var ability = ActionValidator.ResolveCastSpellChain(owner, target, action, out inventorySource, out usedAbilityId);
@@ -90,6 +93,7 @@ namespace WrathTactics.Engine {
             if (command != null) {
                 owner.Commands.Run(command);
                 PlayerCommandGuard.Track(owner, command);
+                issuedCommand = command;
                 string tgtDesc = target.IsPoint
                     ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
                     : (target.Unit?.CharacterName ?? "self");
@@ -130,7 +134,8 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, ResolvedTarget target) {
+        static bool ExecuteUseItem(string abilityGuid, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
             var ability = ActionValidator.FindUseItemSource(owner, abilityGuid, out var inventorySource);
             if (ability == null) {
                 Log.Engine.Warn($"Item ability {abilityGuid} not found on {owner.CharacterName}");
@@ -164,6 +169,7 @@ namespace WrathTactics.Engine {
 
             owner.Commands.Run(command);
             PlayerCommandGuard.Track(owner, command);
+            issuedCommand = command;
             Log.Engine.Info($"Queued item use on {owner.CharacterName}");
             return true;
         }
@@ -189,7 +195,8 @@ namespace WrathTactics.Engine {
             return true;
         }
 
-        static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target) {
+        static bool ExecuteHeal(ActionDef action, UnitEntityData owner, UnitEntityData target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
             ItemEntity inventorySource;
             // target ?? owner: mirror the TargetWrapper fallback below for self-heal-on-no-target.
             // Auto-mode in FindBestHealEx checks the resolved unit for negative-energy affinity.
@@ -230,6 +237,7 @@ namespace WrathTactics.Engine {
             if (command != null) {
                 owner.Commands.Run(command);
                 PlayerCommandGuard.Track(owner, command);
+                issuedCommand = command;
                 Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             }
@@ -298,12 +306,14 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target) {
+        static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
             if (target == null) return false;
 
             var command = new UnitAttack(target, null);
             owner.Commands.Run(command);
             PlayerCommandGuard.Track(owner, command);
+            issuedCommand = command;
             Log.Engine.Info($"Queued attack on {owner.CharacterName} -> {target.CharacterName}");
             return true;
         }
