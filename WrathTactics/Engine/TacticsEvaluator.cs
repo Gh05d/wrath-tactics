@@ -27,6 +27,7 @@ namespace WrathTactics.Engine {
             if (!inCombat && wasInCombat) {
                 wasInCombat = false;
                 PlayerCommandGuard.Reset();
+                ActiveRuleTracker.Reset();
                 Log.Engine.Info("Combat ended");
             }
 
@@ -35,6 +36,7 @@ namespace WrathTactics.Engine {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
                 PlayerCommandGuard.Reset();
+                ActiveRuleTracker.Reset();
                 Log.Engine.Info("Combat started");
                 var partyNames = new List<string>();
                 foreach (var u in Game.Instance.Player.PartyAndPets) {
@@ -87,27 +89,47 @@ namespace WrathTactics.Engine {
         }
 
         static void EvaluateUnit(UnitEntityData unit, TacticsConfig config, float gameTimeSec, bool inCombat) {
-            // Skip if a player- (or other-mod-) issued command is currently running. Our own
-            // tactics commands stay in the tracked set and don't block — self-interruption
-            // when a higher-priority rule matches mid-cast is intentional (DAO semantics).
+            // Foreign-cast gate: player- or other-mod-issued casts in the Standard slot
+            // suppress evaluation entirely. Orthogonal to our own in-flight rule (handled
+            // below via ActiveRuleTracker).
             if (PlayerCommandGuard.HasForeignActiveCommand(unit)) {
                 Log.Engine.Trace($"  Skip {unit.CharacterName}: player/foreign command active");
                 return;
             }
 
-            Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId}, inCombat={inCombat})");
-
             var globalRules = config.GlobalRules;
             var charRules = config.GetRulesForCharacter(unit.UniqueId);
 
-            if (TryExecuteRules(globalRules, unit, "global", gameTimeSec, inCombat))
+            // Priority gate: while our own previously-issued UnitCommand is still in flight,
+            // only rules strictly above it in the global-then-character priority order may
+            // preempt. Lower-priority matches wait until the current command finishes.
+            int globalGate = int.MaxValue;
+            int charGate = int.MaxValue;
+            var active = ActiveRuleTracker.GetActive(unit);
+            if (active.HasValue) {
+                var res = ActiveRuleTracker.Resolve(
+                    active.Value.Source, active.Value.EntryId, globalRules, charRules);
+                if (res.Stale) {
+                    // Entry was deleted/edited out of its list mid-combat — drop the gate.
+                    ActiveRuleTracker.Clear(unit);
+                } else {
+                    globalGate = res.GlobalGate;
+                    charGate = res.CharGate;
+                    Log.Engine.Trace($"  {unit.CharacterName}: active rule {active.Value.Source}/{active.Value.EntryId} -> gate G<{globalGate} C<{charGate}>");
+                }
+            }
+
+            Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId}, inCombat={inCombat})");
+
+            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate))
                 return;
-            TryExecuteRules(charRules, unit, unit.CharacterName, gameTimeSec, inCombat);
+            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate);
         }
 
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
-            string source, float gameTimeSec, bool inCombat) {
-            for (int i = 0; i < rules.Count; i++) {
+            RuleListSource source, float gameTimeSec, bool inCombat, int priorityLimit) {
+            int upper = System.Math.Min(rules.Count, priorityLimit);
+            for (int i = 0; i < upper; i++) {
                 var entry = rules[i];
                 if (!entry.Enabled) continue;
 
@@ -144,8 +166,14 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
-                if (CommandExecutor.Execute(rule.Action, unit, target)) {
+                if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
+                    if (issuedCmd != null) {
+                        ActiveRuleTracker.Record(unit, source, entry.Id, issuedCmd);
+                    }
+                    // Toggles / DoNothing / ThrowSplash succeed without queueing a UnitCommand:
+                    // they don't replace any prior tracker entry — a still-animating cast keeps
+                    // its gate. This is deliberate; see plan §Task 5 step 3.
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
                     return true;
                 }
@@ -164,6 +192,7 @@ namespace WrathTactics.Engine {
             wasInCombat = false;
             tickCounter = 0;
             cooldowns.Clear();
+            ActiveRuleTracker.Reset();
         }
 
         static string FormatTarget(ResolvedTarget target) {
