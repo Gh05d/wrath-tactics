@@ -202,6 +202,7 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 ## Logs
 
 - **Mod session logs**: `<game>/Mods/WrathTactics/Logs/wrath-tactics-YYYY-MM-DD-HHMMSS.log` (separate from `Player.log`). Latest: `ssh deck-direct "ls -t '<game>/Mods/WrathTactics/Logs/' | head -1"`.
+- **`"MATCH but action not executable"` is the triage smoking gun for "Rule didn't fire" user reports**: this WARN in `wrath-tactics-*.log` means the rule matched and target resolved, but `ActionValidator.CanExecute` rejected — most commonly `"No suitable spell slots"` (spell not prepared / charges exhausted / UMD fail). Grep for it BEFORE asking the user for setup details — most "Rule X never fires" reports resolve to "spell not prepared in caster's spellbook".
 
 ## Code Style
 
