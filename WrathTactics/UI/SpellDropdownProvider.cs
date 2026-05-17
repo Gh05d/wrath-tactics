@@ -110,23 +110,8 @@ namespace WrathTactics.UI {
                 for (int level = 0; level <= maxLevel; level++) {
                     // Base known spells — expand AbilityVariants (Command, Plague Storm, …) per variant
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
-                        if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
-                            foreach (var variant in variants.Variants) {
-                                if (variant == null) continue;
-                                var key = MakeKey(spell, level, variant.AssetGuid.ToString());
-                                if (seen.Add(key))
-                                    result.Add(new SpellEntry(
-                                        FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
-                                        key, variant.Icon));
-                            }
-                        } else {
-                            var key = MakeKey(spell, level);
-                            if (seen.Add(key))
-                                result.Add(new SpellEntry(
-                                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
-                                    key, spell.Blueprint.Icon));
-                        }
+                        if (!TryEmitVariantEntries(spell, level, seen, result))
+                            EmitBareSpellEntry(spell, level, seen, result);
                     }
                     // Custom spells (metamagic variants, fused spells)
                     foreach (var spell in book.GetCustomSpells(level)) {
@@ -145,23 +130,8 @@ namespace WrathTactics.UI {
                     // Witch Patron lists (added by AddSpecialSpellList → Spellbook.AddSpecial).
                     // Owlcat's own SpellBookView reads all three collections; mod parity.
                     foreach (var spell in book.GetSpecialSpells(level)) {
-                        var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
-                        if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
-                            foreach (var variant in variants.Variants) {
-                                if (variant == null) continue;
-                                var key = MakeKey(spell, level, variant.AssetGuid.ToString());
-                                if (seen.Add(key))
-                                    result.Add(new SpellEntry(
-                                        FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
-                                        key, variant.Icon));
-                            }
-                        } else {
-                            var key = MakeKey(spell, level);
-                            if (seen.Add(key))
-                                result.Add(new SpellEntry(
-                                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
-                                    key, spell.Blueprint.Icon));
-                        }
+                        if (!TryEmitVariantEntries(spell, level, seen, result))
+                            EmitBareSpellEntry(spell, level, seen, result);
                     }
                 }
             }
@@ -223,6 +193,56 @@ namespace WrathTactics.UI {
                 if (c is T typed) return typed;
             }
             return null;
+        }
+
+        // Emits one picker entry per variant when the parent carries either
+        // AbilityVariants (Command, Plague Storm, …) or AbilityShadowSpell
+        // (Shadow Conjuration / Evocation and their Greater forms — the engine
+        // builds the variant set at runtime from SpellList × MaxSpellLevel × School,
+        // not from an m_Variants[] array). Returns true if at least one variant was
+        // emitted, false when neither component was present so the caller can fall
+        // back to a single bare entry. A spell carrying both components emits from
+        // both — no vanilla blueprint does this but the loops are independent.
+        static bool TryEmitVariantEntries(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
+            bool emitted = false;
+
+            var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
+            if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
+                foreach (var variant in variants.Variants) {
+                    if (variant == null) continue;
+                    var key = MakeKey(spell, level, variant.AssetGuid.ToString());
+                    if (seen.Add(key)) {
+                        result.Add(new SpellEntry(
+                            FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                            key, variant.Icon));
+                        emitted = true;
+                    }
+                }
+            }
+
+            var shadow = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityShadowSpell>(spell.Blueprint);
+            if (shadow != null && shadow.SpellList?.Get() != null) {
+                foreach (var variant in shadow.GetAvailableSpells()) {
+                    if (variant == null) continue;
+                    var key = MakeKey(spell, level, variant.AssetGuid.ToString());
+                    if (seen.Add(key)) {
+                        result.Add(new SpellEntry(
+                            FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                            key, variant.Icon));
+                        emitted = true;
+                    }
+                }
+            }
+
+            return emitted;
+        }
+
+        static void EmitBareSpellEntry(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
+            var key = MakeKey(spell, level);
+            if (seen.Add(key))
+                result.Add(new SpellEntry(
+                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
+                    key, spell.Blueprint.Icon));
         }
 
         // Strips the trailing "Ability" from a blueprint's internal name so the suffix

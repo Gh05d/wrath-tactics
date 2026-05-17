@@ -29,15 +29,10 @@ namespace WrathTactics.Engine {
                         if (parsed.MetamagicMask != 0) continue; // metamagic → custom spells path only
 
                         if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
-                            var variants = GetBlueprintComponent<AbilityVariants>(spell.Blueprint);
-                            if (variants?.m_Variants == null) continue;
-                            foreach (var variant in variants.Variants) {
-                                if (variant == null) continue;
-                                if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
-                                isSynthetic = true;
-                                return MakeVariantData(spell, variant);
-                            }
-                            continue;
+                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
+                            if (variant == null) continue;
+                            isSynthetic = true;
+                            return MakeVariantData(spell, variant);
                         }
                         return spell;
                     }
@@ -55,15 +50,10 @@ namespace WrathTactics.Engine {
                         if (parsed.MetamagicMask != 0) continue;
 
                         if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
-                            var variants = GetBlueprintComponent<AbilityVariants>(spell.Blueprint);
-                            if (variants?.m_Variants == null) continue;
-                            foreach (var variant in variants.Variants) {
-                                if (variant == null) continue;
-                                if (variant.AssetGuid.ToString() != parsed.VariantGuid) continue;
-                                isSynthetic = true;
-                                return MakeVariantData(spell, variant);
-                            }
-                            continue;
+                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
+                            if (variant == null) continue;
+                            isSynthetic = true;
+                            return MakeVariantData(spell, variant);
                         }
                         return spell;
                     }
@@ -109,6 +99,29 @@ namespace WrathTactics.Engine {
             var data = new AbilityData(parent, variant);
             data.SpellLevelInSpellbook = parent.SpellLevelInSpellbook;
             return data;
+        }
+
+        // Resolves a variant-guid against either AbilityVariants (static m_Variants[]) or
+        // AbilityShadowSpell (runtime SpellList × MaxSpellLevel × School). Returns null if
+        // the parent carries neither component or the guid doesn't match a registered variant.
+        static BlueprintAbility FindVariantBlueprint(BlueprintAbility parent, string variantGuid) {
+            var variants = GetBlueprintComponent<AbilityVariants>(parent);
+            if (variants?.m_Variants != null) {
+                foreach (var variant in variants.Variants) {
+                    if (variant == null) continue;
+                    if (variant.AssetGuid.ToString() == variantGuid) return variant;
+                }
+            }
+
+            var shadow = GetBlueprintComponent<AbilityShadowSpell>(parent);
+            if (shadow != null && shadow.SpellList?.Get() != null) {
+                foreach (var variant in shadow.GetAvailableSpells()) {
+                    if (variant == null) continue;
+                    if (variant.AssetGuid.ToString() == variantGuid) return variant;
+                }
+            }
+
+            return null;
         }
 
         static T GetBlueprintComponent<T>(BlueprintScriptableObject bp) where T : BlueprintComponent {
