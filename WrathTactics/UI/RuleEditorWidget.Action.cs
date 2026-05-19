@@ -103,6 +103,22 @@ namespace WrathTactics.UI {
                 return;
             }
 
+            // SwitchWeaponSet: Set 1-4 dropdown. UnitBody allocates exactly 4 HandsEquipmentSets
+            // (verified in Kingmaker.Items.UnitBody ctor IL — `ldc.i4.4 / newarr HandsEquipmentSet`).
+            // We render all 4 unconditionally — empty sets are valid (unarmed fallback) and the
+            // validator catches out-of-bounds at runtime if a future patch ever changes the count.
+            if (rule.Action.Type == ActionType.SwitchWeaponSet) {
+                var setLabels = new List<string>(4);
+                for (int i = 0; i < 4; i++) setLabels.Add(Strings.Format("weapon_set.label", i + 1));
+                int selectedIdx = rule.Action.WeaponSetIndex;
+                if (selectedIdx < 0 || selectedIdx >= 4) selectedIdx = 0;
+                PopupSelector.Create(row, "WeaponSet", 0.39f, 0.7f, setLabels, selectedIdx, idx => {
+                    rule.Action.WeaponSetIndex = idx;
+                    PersistEdit();
+                });
+                return;
+            }
+
             // ToggleActivatable: mode dropdown (On/Off) + ability picker side by side
             if (rule.Action.Type == ActionType.ToggleActivatable) {
                 var toggleModeNames = EnumLabels.NamesFor<ToggleMode>();
@@ -160,7 +176,8 @@ namespace WrathTactics.UI {
             // Hide if not applicable
             bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
                                 rule.Action.Type != ActionType.DoNothing &&
-                                rule.Action.Type != ActionType.ThrowSplash;
+                                rule.Action.Type != ActionType.ThrowSplash &&
+                                rule.Action.Type != ActionType.SwitchWeaponSet;
             if (spellPickerButton != null)
                 spellPickerButton.SetActive(showSelector);
         }
@@ -337,7 +354,8 @@ namespace WrathTactics.UI {
             // switching to these types.
             if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
                 || actionType == ActionType.ToggleActivatable
-                || actionType == ActionType.CastSpell || actionType == ActionType.CastAbility) {
+                || actionType == ActionType.CastSpell || actionType == ActionType.CastAbility
+                || actionType == ActionType.SwitchWeaponSet) {
                 RebuildBody();
                 return;
             }
@@ -346,7 +364,8 @@ namespace WrathTactics.UI {
 
             bool showSpell = actionType != ActionType.AttackTarget &&
                              actionType != ActionType.DoNothing &&
-                             actionType != ActionType.ThrowSplash;
+                             actionType != ActionType.ThrowSplash &&
+                             actionType != ActionType.SwitchWeaponSet;
             spellPickerButton.SetActive(showSpell);
 
             if (!showSpell) return;
@@ -367,7 +386,8 @@ namespace WrathTactics.UI {
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
             if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing
-                || actionType == ActionType.Heal || actionType == ActionType.ThrowSplash)
+                || actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
+                || actionType == ActionType.SwitchWeaponSet)
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);

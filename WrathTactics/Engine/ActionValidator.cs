@@ -50,6 +50,8 @@ namespace WrathTactics.Engine {
                     return FindBestHeal(owner, unit ?? owner, action.HealMode, action.HealSources, action.HealEnergy) != null;
                 case ActionType.ThrowSplash:
                     return unit != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
+                case ActionType.SwitchWeaponSet:
+                    return CanSwitchWeaponSet(owner, action.WeaponSetIndex);
                 case ActionType.DoNothing:
                     return true;
                 default:
@@ -60,7 +62,8 @@ namespace WrathTactics.Engine {
         static bool RequiresValidTarget(ActionType type) {
             return type != ActionType.ToggleActivatable
                 && type != ActionType.Heal
-                && type != ActionType.DoNothing;
+                && type != ActionType.DoNothing
+                && type != ActionType.SwitchWeaponSet;
         }
     }
 }

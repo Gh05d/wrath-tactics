@@ -32,6 +32,8 @@ namespace WrathTactics.Engine {
                         return ExecuteHeal(action, owner, target.Unit, out issuedCommand);
                     case ActionType.ThrowSplash:
                         return ExecuteThrowSplash(action, owner, target.Unit);
+                    case ActionType.SwitchWeaponSet:
+                        return ExecuteSwitchWeaponSet(action.WeaponSetIndex, owner, out issuedCommand);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -304,6 +306,27 @@ namespace WrathTactics.Engine {
                 Log.Engine.Error(ex, $"ThrowSplash Rulebook.Trigger failed for {item.Blueprint.name}");
                 return false;
             }
+        }
+
+        // UnitSwitchHandEquipmentSet IL (ctor + OnAction): CommandType=Free, OnAction calls
+        // unit.Body.set_CurrentHandEquipmentSetIndex(idx). It IS a real UnitCommand (queued via
+        // Commands.Run), so ActiveRuleTracker can gate on it via issuedCommand. Engine respects
+        // Quick Draw and reach-feat timing downstream — we don't model action economy here.
+        static bool ExecuteSwitchWeaponSet(int targetIndex, UnitEntityData owner, out UnitCommand issuedCommand) {
+            issuedCommand = null;
+            // Defensive — validator already checked, but ExecuteSwitchWeaponSet can be reached
+            // through code paths that bypass validation (preset edits, manual rule replay) so
+            // we re-check rather than trust the upstream.
+            if (!ActionValidator.CanSwitchWeaponSet(owner, targetIndex)) {
+                Log.Engine.Warn($"ExecuteSwitchWeaponSet: validator rejected index {targetIndex} for {owner.CharacterName}");
+                return false;
+            }
+            var command = new UnitSwitchHandEquipmentSet(targetIndex);
+            owner.Commands.Run(command);
+            PlayerCommandGuard.Track(owner, command);
+            issuedCommand = command;
+            Log.Engine.Info($"SwitchWeaponSet: {owner.CharacterName} -> set {targetIndex}");
+            return true;
         }
 
         static bool ExecuteAttack(UnitEntityData owner, UnitEntityData target, out UnitCommand issuedCommand) {

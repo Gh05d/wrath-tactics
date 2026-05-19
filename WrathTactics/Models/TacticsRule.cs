@@ -53,6 +53,10 @@ namespace WrathTactics.Models {
         // (legacy behaviour). Falls back silently to a normal cast when no usable rod is
         // equipped+quickslotted.
         [JsonProperty] public Metamagic? MetamagicRod { get; set; }
+        // Target HandsEquipmentSet index for ActionType.SwitchWeaponSet. UnitBody allocates
+        // exactly 4 slots, so valid range is 0-3. Stored as plain int (not enum) because the
+        // engine uses int indices throughout (UnitSwitchHandEquipmentSet ctor + set_CurrentHandEquipmentSetIndex).
+        [JsonProperty] public int WeaponSetIndex { get; set; }
     }
 
     public class TargetDef {

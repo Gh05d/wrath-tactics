@@ -169,6 +169,8 @@
   "enum.action.Heal": "Heal",
   "enum.action.DoNothing": "DoNothing",
   "enum.action.ThrowSplash": "ThrowSplash",
+  "enum.action.SwitchWeaponSet": "Switch weapon set",
+  "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Self",
   "enum.target.AllyLowestHp": "Ally: lowest HP",

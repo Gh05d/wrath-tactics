@@ -169,6 +169,8 @@
   "enum.action.Heal": "治疗",
   "enum.action.DoNothing": "不行动",
   "enum.action.ThrowSplash": "投掷溅射武器",
+  "enum.action.SwitchWeaponSet": "切换武器套装",
+  "weapon_set.label": "套装 {0}",
 
   "enum.target.Self": "自身",
   "enum.target.AllyLowestHp": "盟友: HP 最低",

@@ -72,7 +72,8 @@ namespace WrathTactics.Models {
         AttackTarget,
         Heal,           // automatically use best available heal
         DoNothing,
-        ThrowSplash     // throw a splash weapon (Alchemist's Fire, Acid Flask, Holy Water)
+        ThrowSplash,    // throw a splash weapon (Alchemist's Fire, Acid Flask, Holy Water)
+        SwitchWeaponSet // swap to a specific HandsEquipmentSet (engine allocates 4 slots, index 0-3)
     }
 
     public enum HealMode {

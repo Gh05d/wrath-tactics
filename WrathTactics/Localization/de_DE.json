@@ -169,6 +169,8 @@
   "enum.action.Heal": "Heilen",
   "enum.action.DoNothing": "Nichts tun",
   "enum.action.ThrowSplash": "Spritzwaffe werfen",
+  "enum.action.SwitchWeaponSet": "Waffenset wechseln",
+  "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Selbst",
   "enum.target.AllyLowestHp": "Verbündeter: niedrigste TP",

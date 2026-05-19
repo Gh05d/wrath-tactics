@@ -169,6 +169,8 @@
   "enum.action.Heal": "Soigner",
   "enum.action.DoNothing": "Ne rien faire",
   "enum.action.ThrowSplash": "Projectile éclaboussant",
+  "enum.action.SwitchWeaponSet": "Changer d'arme",
+  "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Soi",
   "enum.target.AllyLowestHp": "Allié : PV min",

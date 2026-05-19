@@ -169,6 +169,8 @@
   "enum.action.Heal": "Лечить",
   "enum.action.DoNothing": "Бездействовать",
   "enum.action.ThrowSplash": "Метнуть",
+  "enum.action.SwitchWeaponSet": "Сменить оружие",
+  "weapon_set.label": "Набор {0}",
 
   "enum.target.Self": "Себя",
   "enum.target.AllyLowestHp": "Союзник: мин. HP",
