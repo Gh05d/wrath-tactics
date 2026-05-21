@@ -113,18 +113,12 @@ namespace WrathTactics.UI {
                         if (!TryEmitVariantEntries(spell, level, seen, result))
                             EmitBareSpellEntry(spell, level, seen, result);
                     }
-                    // Custom spells (metamagic variants, fused spells)
+                    // Custom spells (metamagic variants, fused spells) — expand AbilityVariants
+                    // so a metamagic-prepared Summon Monster II surfaces all its sub-options
+                    // (1 wolf / 1d3 dogs / …) carrying the metamagic tag, mirroring the known-spells path.
                     foreach (var spell in book.GetCustomSpells(level)) {
-                        var key = MakeKey(spell, level);
-                        if (seen.Add(key)) {
-                            var tag = BuildMetamagicTag(spell);
-                            var name = tag.Length > 0
-                                ? $"[L{level}] {spell.Name} {tag}"
-                                : $"[L{level}] {spell.Name}";
-                            result.Add(new SpellEntry(
-                                FormatWithInternal(name, spell.Blueprint),
-                                key, spell.Blueprint.Icon));
-                        }
+                        if (!TryEmitVariantEntries(spell, level, seen, result))
+                            EmitBareSpellEntry(spell, level, seen, result);
                     }
                     // Special spells — Cleric Domain, Shaman Spirit, Sorcerer Bloodline,
                     // Witch Patron lists (added by AddSpecialSpellList → Spellbook.AddSpecial).
@@ -205,6 +199,8 @@ namespace WrathTactics.UI {
         // both — no vanilla blueprint does this but the loops are independent.
         static bool TryEmitVariantEntries(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
             bool emitted = false;
+            var tag = BuildMetamagicTag(spell);
+            string tagSuffix = tag.Length > 0 ? " " + tag : "";
 
             var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(spell.Blueprint);
             if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
@@ -213,7 +209,7 @@ namespace WrathTactics.UI {
                     var key = MakeKey(spell, level, variant.AssetGuid.ToString());
                     if (seen.Add(key)) {
                         result.Add(new SpellEntry(
-                            FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                            FormatWithInternal($"[L{level}] {spell.Name}{tagSuffix}: {variant.Name}", variant),
                             key, variant.Icon));
                         emitted = true;
                     }
@@ -227,7 +223,7 @@ namespace WrathTactics.UI {
                     var key = MakeKey(spell, level, variant.AssetGuid.ToString());
                     if (seen.Add(key)) {
                         result.Add(new SpellEntry(
-                            FormatWithInternal($"[L{level}] {spell.Name}: {variant.Name}", variant),
+                            FormatWithInternal($"[L{level}] {spell.Name}{tagSuffix}: {variant.Name}", variant),
                             key, variant.Icon));
                         emitted = true;
                     }
@@ -239,10 +235,14 @@ namespace WrathTactics.UI {
 
         static void EmitBareSpellEntry(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
             var key = MakeKey(spell, level);
-            if (seen.Add(key))
-                result.Add(new SpellEntry(
-                    FormatWithInternal($"[L{level}] {spell.Name}", spell.Blueprint),
-                    key, spell.Blueprint.Icon));
+            if (!seen.Add(key)) return;
+            var tag = BuildMetamagicTag(spell);
+            var label = tag.Length > 0
+                ? $"[L{level}] {spell.Name} {tag}"
+                : $"[L{level}] {spell.Name}";
+            result.Add(new SpellEntry(
+                FormatWithInternal(label, spell.Blueprint),
+                key, spell.Blueprint.Icon));
         }
 
         // Strips the trailing "Ability" from a blueprint's internal name so the suffix

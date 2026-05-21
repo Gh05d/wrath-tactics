@@ -40,8 +40,19 @@ namespace WrathTactics.Engine {
                         if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
                         int spellMask = (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
                             ? (int)spell.MetamagicData.MetamagicMask : 0;
-                        if (spellMask == parsed.MetamagicMask)
-                            return spell;
+                        if (spellMask != parsed.MetamagicMask) continue;
+
+                        // Metamagic-prepared spells with AbilityVariants (e.g. Quickened Summon Monster II
+                        // → 1 wolf / 1d3 dogs) need variant resolution on the custom-spells path too.
+                        // MakeVariantData clones the parent's MetamagicData (IL-verified), so the variant
+                        // carries the metamagic into the cast pipeline.
+                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
+                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
+                            if (variant == null) continue;
+                            isSynthetic = true;
+                            return MakeVariantData(spell, variant);
+                        }
+                        return spell;
                     }
                     // Special spells — Cleric Domain / Shaman Spirit / Sorcerer Bloodline /
                     // Witch Patron lists. Stored in Spellbook.m_SpecialSpells, not m_KnownSpells.
