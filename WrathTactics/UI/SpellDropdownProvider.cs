@@ -81,9 +81,12 @@ namespace WrathTactics.UI {
             if (spell.MetamagicData == null || !spell.MetamagicData.NotEmpty)
                 return "";
             var tag = "";
+            int mask = (int)spell.MetamagicData.MetamagicMask;
+            int consumed = 0;
             foreach (Metamagic flag in Enum.GetValues(typeof(Metamagic))) {
                 if (flag == 0) continue;
                 if (!spell.MetamagicData.Has(flag)) continue;
+                consumed |= (int)flag;
                 switch (flag) {
                     case Metamagic.Empower: tag += "E"; break;
                     case Metamagic.Maximize: tag += "M"; break;
@@ -97,6 +100,16 @@ namespace WrathTactics.UI {
                     case Metamagic.Bolstered: tag += "B"; break;
                     default: tag += "?"; break;
                 }
+            }
+            // Bits not represented in the declared Metamagic enum — raw-bit
+            // modded metamagic (e.g. TabletopTweaks Solid Shadows) that wasn't
+            // registered through EnumExtender. One "?" per unknown bit so the
+            // user still sees that metamagic IS applied to the entry, even when
+            // the source mod is unrecognized.
+            int leftover = mask & ~consumed;
+            while (leftover != 0) {
+                if ((leftover & 1) != 0) tag += "?";
+                leftover = (int)((uint)leftover >> 1);
             }
             return tag.Length > 0 ? $"[{tag}]" : "";
         }

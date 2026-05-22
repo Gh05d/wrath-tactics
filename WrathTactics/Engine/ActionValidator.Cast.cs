@@ -82,14 +82,21 @@ namespace WrathTactics.Engine {
             // 1. Spellbook slot — use the existing FindAbility which parses level/variant/metamagic.
             if (wantSpell) {
                 var ability = FindAbility(owner, compoundKey);
-                if (ability != null
-                    && ability.Spellbook != null
-                    && ability.Spellbook.GetAvailableForCastSpellCount(ability) != 0
-                    && ability.IsAvailable) {
-                    return ability;
-                }
-                if (ability != null && ability.Spellbook != null && !ability.IsAvailable) {
-                    Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+                if (ability != null && ability.Spellbook != null) {
+                    int slots = ability.Spellbook.GetAvailableForCastSpellCount(ability);
+                    if (slots != 0 && ability.IsAvailable) return ability;
+                    if (!ability.IsAvailable) {
+                        Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+                    } else {
+                        // Slot count returned 0 — spell isn't currently castable. Most often
+                        // a prepared slot was already spent this rest, but for variant +
+                        // metamagic combinations this also fires when the engine's slot
+                        // lookup doesn't recognize the prepared mask (notably with modded
+                        // metamagic from TabletopTweaks etc.). Log the variant + mask so the
+                        // user can tell "no slot left" apart from "engine didn't match".
+                        int maskInt = ability.MetamagicData != null ? (int)ability.MetamagicData.MetamagicMask : 0;
+                        Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} no available slots (variant={ability.Blueprint.AssetGuid}, metamagicMask={maskInt})");
+                    }
                 }
 
                 // Class ability path (no spellbook, no inventory source, resource-gated).
