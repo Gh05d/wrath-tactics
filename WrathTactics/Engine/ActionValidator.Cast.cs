@@ -83,17 +83,26 @@ namespace WrathTactics.Engine {
             if (wantSpell) {
                 var ability = FindAbility(owner, compoundKey);
                 if (ability != null && ability.Spellbook != null) {
-                    int slots = ability.Spellbook.GetAvailableForCastSpellCount(ability);
+                    // Spellbook::GetAvailableForCastSpellCount loops m_MemorizedSpells[level]
+                    // and counts slots where `slot.SpellShell.Blueprint == ability.Blueprint`
+                    // (IL_0056-0061, raw reference equality). For variant AbilityData (vanilla
+                    // AbilityVariants, AbilityShadowSpell, metamagic-prepared variants) our
+                    // ability.Blueprint is the variant blueprint while the prepared slot is
+                    // keyed on the parent — so reference equality always fails and the count
+                    // returns 0. Query against ConvertedFrom (set by the 2-arg AbilityData ctor
+                    // to point at the parent) when present; the cast itself still runs on the
+                    // variant. Property used (not m_ConvertedFrom field) because field access
+                    // requires the publicizer at test runtime and breaks Mono's Assembly-CSharp
+                    // loading; the public property exists in vanilla and works in both contexts.
+                    var spellForSlots = ability.ConvertedFrom ?? ability;
+                    int slots = ability.Spellbook.GetAvailableForCastSpellCount(spellForSlots);
                     if (slots != 0 && ability.IsAvailable) return ability;
                     if (!ability.IsAvailable) {
                         Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
                     } else {
-                        // Slot count returned 0 — spell isn't currently castable. Most often
-                        // a prepared slot was already spent this rest, but for variant +
-                        // metamagic combinations this also fires when the engine's slot
-                        // lookup doesn't recognize the prepared mask (notably with modded
-                        // metamagic from TabletopTweaks etc.). Log the variant + mask so the
-                        // user can tell "no slot left" apart from "engine didn't match".
+                        // Slot count returned 0 — spell isn't currently castable. With the
+                        // ConvertedFrom fix above this is almost always "prepared slot already
+                        // spent this rest" rather than a variant-mismatch artifact.
                         int maskInt = ability.MetamagicData != null ? (int)ability.MetamagicData.MetamagicMask : 0;
                         Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} spellbook {ability.Name} no available slots (variant={ability.Blueprint.AssetGuid}, metamagicMask={maskInt})");
                     }
