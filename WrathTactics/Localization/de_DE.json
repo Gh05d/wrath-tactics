@@ -195,6 +195,8 @@
   "enum.target.PointAtSelf": "Punkt vor sich selbst",
   "enum.target.PointAtConditionTarget": "Punkt am Bedingungs-Ziel",
   "enum.target.SpecificAlly": "Bestimmter Verbündeter",
+  "enum.target.EnemyMostEnemyNeighbors": "Feind: dichteste Gruppe (5 m)",
+  "enum.target.AllyMostAllyNeighbors": "Verbündeter: dichteste Gruppe (5 m)",
 
   "enum.heal_mode.Any": "Beliebig",
   "enum.heal_mode.Strongest": "Stärkste",

@@ -83,8 +83,28 @@ namespace WrathTactics.Engine {
                 case TargetType.ConditionTarget:    return GetConditionTarget(owner);
                 case TargetType.EnemyHighestHD:     return GetEnemyHighestHD(owner);
                 case TargetType.EnemyLowestHD:      return GetEnemyLowestHD(owner);
+                case TargetType.EnemyMostEnemyNeighbors: return GetEnemyMostEnemyNeighbors(owner);
+                case TargetType.AllyMostAllyNeighbors:   return GetAllyMostAllyNeighbors(owner);
                 default:                            return null;
             }
+        }
+
+        static UnitEntityData GetEnemyMostEnemyNeighbors(UnitEntityData owner) {
+            var enemies = GetVisibleEnemies(owner).ToList();
+            if (enemies.Count == 0) return null;
+            var positions = enemies.Select(e => (e.Position.x, e.Position.z)).ToList();
+            int idx = UnitClusterMetrics.FindMostClustered(positions,
+                UnitClusterMetrics.DefaultNeighborRadiusMeters);
+            return idx >= 0 ? enemies[idx] : null;
+        }
+
+        static UnitEntityData GetAllyMostAllyNeighbors(UnitEntityData owner) {
+            var allies = GetAllies(owner).Where(u => u.HPLeft > 0).ToList();
+            if (allies.Count == 0) return null;
+            var positions = allies.Select(a => (a.Position.x, a.Position.z)).ToList();
+            int idx = UnitClusterMetrics.FindMostClustered(positions,
+                UnitClusterMetrics.DefaultNeighborRadiusMeters);
+            return idx >= 0 ? allies[idx] : null;
         }
 
         static UnitEntityData GetAllyLowestHp(UnitEntityData owner) {

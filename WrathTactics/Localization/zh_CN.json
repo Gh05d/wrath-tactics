@@ -195,6 +195,8 @@
   "enum.target.PointAtSelf": "自身前方",
   "enum.target.PointAtConditionTarget": "条件目标处",
   "enum.target.SpecificAlly": "特定盟友",
+  "enum.target.EnemyMostEnemyNeighbors": "敌人:聚集最密(5 米)",
+  "enum.target.AllyMostAllyNeighbors": "盟友:聚集最密(5 米)",
 
   "enum.heal_mode.Any": "任意",
   "enum.heal_mode.Strongest": "最强",

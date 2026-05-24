@@ -195,6 +195,8 @@
   "enum.target.PointAtSelf": "Точка перед собой",
   "enum.target.PointAtConditionTarget": "Точка у цели условия",
   "enum.target.SpecificAlly": "Конкретный союзник",
+  "enum.target.EnemyMostEnemyNeighbors": "Враг: самая плотная группа (5 м)",
+  "enum.target.AllyMostAllyNeighbors": "Союзник: самая плотная группа (5 м)",
 
   "enum.heal_mode.Any": "Любой",
   "enum.heal_mode.Strongest": "Сильнейший",

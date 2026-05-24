@@ -160,7 +160,9 @@ namespace WrathTactics.Models {
         EnemyLowestHD,
         PointAtSelf,            // ~1 square in front of caster
         PointAtConditionTarget, // ~1 square toward caster from matched unit
-        SpecificAlly            // ally pinned by UniqueId stored in TargetDef.Filter
+        SpecificAlly,           // ally pinned by UniqueId stored in TargetDef.Filter
+        EnemyMostEnemyNeighbors,// enemy with the most other living enemies within ~5 m (fireball / AoE damage)
+        AllyMostAllyNeighbors,  // ally with the most other living allies within ~5 m (area buffs)
     }
 
     public enum RangeBracket { Melee, Cone, Short, Medium, Long }
