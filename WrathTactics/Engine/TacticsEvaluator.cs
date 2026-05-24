@@ -13,6 +13,7 @@ namespace WrathTactics.Engine {
         static float lastTickTime;
         static float combatStartTime;
         static bool wasInCombat;
+        static bool forceNextTick;
         static int tickCounter;
 
         // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
@@ -35,6 +36,10 @@ namespace WrathTactics.Engine {
             if (inCombat && !wasInCombat) {
                 wasInCombat = true;
                 combatStartTime = gameTimeSec;
+                // Fire the first combat tick immediately instead of waiting up to
+                // TickIntervalSeconds — otherwise the party stands around for the
+                // remainder of the previous tick window after combat begins.
+                forceNextTick = true;
                 PlayerCommandGuard.Reset();
                 ActiveRuleTracker.Reset();
                 Log.Engine.Info("Combat started");
@@ -49,7 +54,8 @@ namespace WrathTactics.Engine {
             float interval = inCombat
                 ? config.TickIntervalSeconds
                 : config.OutOfCombatTickIntervalSeconds;
-            if (gameTimeSec - lastTickTime < interval) return;
+            if (!forceNextTick && gameTimeSec - lastTickTime < interval) return;
+            forceNextTick = false;
             lastTickTime = gameTimeSec;
 
             tickCounter++;
@@ -190,6 +196,7 @@ namespace WrathTactics.Engine {
             lastTickTime = 0;
             combatStartTime = 0;
             wasInCombat = false;
+            forceNextTick = false;
             tickCounter = 0;
             cooldowns.Clear();
             ActiveRuleTracker.Reset();
