@@ -9,3 +9,6 @@ deploy.sh
 
 # codegraph index (per-machine, regenerable)
 .codegraph/
+
+# Mono crash dumps from test runs
+mono_crash.*.json
