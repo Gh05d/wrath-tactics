@@ -135,6 +135,76 @@ Also extend `PickMetric` if the new subject is a sort-pick (EnemyLowest* / Enemy
 
 The legacy methods (`EvaluateEnemy`, `EvaluateEnemyPick`, etc.) remain in the file but are unreachable from the bucketed path. Don't extend them — extend the bucket evaluators.
 
+### `active-rule-tracker`
+
+Per-unit, records `(RuleListSource, entry.Id, UnitCommand)` whenever `CommandExecutor.Execute` queues a `UnitCommand` for a fired rule.
+
+While the tracked command is still `!IsFinished`:
+- `TacticsEvaluator.EvaluateUnit` derives a priority gate (`globalGate` / `charGate`)
+- `TryExecuteRules` iterates only rules with `i < gate` — strictly higher priority than the active rule in the global-then-character order
+
+Result: lower-priority rules cannot preempt an in-flight command; higher-priority rules can (correct DAO semantic).
+
+Tracker self-clears when the command finishes, the entry-id no longer resolves in its list (rule deleted), `Reset()` is called, or combat-start/end transitions fire.
+
+**Separate from `PlayerCommandGuard`** — that one gates on *foreign* active casts (player / other-mod), while `ActiveRuleTracker` gates on *our own* still-running commands. Don't merge them; they answer different questions.
+
+**Toggles / `ThrowSplash` / `DoNothing` don't replace the tracker entry**: they succeed without queueing a `UnitCommand`, so `issuedCmd == null` is returned through `CommandExecutor.Execute`'s out param. `TryExecuteRules` deliberately does NOT `Clear` the tracker in that case — an in-flight cast keeps its gate even when a higher-priority toggle fires alongside it. Replacing this with "clear on any successful Execute" reintroduces the original bug where the next tick re-fires a lower-priority rule and interrupts the still-animating cast.
+
+### `cast-fallback-chain`
+
+`ActionDef.FallbackAbilityIds` is consulted by `ResolveCastSpellChain` for BOTH `ActionType.CastSpell` and `ActionType.CastAbility` (since 1.15).
+
+The chain is **type-homogeneous**: entries share the rule's `Action.Type` because the picker pulls entries from `GetSpellEntries(rule.Action.Type)`. Switching `Action.Type` between Cast types does NOT clear stale GUIDs — entries remain in the list but the resolver misses them (different blueprint pool).
+
+`ResolveCastSpellChain` is the authoritative validator + executor entry point for both Cast types.
+
+**Never re-introduce single-GUID validation on the CastAbility branches** — `CanCastSpell(action.AbilityId, ...)` / `CanCastAbilityAtPoint(action.AbilityId, ...)` bypasses the chain, so a fallback-only rule (primary unavailable) is incorrectly rejected and the next rule fires instead. Validator and executor must agree on which GUID will be cast.
+
+### `position-conditions`
+
+A new positional `ConditionProperty` (e.g. `IsFlanked`, `AdjacentEnemyCount`) needs FIVE sites synced:
+
+1. **Enum entry** in `Models/Enums.cs`
+2. **`EvaluateUnitProperty` switch case** in `Engine/ConditionEvaluator.UnitProperty.cs`
+3. **`MatchesPropertyThreshold` switch case** in the same file (count-subject path)
+4. **For bool properties**: add to BOTH `isBool` chains in `UI/ConditionRowWidget.cs` — count-path + non-count-path. They have different indentation; easy to miss one.
+5. **One i18n entry per locale** — `enum.property.<PascalCase>` × 5 locale files
+
+**Implementation notes**:
+- `IsFlanked` reads `unit.CombatState.IsFlanked` (engine-authoritative)
+- `AdjacentEnemyCount` re-uses `RangeBrackets.MaxMeters(Melee)` (= 2 m) for the radius. Keep that constant if a future `AdjacentAllyCount` lands.
+
+### `abminusac-condition`
+
+`ABMinusAC` evaluates `ab − enemy.AC` via `RuleCalculateAttackBonusWithoutTarget`. Enemy-scope only.
+
+`condition.Value2` is an optional ally `UniqueId` pin:
+- **Empty**: party-best AB across living members (`!IsFinallyDead`, `IsInGame`, has weapon / `EmptyHandWeapon`). Cached rule-scoped via `CurrentPartyBestAB`.
+- **Set**: `AllyProvider.Resolve` and use only that ally's AB. Uncached — pin is per-rule, single-pinned-AB per enemy is cheap.
+
+Per-ally helper `ComputeAB(ally)` returns `int.MinValue` on ineligible.
+
+UI: `ConditionRowWidget` renders an `ABAllyPin` ally-picker (`allowAny=true`) when `Property == ABMinusAC`.
+
+**Pattern for new computed-delta conditions**:
+- Scope-check up front
+- Read `CurrentOwner` from the rule-scoped static
+- Return `float.NaN` → `false` on uncomputable
+- Add a Trace log for thresholds
+
+### `catch-discipline`
+
+`catch (Exception ex)` is reserved for three legitimate patterns:
+
+1. **Per-tick / per-frame guards** — `Main.OnUpdate`, `TacticsEvaluator.Tick`, command dispatchers. Unity's main thread dies silently on an unhandled throw, so log + continue is required.
+2. **User-surface persistence** — `ConfigManager.Save`, `PresetManager.Save`, `BuffBlueprintProvider.Load`. A save/load failure surfaces via a UI status line and a fallback default.
+3. **Static initialisers / sentinel-cached blueprint lookups** where a one-time failure should fall back to a non-throwing sentinel.
+
+**Anything else: catch the specific type.** Localization, file-IO outside save-paths, and engine-API-lookups should narrow to `JsonException` / `IOException` / `InvalidOperationException` / `NullReferenceException` so real defects (not just expected runtime fallibility) propagate.
+
+Audited 2026-05-09; see `git log --grep 'refactor(catch):'`.
+
 ---
 
 ## Game API Gotchas
@@ -330,6 +400,90 @@ Adding a new iteration over the active group must follow the same convention. Si
 **Documented exception**: `EnemyHDMinusPartyLevel` uses `Game.Instance.Player.Party` (NOT `PartyAndPets`) — pets have separate progression curves and would skew the max for parties with high-HD Eidolons/Drakes; the calculation should reflect the player squad's level only.
 
 **Alternative pattern**: BubbleBuffs uses `unit.Get<UnitPartPetMaster>().Pets` expansion. Equivalent for the active-party case.
+
+### `negative-energy-affinity`
+
+Cure spells (`Spells/Level1/CureLightWounds.jbp` etc.) flip heal↔damage on `ContextConditionHasFact(d5ee498e19722854198439629c1841a5)` = `CreatureAbilities/NegativeEnergyAffinity.jbp`.
+
+The fact reaches every vanilla undead transitively:
+- `LichTrueFeature` (Mythic) → `UndeadType` (734a29…) → `UndeadImmunities` (8a75eb…) → `NegativeEnergyAffinity` via chained `AddFacts.m_Facts`
+- Unit blueprint `m_Race == UndeadType` → same chain
+- Dhampirs add it directly via `NegativeEnergyAffinityDhampir`
+
+`ActionValidator.IsNegativeEnergyAffine` looks the blueprint up once via `ResourcesLibrary.TryGetBlueprint<BlueprintFeature>` and queries `UnitHelper.HasFact(descriptor, bp)` — same path the engine uses.
+
+**Don't reintroduce `Blueprint.Type.name.Contains("undead")` as a primary check** — it's dead code; vanilla undead carry specific subtype names (Skeleton, VampireSpawn, Mummy, …), none containing the literal "undead". Substring matching on `Progression.Features` is kept only as a defensive net for mod-added affinity features.
+
+### `usableitemtype-enum`
+
+`UsableItemType` has 5 values: `Other=0 / Wand=1 / Scroll=2 / Potion=3 / Utility=4`.
+
+Metamagic rods and some special-power devices use `Utility` and carry an `m_Ability` (use-cast); they're picked up by the four-pass UseItem scan.
+
+**Edge case — activatable item-rods aren't `Utility`**: Skeletal Finger (`SkeletalFingerRodQuickenNormalItem`) is `Type=Other` with `m_Ability=null` and only an `m_ActivatableAbility` — engine-side it's a toggleable feat-with-charges, NOT a UseItem. Such items surface through `unit.ActivatableAbilities.RawFacts` and belong under the **ToggleActivatable** action, not UseItem.
+
+There is NO `BlueprintItemEquipmentRod` class.
+
+**Triage when a "rod" goes missing from UseItem**: extract the blueprint, check `Type` + `m_Ability`. If `m_Ability=null`, it's an Activatable and the user wants ToggleActivatable.
+
+### `variant-slot-lookup`
+
+`Spellbook.GetAvailableForCastSpellCount` mismatches variant casts. IL-verified `Spellbook::GetAvailableForCastSpellCount` IL_0056-0061: slot loop compares `slot.SpellShell.Blueprint == ability.Blueprint` via raw reference equality.
+
+For ANY variant AbilityData our `MakeVariantData` produces (vanilla `AbilityVariants`, `AbilityShadowSpell`, metamagic-prepared variants):
+- `ability.Blueprint = variant`
+- The prepared slot is keyed on the parent
+- Reference comparison fails → count returns 0 → pre-cast validator rejects
+
+**Fix**: pass `ability.ConvertedFrom ?? ability` to the slot probe; the cast itself still runs on the variant. Centralized in `ActionValidator.FindCastSpellSource`'s spellbook branch.
+
+The engine's spellbook UI never hits this path (it knows slot availability directly), so the bug surfaces only in mod pre-cast validation — discovered via 1.16.3 user report on TabletopTweaks Solid Shadows shadow-spell rules.
+
+**Use the public `ConvertedFrom` property, not the `m_ConvertedFrom` field**. Field access requires publicizer metadata that Mono's test runtime can't satisfy and kills `Assembly-CSharp` loading entirely (22/50 tests fail with `TypeLoadException` on unrelated static fields). The property exists in vanilla and works in both contexts.
+
+### `variant-component-handling`
+
+Two variant components exist — handle both:
+
+| Component | Source | Examples |
+|-----------|--------|----------|
+| `AbilityVariants` | Static `m_Variants[]` on the parent blueprint | Command, Plague Storm, Evil Eye |
+| `AbilityShadowSpell` | Runtime set from `SpellList × MaxSpellLevel × School × AnySchool` | Shadow Conjuration L4, Shadow Evocation L5, Greater forms L7/L8 |
+
+No vanilla Shadow Enchantment exists. Engine treats both identically downstream: `AbilityData.ShadowSpellSettings` reads from `m_ConvertedFrom.AbilityShadowSpell`, so `MakeVariantData(parent, variant)` works unchanged.
+
+**Variant-aware features must hit BOTH components at SIX sites**:
+- `SpellDropdownProvider.GetSpells`: `GetKnownSpells` + `GetCustomSpells` + `GetSpecialSpells` loops
+- `ActionValidator.Find.FindAbilityEx`: same three loops
+
+For shadow spells call `shadow.GetAvailableSpells()` — public iterator that does the `SpellList × level × school` filter.
+
+**Custom-spells loop = metamagic-prepared + fused path**: a Quickened Summon Monster II lives there and MUST expand variants (1 wolf / 1d3 dogs / …) carrying the metamagic tag. IL of the 2-arg variant ctor clones `MetamagicData` from parent, so `MakeVariantData(customSpell, variant)` correctly preserves Quicken/Empower/etc. into the cast pipeline.
+
+**Known gap (since 1.15.2)**: `GetItemAbilities` + inventory branch of `FindCastSpellSource` skip variant enumeration entirely (explicit `string.IsNullOrEmpty(parsed.VariantGuid)` guards). Scrolls of Shadow Conjuration/Evocation exist in vanilla but won't expose subspells — fix when reported, and verify `OverrideCasterLevel`/`OverrideSpellLevel` survive the variant ctor before shipping.
+
+**"Spell X missing from picker" triage**: before debugging picker UI, ask which spellbook list the spell lives in.
+- `GetKnownSpells` (base)
+- `GetCustomSpells` (metamagic-prepared + fused)
+- `GetSpecialSpells` (Domain/Bloodline/Patron/Spirit)
+
+These are three different code paths; bugs typically affect ONE. Canonical traps:
+- Metamagic-prepared variant spells (Quickened Summon Monster II → 1d3 dogs) — fixed in 1.16.1 by routing the custom-spells loop through `TryEmitVariantEntries`
+- Heal-picker custom-spells miss — fixed in 1.14.1 in `FindBestHealEx`
+
+### `metamagic-leftover-bits`
+
+`Enum.GetValues(typeof(Metamagic))` only enumerates flags declared at compile time in Assembly-CSharp.
+
+| Source | `Enum.GetValues` enumerates? | Caught by foreach switch? |
+|--------|------------------------------|---------------------------|
+| Vanilla flags (Quicken, Empower, …) | Yes | Yes |
+| EnumExtender-registered modded values | Yes | Yes (hits `default:` arm) |
+| Raw-bit modded values (`1 << N` bare const) | **No** | No (foreach drops them silently) |
+
+TabletopTweaks Solid Shadows ships its metamagic as a bare `1 << N`. A foreach-only loop drops it, the picker shows an empty metamagic tag.
+
+`BuildMetamagicTag` post-scans the mask for leftover bits after the foreach and emits "?" per bit. **Keep that leftover loop when touching the function** — removing it as redundant reintroduces the empty-tag bug for modded-metamagic-prepared spells in the picker.
 
 ---
 
