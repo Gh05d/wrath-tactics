@@ -159,7 +159,7 @@
   "enum.property.IsPet": "Питомец",
   "enum.property.IsFlanked": "Окружён",
   "enum.property.AdjacentEnemyCount": "Соседних врагов",
-  "enum.property.EnemyHDMinusPartyLevel": "КЗ − Группа",
+  "enum.property.EnemyHDMinusPartyLevel": "КЗ − МаксГруппы",
 
   "enum.action.CastSpell": "Заклинание",
   "enum.action.CastAbility": "Способность",

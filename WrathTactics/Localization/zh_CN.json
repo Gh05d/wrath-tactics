@@ -159,7 +159,7 @@
   "enum.property.IsPet": "是宠物",
   "enum.property.IsFlanked": "被夹击",
   "enum.property.AdjacentEnemyCount": "相邻敌人数",
-  "enum.property.EnemyHDMinusPartyLevel": "生命骰 − 队伍",
+  "enum.property.EnemyHDMinusPartyLevel": "生命骰 − 队伍最高",
 
   "enum.action.CastSpell": "施放法术",
   "enum.action.CastAbility": "使用能力",

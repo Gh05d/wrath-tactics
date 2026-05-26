@@ -159,7 +159,7 @@
   "enum.property.IsPet": "Is pet",
   "enum.property.IsFlanked": "Is flanked",
   "enum.property.AdjacentEnemyCount": "Enemies adjacent",
-  "enum.property.EnemyHDMinusPartyLevel": "HD − Party",
+  "enum.property.EnemyHDMinusPartyLevel": "HD − PartyMax",
 
   "enum.action.CastSpell": "CastSpell",
   "enum.action.CastAbility": "CastAbility",
