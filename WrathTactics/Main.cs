@@ -41,12 +41,21 @@ namespace WrathTactics {
         }
 
         static void OnUpdate(UnityModManager.ModEntry modEntry, float delta) {
+            if (Game.Instance?.Player == null) return;
             try {
-                if (Game.Instance?.Player == null) return;
                 float gameTime = (float)Game.Instance.Player.GameTime.TotalSeconds;
                 Engine.TacticsEvaluator.Tick(gameTime);
             } catch (Exception ex) {
                 Logging.Log.Engine.Error(ex, "Tick error");
+            }
+            // One-time buff-index warm: serves the disk cache or drains a chunked full
+            // pack scan across frames (hidden in the post-load window). Self-guards after
+            // completion, so this is a cheap no-op every frame thereafter.
+            try {
+                Engine.BuffPackScanner.EnsureStarted();
+                Engine.BuffPackScanner.Pump();
+            } catch (Exception ex) {
+                Logging.Log.Engine.Error(ex, "Buff pack scan error");
             }
         }
 
