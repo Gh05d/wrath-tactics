@@ -659,3 +659,37 @@ Two parallel helpers in `Engine/UnitExtensions.cs`:
 Keep both in sync. Correct check: `unit.Descriptor?.State?.IsFinallyDead ?? false` combined with `ParseBoolValue(condition.Value)` for the Yes/No dropdown semantic.
 
 **Not** `State.IsDead` — see [UnitState.IsDead vs IsFinallyDead](#unitstateisdead-vs-isfinallydead).
+
+### `blueprint-full-enumeration`
+
+**`ForEachLoaded` is a lazy-load trap.** IL of `JsonSystem.BlueprintsCache`:
+
+```
+struct BlueprintCacheEntry { uint Offset; SimpleBlueprint Blueprint; }   // Blueprint null until loaded
+Dictionary<BlueprintGuid, BlueprintCacheEntry> m_LoadedBlueprints        // FULL index, ~236k entries, populated at startup
+
+void ForEachLoaded(Action<BlueprintGuid, SimpleBlueprint> action) {
+    foreach (kv in m_LoadedBlueprints) action(kv.Key, kv.Value.Blueprint); // <-- passes .Blueprint, NO null filter
+}
+```
+
+So `ForEachLoaded` visits **every** index entry but hands you `null` for any blueprint the engine hasn't paged in from the pack file yet. A `bp is BlueprintBuff` check therefore silently skips all unloaded buffs — you see only what the session happened to touch. This shipped as a user bug (v1.17.1): Bane / Slow / Negative Level / ability-damage buffs only appeared in the HasBuff picker after a unit applied them mid-run.
+
+**Whole-type enumeration requires force-loading.** The index has no type info (only Offset + payload), so you cannot know an entry is a buff without loading it. To list all of a type:
+
+```csharp
+foreach (var guid in ResourcesLibrary.BlueprintsCache.m_LoadedBlueprints.Keys)  // publicizer
+    ResourcesLibrary.BlueprintsCache.Load(guid);                                 // sets entry.Blueprint
+// now ForEachLoaded sees everything of that type
+```
+
+Measured cost on deck (v1.17.2): **236,661 entries, ~79s, 7019 buffs** captured. **All entries stay resident** for that session — `RemoveCachedBlueprint(guid)` does `m_LoadedBlueprints.Remove(guid)`, i.e. it drops the index Offset entirely, breaking future lazy loads, so it is NOT a memory-eviction tool (verified IL). `SimpleBlueprint extends System.Object` (not a UnityEngine.Object) and `Load` runs under a `Monitor` lock the engine's own loader respects, so loading is largely thread-agnostic — but per-blueprint post-load hooks are not verified thread-safe, so the scan stays on the main thread.
+
+**The shipped pattern** (`BuffPackScanner` + `BuffIndexCache` + `BuffBlueprintProvider`):
+
+1. **Chunked main-thread scan** — `BuffPackScanner.Pump()` from `Main.OnUpdate` force-loads `PerFrameBudget` (250) entries/frame, spreading the ~79s over frames in the post-load window instead of one hard freeze.
+2. **Disk cache** — on completion, persist only buff *metadata* (GUID + localized name + internal name, ~1MB) to `{ModPath}/Cache/buff-index.json`, stamped with `GameVersion.GetVersion()` + `LocalizationManager.CurrentLocale`. The picker needs metadata only; runtime HasBuff matching reads the buff off the unit (already loaded), never the global cache.
+3. **Subsequent sessions** load the JSON instantly — **no scan, no RAM cost.** The expensive scan re-runs only when the stamp mismatches (game patch adds/renames buffs, or locale change relocalizes names).
+4. `BuffBlueprintProvider.GetBuffs()` returns the authoritative cache once set (disk hit or scan complete); before that it returns an **uncached** live `ForEachLoaded` snapshot so the picker isn't empty during the brief scan window.
+
+Trigger is `BuffPackScanner.EnsureStarted()` in `OnUpdate` (after the `Game.Instance.Player` guard, so version/locale/cache are available). One-shot per session via a static flag — survives area reloads, does not re-scan.
