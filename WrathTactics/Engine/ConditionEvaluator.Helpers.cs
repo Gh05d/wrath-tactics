@@ -101,6 +101,34 @@ namespace WrathTactics.Engine {
             }
         }
 
+        // True if the unit carries any active buff flagged with the given SpellDescriptor
+        // (Poison/Disease/Bleed). One check catches every poison/disease buff — these
+        // statuses are descriptor-flagged buffs, not UnitConditions, which is why they
+        // aren't in HasConditionByName. descriptorName must match the game SpellDescriptor
+        // enum exactly.
+        internal static bool HasBuffWithDescriptor(UnitEntityData unit, string descriptorName) {
+            if (unit == null || string.IsNullOrEmpty(descriptorName)) return false;
+            if (!System.Enum.TryParse<Kingmaker.Blueprints.Classes.Spells.SpellDescriptor>(descriptorName, out var want))
+                return false;
+            long wantBits = (long)want;
+            if (wantBits == 0) return false;
+            foreach (var buff in unit.Buffs.RawFacts) {
+                if (((long)buff.Blueprint.SpellDescriptor & wantBits) != 0) return true;
+            }
+            return false;
+        }
+
+        // Engine-authoritative energy-immunity check via UnitPartDamageReduction.IsImmune
+        // (verified IL). Covers the five castable elementals (Fire/Cold/Electricity/Acid/
+        // Sonic). False when the unit has no damage-reduction part or the energy is unknown.
+        internal static bool IsImmuneToEnergy(UnitEntityData unit, string energyName) {
+            if (unit == null || string.IsNullOrEmpty(energyName)) return false;
+            if (!System.Enum.TryParse<Kingmaker.Enums.Damage.DamageEnergyType>(energyName, out var energy))
+                return false;
+            var dr = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartDamageReduction>();
+            return dr != null && dr.IsImmune(energy);
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {

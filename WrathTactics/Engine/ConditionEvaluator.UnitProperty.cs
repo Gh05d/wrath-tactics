@@ -173,6 +173,16 @@ namespace WrathTactics.Engine {
                     return condition.Operator == ConditionOperator.NotEqual ? !hasCond : hasCond;
                 }
 
+                case ConditionProperty.HasDescriptorEffect: {
+                    bool hasDesc = HasBuffWithDescriptor(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasDesc : hasDesc;
+                }
+
+                case ConditionProperty.ImmuneToEnergy: {
+                    bool immune = IsImmuneToEnergy(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !immune : immune;
+                }
+
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
                     return CountAvailableSlotsAtLevel(unit, level) > 0;
@@ -328,6 +338,16 @@ namespace WrathTactics.Engine {
                         b.Blueprint.AssetGuid.ToString() == condition.Value ||
                         (b.Blueprint.name?.Contains(condition.Value) ?? false));
                     return condition.Operator == ConditionOperator.NotEqual ? !hasBuff : hasBuff;
+                }
+
+                case ConditionProperty.HasDescriptorEffect: {
+                    bool hasDesc = HasBuffWithDescriptor(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !hasDesc : hasDesc;
+                }
+
+                case ConditionProperty.ImmuneToEnergy: {
+                    bool immune = IsImmuneToEnergy(unit, condition.Value);
+                    return condition.Operator == ConditionOperator.NotEqual ? !immune : immune;
                 }
 
                 case ConditionProperty.CreatureType:

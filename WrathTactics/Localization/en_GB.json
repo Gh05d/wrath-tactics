@@ -159,6 +159,8 @@
   "enum.property.IsPet": "Is pet",
   "enum.property.IsFlanked": "Is flanked",
   "enum.property.AdjacentEnemyCount": "Enemies adjacent",
+  "enum.property.HasDescriptorEffect": "Affected by",
+  "enum.property.ImmuneToEnergy": "Immune to energy",
   "enum.property.EnemyHDMinusPartyLevel": "HD − PartyMax",
 
   "enum.action.CastSpell": "CastSpell",
@@ -263,6 +265,16 @@
   "enum.condition.Helpless": "Helpless",
   "enum.condition.Cowering": "Cowering",
   "enum.condition.DeathDoor": "Death's Door",
+
+  "enum.descriptor.Poison": "Poison",
+  "enum.descriptor.Disease": "Disease",
+  "enum.descriptor.Bleed": "Bleed",
+
+  "enum.energy.Fire": "Fire",
+  "enum.energy.Cold": "Cold",
+  "enum.energy.Electricity": "Electricity",
+  "enum.energy.Acid": "Acid",
+  "enum.energy.Sonic": "Sonic",
 
   "cast.rod.label": "Rod",
   "cast.rod.none": "(no metamagic rod)",

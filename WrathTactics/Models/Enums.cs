@@ -52,7 +52,9 @@ namespace WrathTactics.Models {
         EnemyHDMinusPartyLevel,   // enemyEffectiveHD − partyMaxEffectiveLevel — Enemy-scope only
         IsPet,                    // Yes/No — UnitPartPet present (Animal Companion / Aivu / Lich-Skelett / Clone / Night Hag / Eidolon)
         IsFlanked,                // Yes/No — engine UnitCombatState.IsFlanked (positional flanking)
-        AdjacentEnemyCount        // numeric — enemies within Melee range (≤2 m / 5 ft); see RangeBrackets.MaxMeters
+        AdjacentEnemyCount,       // numeric — enemies within Melee range (≤2 m / 5 ft); see RangeBrackets.MaxMeters
+        HasDescriptorEffect,      // Value = SpellDescriptor name (Poison/Disease/Bleed) — any active buff carrying that descriptor; =/!=
+        ImmuneToEnergy            // Value = DamageEnergyType name (Fire/Cold/Electricity/Acid/Sonic) — UnitPartDamageReduction.IsImmune; =/!=
     }
 
     public enum ConditionOperator {

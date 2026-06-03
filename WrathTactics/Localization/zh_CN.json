@@ -159,6 +159,8 @@
   "enum.property.IsPet": "是宠物",
   "enum.property.IsFlanked": "被夹击",
   "enum.property.AdjacentEnemyCount": "相邻敌人数",
+  "enum.property.HasDescriptorEffect": "受影响",
+  "enum.property.ImmuneToEnergy": "免疫能量",
   "enum.property.EnemyHDMinusPartyLevel": "生命骰 − 队伍最高",
 
   "enum.action.CastSpell": "施放法术",
@@ -263,6 +265,16 @@
   "enum.condition.Helpless": "无助",
   "enum.condition.Cowering": "畏缩",
   "enum.condition.DeathDoor": "濒死",
+
+  "enum.descriptor.Poison": "毒素",
+  "enum.descriptor.Disease": "疾病",
+  "enum.descriptor.Bleed": "流血",
+
+  "enum.energy.Fire": "火焰",
+  "enum.energy.Cold": "寒冷",
+  "enum.energy.Electricity": "电击",
+  "enum.energy.Acid": "强酸",
+  "enum.energy.Sonic": "音波",
 
   "cast.rod.label": "法杖",
   "cast.rod.none": "(无超魔法杖)",

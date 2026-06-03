@@ -159,6 +159,8 @@
   "enum.property.IsPet": "Est un familier",
   "enum.property.IsFlanked": "Est flanqué",
   "enum.property.AdjacentEnemyCount": "Ennemis adjacents",
+  "enum.property.HasDescriptorEffect": "Affecté par",
+  "enum.property.ImmuneToEnergy": "Immunisé à l'énergie",
   "enum.property.EnemyHDMinusPartyLevel": "DV − GroupeMax",
 
   "enum.action.CastSpell": "Lancer un sort",
@@ -263,6 +265,16 @@
   "enum.condition.Helpless": "Sans défense",
   "enum.condition.Cowering": "Tremblant",
   "enum.condition.DeathDoor": "Aux portes de la mort",
+
+  "enum.descriptor.Poison": "Poison",
+  "enum.descriptor.Disease": "Maladie",
+  "enum.descriptor.Bleed": "Saignement",
+
+  "enum.energy.Fire": "Feu",
+  "enum.energy.Cold": "Froid",
+  "enum.energy.Electricity": "Électricité",
+  "enum.energy.Acid": "Acide",
+  "enum.energy.Sonic": "Sonore",
 
   "cast.rod.label": "Bâton",
   "cast.rod.none": "(aucun bâton de métamagie)",

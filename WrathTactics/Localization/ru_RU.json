@@ -159,6 +159,8 @@
   "enum.property.IsPet": "Питомец",
   "enum.property.IsFlanked": "Окружён",
   "enum.property.AdjacentEnemyCount": "Соседних врагов",
+  "enum.property.HasDescriptorEffect": "Подвержен",
+  "enum.property.ImmuneToEnergy": "Иммунитет к энергии",
   "enum.property.EnemyHDMinusPartyLevel": "КЗ − МаксГруппы",
 
   "enum.action.CastSpell": "Заклинание",
@@ -263,6 +265,16 @@
   "enum.condition.Helpless": "Беспомощен",
   "enum.condition.Cowering": "Скован страхом",
   "enum.condition.DeathDoor": "На пороге смерти",
+
+  "enum.descriptor.Poison": "Яд",
+  "enum.descriptor.Disease": "Болезнь",
+  "enum.descriptor.Bleed": "Кровотечение",
+
+  "enum.energy.Fire": "Огонь",
+  "enum.energy.Cold": "Холод",
+  "enum.energy.Electricity": "Электричество",
+  "enum.energy.Acid": "Кислота",
+  "enum.energy.Sonic": "Звук",
 
   "cast.rod.label": "Жезл",
   "cast.rod.none": "(без жезла метамагии)",

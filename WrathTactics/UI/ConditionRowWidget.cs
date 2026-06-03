@@ -160,6 +160,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.Alignment
                     || condition.Property == ConditionProperty.HasBuff
                     || condition.Property == ConditionProperty.HasCondition
+                    || condition.Property == ConditionProperty.HasDescriptorEffect
+                    || condition.Property == ConditionProperty.ImmuneToEnergy
                     || condition.Property == ConditionProperty.HasClass) {
                     CreateEqOperator(root, 0.58f, 0.64f, "CountEqOp");
 
@@ -232,7 +234,9 @@ namespace WrathTactics.UI {
                 bool isBuffProp = condition.Property == ConditionProperty.HasBuff;
                 bool isHasClass = condition.Property == ConditionProperty.HasClass;
                 bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
-                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass;
+                bool isDescOrEnergy = condition.Property == ConditionProperty.HasDescriptorEffect
+                    || condition.Property == ConditionProperty.ImmuneToEnergy;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass || isDescOrEnergy;
                 bool isBoolProperty = condition.Property == ConditionProperty.IsDead
                     || condition.Property == ConditionProperty.IsInCombat
                     || condition.Property == ConditionProperty.IsTargetingSelf
@@ -283,6 +287,15 @@ namespace WrathTactics.UI {
                     if (condIdx < 0) { condIdx = 0; condition.Value = condKeys[0]; }
                     PopupSelector.Create(root, "CondValue", 0.45f, 0.88f, condLabels, condIdx, v => {
                         condition.Value = condKeys[v];
+                        onChanged?.Invoke();
+                    });
+                } else if (isDescOrEnergy) {
+                    var deKeys = GetValueKeysForProperty(condition.Property);
+                    var deLabels = GetValueLabelsForProperty(condition.Property);
+                    int deIdx = deKeys.IndexOf(condition.Value);
+                    if (deIdx < 0) { deIdx = 0; condition.Value = deKeys[0]; }
+                    PopupSelector.Create(root, "DescEnergyValue", 0.45f, 0.88f, deLabels, deIdx, v => {
+                        condition.Value = deKeys[v];
                         onChanged?.Invoke();
                     });
                 } else if (isHasClass) {
@@ -387,6 +400,8 @@ namespace WrathTactics.UI {
                 case ConditionProperty.CreatureType: return EnumLabels.KeysForCreatureType();
                 case ConditionProperty.Alignment:    return EnumLabels.KeysForAlignment();
                 case ConditionProperty.HasCondition: return EnumLabels.KeysForCondition();
+                case ConditionProperty.HasDescriptorEffect: return EnumLabels.KeysForDescriptorEffect();
+                case ConditionProperty.ImmuneToEnergy:      return EnumLabels.KeysForEnergy();
                 case ConditionProperty.WithinRange:  return RangeBracketNames;
                 default:                             return new List<string>();
             }
@@ -398,6 +413,8 @@ namespace WrathTactics.UI {
                 case ConditionProperty.CreatureType: return EnumLabels.LabelsForCreatureType();
                 case ConditionProperty.Alignment:    return EnumLabels.LabelsForAlignment();
                 case ConditionProperty.HasCondition: return EnumLabels.LabelsForCondition();
+                case ConditionProperty.HasDescriptorEffect: return EnumLabels.LabelsForDescriptorEffect();
+                case ConditionProperty.ImmuneToEnergy:      return EnumLabels.LabelsForEnergy();
                 case ConditionProperty.WithinRange:
                     return new List<string> {
                         RangeBrackets.Label(RangeBracket.Melee),
@@ -487,6 +504,8 @@ namespace WrathTactics.UI {
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition,
+                        ConditionProperty.HasDescriptorEffect,
+                        ConditionProperty.ImmuneToEnergy,
                         ConditionProperty.SpellSlotsAtLevel, ConditionProperty.SpellSlotsAboveLevel,
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
@@ -498,6 +517,8 @@ namespace WrathTactics.UI {
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
+                        ConditionProperty.HasDescriptorEffect,
+                        ConditionProperty.ImmuneToEnergy,
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
@@ -509,6 +530,8 @@ namespace WrathTactics.UI {
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
+                        ConditionProperty.HasDescriptorEffect,
+                        ConditionProperty.ImmuneToEnergy,
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
@@ -534,6 +557,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.HpPercent, ConditionProperty.AC,
                         ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,
                         ConditionProperty.HasBuff, ConditionProperty.HasCondition,
+                        ConditionProperty.HasDescriptorEffect,
+                        ConditionProperty.ImmuneToEnergy,
                         ConditionProperty.CreatureType,
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
@@ -552,6 +577,8 @@ namespace WrathTactics.UI {
                     return new List<ConditionProperty> {
                         ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.CreatureType,
+                        ConditionProperty.HasDescriptorEffect,
+                        ConditionProperty.ImmuneToEnergy,
                         ConditionProperty.Alignment,
                         ConditionProperty.HitDice,
                         ConditionProperty.SpellDCMinusSave,

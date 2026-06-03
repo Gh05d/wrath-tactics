@@ -42,9 +42,25 @@ namespace WrathTactics.Localization {
             "Cowering", "DeathDoor",
         };
 
+        // SpellDescriptor names for HasDescriptorEffect — statuses tracked as descriptor-flagged
+        // buffs rather than UnitConditions (so they're NOT in KeysForCondition). Poison/Disease
+        // catch ALL poison/disease buffs in one check; Bleed likewise. Names must match the game
+        // SpellDescriptor enum exactly (Enum.TryParse).
+        public static List<string> KeysForDescriptorEffect() => new List<string> {
+            "Poison", "Disease", "Bleed",
+        };
+
+        // DamageEnergyType names for ImmuneToEnergy — the five castable elemental energies.
+        // Must match the game DamageEnergyType enum exactly (Enum.TryParse).
+        public static List<string> KeysForEnergy() => new List<string> {
+            "Fire", "Cold", "Electricity", "Acid", "Sonic",
+        };
+
         public static List<string> LabelsForCreatureType() => Map(KeysForCreatureType(), k => $"enum.creature_type.{k}".i18n());
         public static List<string> LabelsForAlignment() => Map(KeysForAlignment(), k => $"enum.alignment.{k}".i18n());
         public static List<string> LabelsForCondition() => Map(KeysForCondition(), k => $"enum.condition.{k}".i18n());
+        public static List<string> LabelsForDescriptorEffect() => Map(KeysForDescriptorEffect(), k => $"enum.descriptor.{k}".i18n());
+        public static List<string> LabelsForEnergy() => Map(KeysForEnergy(), k => $"enum.energy.{k}".i18n());
 
         /// <summary>
         /// The 10 vanilla Metamagic enum values — same order as the Metamagic enum,

@@ -159,6 +159,8 @@
   "enum.property.IsPet": "Ist Tiergefährte",
   "enum.property.IsFlanked": "Wird flankiert",
   "enum.property.AdjacentEnemyCount": "Gegner angrenzend",
+  "enum.property.HasDescriptorEffect": "Betroffen von",
+  "enum.property.ImmuneToEnergy": "Immun gegen Energie",
   "enum.property.EnemyHDMinusPartyLevel": "TW − GruppenMax",
 
   "enum.action.CastSpell": "Zauber wirken",
@@ -263,6 +265,16 @@
   "enum.condition.Helpless": "Hilflos",
   "enum.condition.Cowering": "Kauernd",
   "enum.condition.DeathDoor": "Todesnähe",
+
+  "enum.descriptor.Poison": "Gift",
+  "enum.descriptor.Disease": "Krankheit",
+  "enum.descriptor.Bleed": "Blutung",
+
+  "enum.energy.Fire": "Feuer",
+  "enum.energy.Cold": "Kälte",
+  "enum.energy.Electricity": "Elektrizität",
+  "enum.energy.Acid": "Säure",
+  "enum.energy.Sonic": "Schall",
 
   "cast.rod.label": "Rute",
   "cast.rod.none": "(keine Metamagie-Rute)",
