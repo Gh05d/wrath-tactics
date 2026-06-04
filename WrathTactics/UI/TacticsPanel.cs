@@ -509,7 +509,6 @@ namespace WrathTactics.UI {
 
             rules.Add(new TacticsRule {
                 Name = "default.new_rule_name".i18n(),
-                Priority = rules.Count,
                 Enabled = true,
                 ConditionGroups = new List<ConditionGroup> {
                     new ConditionGroup {
@@ -544,7 +543,6 @@ namespace WrathTactics.UI {
                     Id = System.Guid.NewGuid().ToString(),
                     Enabled = true,
                     PresetId = preset.Id,
-                    Priority = list.Count,
                 });
                 ConfigManager.Save();
                 RefreshRuleList();

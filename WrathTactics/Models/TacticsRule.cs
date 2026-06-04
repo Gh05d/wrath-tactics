@@ -7,7 +7,6 @@ namespace WrathTactics.Models {
         [JsonProperty] public string Id { get; set; } = System.Guid.NewGuid().ToString();
         [JsonProperty] public string Name { get; set; } = "New Rule";
         [JsonProperty] public bool Enabled { get; set; } = true;
-        [JsonProperty] public int Priority { get; set; }
         [JsonProperty] public int CooldownRounds { get; set; } = 1;
         [JsonProperty] public List<ConditionGroup> ConditionGroups { get; set; } = new();
         [JsonProperty] public ActionDef Action { get; set; } = new();

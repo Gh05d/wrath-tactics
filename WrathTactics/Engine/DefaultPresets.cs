@@ -27,7 +27,6 @@ namespace WrathTactics.Engine {
             Id = "default-emergency-self-heal",
             Name = "Emergency Self-Heal",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
@@ -47,7 +46,6 @@ namespace WrathTactics.Engine {
             Id = "default-party-channel-heal",
             Name = "Party Heal (Channel Positive)",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
@@ -71,7 +69,6 @@ namespace WrathTactics.Engine {
             Id = "default-counter-swarms",
             Name = "Counter Swarms (Splash)",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
@@ -91,7 +88,6 @@ namespace WrathTactics.Engine {
             Id = "default-coup-de-grace",
             Name = "Coup de Grace on Helpless",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
@@ -119,7 +115,6 @@ namespace WrathTactics.Engine {
             Id = "default-channel-vs-undead",
             Name = "Channel Against Undead",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
@@ -143,7 +138,6 @@ namespace WrathTactics.Engine {
             Id = "default-smite-evil",
             Name = "Smite Evil",
             Enabled = true,
-            Priority = 0,
             CooldownRounds = 1,
             ConditionGroups = new List<ConditionGroup> {
                 new ConditionGroup { Conditions = new List<Condition> {
