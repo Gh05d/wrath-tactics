@@ -476,11 +476,13 @@ namespace WrathTactics.UI {
             btnRect.sizeDelta = Vector2.zero;
             UIHelpers.AddBackground(btnObj, new Color(0.22f, 0.22f, 0.22f, 1f));
 
-            string currentLabel = BuffBlueprintProvider.GetName(condition.Value);
+            string currentLabel = BuffBlueprintProvider.GetDisplayLabel(condition.Value);
             if (string.IsNullOrEmpty(currentLabel) || currentLabel == condition.Value)
                 currentLabel = string.IsNullOrEmpty(condition.Value) ? "placeholder.pick_buff".i18n() : currentLabel;
             var label = UIHelpers.AddLabel(btnObj, currentLabel, 14f, TextAlignmentOptions.MidlineLeft);
             label.margin = new Vector4(6, 0, 20, 0);
+            // The internal-id suffix can overrun this narrow button — clip rather than overlap the arrow.
+            label.overflowMode = TextOverflowModes.Ellipsis;
 
             var (arrow, arrowRect) = UIHelpers.Create("Arrow", btnObj.transform);
             arrowRect.SetAnchor(0.88, 1, 0, 1);
@@ -493,7 +495,7 @@ namespace WrathTactics.UI {
                 BuffPickerOverlay.Open(condition.Value, subjectForPicker, guid => {
                     condition.Value = guid;
                     onChanged?.Invoke();
-                    label.text = BuffBlueprintProvider.GetName(guid);
+                    label.text = BuffBlueprintProvider.GetDisplayLabel(guid);
                 });
             });
         }

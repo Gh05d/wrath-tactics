@@ -95,5 +95,34 @@ namespace WrathTactics.Engine {
             }
             return guid;
         }
+
+        /// <summary>
+        /// Like <see cref="GetName"/> but appends the internal blueprint id in parentheses
+        /// when it differs from the localized name. Multiple BlueprintBuffs can share a
+        /// localized name (Witch vs. Shaman "Evil Eye", the many "Haste" buffs); HasBuff
+        /// matches by exact GUID, so the internal id is the only reliable disambiguator for
+        /// the player picking a buff. Falls back to the raw guid when not yet cached/unknown.
+        /// </summary>
+        public static string GetDisplayLabel(string guid) {
+            if (cachedBuffs == null || string.IsNullOrEmpty(guid)) return guid;
+            foreach (var entry in cachedBuffs) {
+                if (entry.Guid == guid) return FormatDisplayLabel(entry.Name, entry.InternalName);
+            }
+            return guid;
+        }
+
+        /// <summary>
+        /// Composes a label: localized name, plus the internal blueprint id as a dim
+        /// suffix when it differs. The TMP rich-text tags render the suffix smaller/greyer
+        /// in the picker rows and selected-buff label; non-TMP consumers (tests) just see
+        /// the composed string. No suffix when the internal id equals the name (hidden/system
+        /// buffs whose display name falls back to the internal id) or is absent.
+        /// </summary>
+        internal static string FormatDisplayLabel(string name, string internalName) {
+            if (string.IsNullOrEmpty(name)) return internalName ?? "";
+            if (string.IsNullOrEmpty(internalName) || string.Equals(name, internalName, StringComparison.Ordinal))
+                return name;
+            return name + "  <size=80%><color=#9090A0>(" + internalName + ")</color></size>";
+        }
     }
 }

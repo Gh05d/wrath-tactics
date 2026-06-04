@@ -20,5 +20,23 @@ namespace WrathTactics.Tests {
             Assert.Throws<NullReferenceException>(
                 () => BuffBlueprintProvider.IsCrusadeOnlyBuff(null));
         }
+
+        [Fact]
+        public void FormatDisplayLabel_appends_internal_name_when_distinct() {
+            // Witch vs. Shaman "Evil Eye" share a localized name but are distinct
+            // blueprints — the internal id must be surfaced to disambiguate.
+            var result = BuffBlueprintProvider.FormatDisplayLabel("Evil Eye", "WitchEvilEyeHexBuff");
+            Assert.StartsWith("Evil Eye", result);
+            Assert.Contains("WitchEvilEyeHexBuff", result);
+            Assert.Contains("(", result);
+        }
+
+        [Theory]
+        [InlineData("BlessBuff", "BlessBuff")]   // identical (hidden buff w/o display name) -> no suffix
+        [InlineData("Bless",     "")]            // no internal name -> bare display name
+        [InlineData("Bless",     null)]
+        public void FormatDisplayLabel_returns_bare_name_when_no_distinct_internal(string name, string intName) {
+            Assert.Equal(name, BuffBlueprintProvider.FormatDisplayLabel(name, intName));
+        }
     }
 }

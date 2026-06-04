@@ -277,7 +277,12 @@ namespace WrathTactics.UI {
             var (row, _) = UIHelpers.Create("Row_" + entry.Guid, rowsContainer.transform);
             row.AddComponent<LayoutElement>().preferredHeight = 32;
             UIHelpers.AddBackground(row, new Color(0.2f, 0.2f, 0.2f, 1f));
-            var label = UIHelpers.AddLabel(row, entry.Name, 14f, TextAlignmentOptions.MidlineLeft);
+            // Localized name + dim internal id (e.g. "Evil Eye (ShamanEvilEyeHexBuff)") so
+            // distinct buffs sharing a display name are distinguishable — HasBuff matches by
+            // exact GUID, so picking the wrong same-named blueprint silently never matches.
+            var label = UIHelpers.AddLabel(row,
+                BuffBlueprintProvider.FormatDisplayLabel(entry.Name, entry.InternalName),
+                14f, TextAlignmentOptions.MidlineLeft);
             label.margin = new Vector4(8, 0, 4, 0);
             var guid = entry.Guid;
             row.AddComponent<Button>().onClick.AddListener(() => onSelected?.Invoke(guid));
