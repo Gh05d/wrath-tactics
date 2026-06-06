@@ -25,6 +25,9 @@
   "filter.no_matching_rules": "No matching rules",
   "filter.no_matching_presets": "No matching presets",
 
+  "global.priority_hint": "Global rules always run first: while one fires (or its action is still running), the character's own rules are skipped. Put catch-all rules like plain Attack on the character tabs instead.",
+  "global.preempt_hint": "Enabled global rules ({0}) run before these rules and can preempt them.",
+
   "section.if": "IF:",
   "section.then": "THEN:",
   "section.target": "TARGET:",

@@ -319,8 +319,12 @@ namespace WrathTactics.UI {
             // Same anchor as the rule scroll so the label overlays its center
             rect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             rect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(obj, "filter.no_matching_rules".i18n(), 16f,
-                TextAlignmentOptions.Midline, new Color(0.6f, 0.6f, 0.6f));
+            // Sits directly on the book-page art like the hints — needs the outline
+            // pattern for contrast (see UIHelpers.AddHintCard).
+            var emptyLabel = UIHelpers.AddLabel(obj, "filter.no_matching_rules".i18n(), 16f,
+                TextAlignmentOptions.Midline, new Color(0.75f, 0.75f, 0.75f));
+            emptyLabel.outlineWidth = 0.25f;
+            emptyLabel.outlineColor = new Color32(0, 0, 0, 255);
             obj.SetActive(false);
             ruleFilterEmptyLabel = obj;
         }
@@ -438,9 +442,14 @@ namespace WrathTactics.UI {
         void RefreshRuleList() {
             if (ruleListContent == null) return;
 
-            // Clear existing cards (this destroys any prior PresetPanel too).
-            for (int i = ruleListContent.childCount - 1; i >= 0; i--)
-                Destroy(ruleListContent.GetChild(i).gameObject);
+            // Clear existing cards (this destroys any prior PresetPanel too). Detach
+            // first so the same-frame ApplyFilter pass and VLG layout only see live
+            // cards — Destroy() lands at end of frame.
+            while (ruleListContent.childCount > 0) {
+                var child = ruleListContent.GetChild(0);
+                child.SetParent(null, false);
+                Destroy(child.gameObject);
+            }
             currentPresetPanel = null;
 
             if (selectedUnitId == "presets") {
@@ -459,6 +468,25 @@ namespace WrathTactics.UI {
                 : config.GetRulesForCharacter(selectedUnitId);
 
             UpdateToggleLabel();
+
+            // Global-tab explainer: global rules are evaluated before every character's
+            // own rules each tick, and a firing global rule (or its still-running command)
+            // skips the character list entirely (TacticsEvaluator.EvaluateUnit /
+            // ActiveRuleTracker.Resolve). Users who park a catch-all Attack rule here
+            // starve all per-character rules and report "my rules never fire" — surface
+            // the semantics where the rules are edited. Plain label card without
+            // RuleEditorWidget — ApplyFilter ignores it.
+            if (selectedUnitId == null) {
+                UIHelpers.AddHintCard(ruleListContent, "global.priority_hint".i18n());
+            } else {
+                // Char-tab counterpart: show how many enabled global rules run ahead
+                // of this list — the "my rules never fire" symptom is debugged here.
+                int enabledGlobals = 0;
+                foreach (var r in config.GlobalRules) if (r.Enabled) enabledGlobals++;
+                if (enabledGlobals > 0)
+                    UIHelpers.AddHintCard(ruleListContent,
+                        Strings.Format("global.preempt_hint", enabledGlobals), 24f);
+            }
 
             for (int i = 0; i < rules.Count; i++) {
                 var (card, _) = UIHelpers.Create($"Rule_{i}", ruleListContent);

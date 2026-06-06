@@ -25,6 +25,9 @@
   "filter.no_matching_rules": "Keine passenden Regeln",
   "filter.no_matching_presets": "Keine passenden Vorlagen",
 
+  "global.priority_hint": "Globale Regeln laufen immer zuerst: Solange eine feuert (oder ihre Aktion noch läuft), werden die eigenen Regeln des Charakters übersprungen. Auffangregeln wie einfaches Angreifen gehören auf die Charakter-Tabs.",
+  "global.preempt_hint": "Aktivierte globale Regeln ({0}) laufen vor diesen Regeln und können sie verdrängen.",
+
   "section.if": "WENN:",
   "section.then": "DANN:",
   "section.target": "ZIEL:",

@@ -25,6 +25,9 @@
   "filter.no_matching_rules": "Aucune règle correspondante",
   "filter.no_matching_presets": "Aucun modèle correspondant",
 
+  "global.priority_hint": "Les règles globales s'exécutent toujours en premier : tant que l'une se déclenche (ou que son action est en cours), les règles propres au personnage sont ignorées. Placez les règles génériques comme l'attaque simple sur les onglets de personnage.",
+  "global.preempt_hint": "Les règles globales activées ({0}) s'exécutent avant celles-ci et peuvent les supplanter.",
+
   "section.if": "SI :",
   "section.then": "ALORS :",
   "section.target": "CIBLE :",

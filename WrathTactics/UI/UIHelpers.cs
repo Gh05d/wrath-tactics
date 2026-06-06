@@ -96,6 +96,25 @@ namespace WrathTactics.UI {
             return tmp;
         }
 
+        /// <summary>
+        /// Grey explainer strip for list areas. Word-wraps within a FontScale-scaled
+        /// height budget (Ellipsis beyond). raycastTarget stays ON so mouse-wheel and
+        /// drag over the strip bubble to the enclosing ScrollRect (no Button anywhere
+        /// in hint chains, so it is click-inert). Hints sit directly on the book-page
+        /// art (no card background), so use the title/toggle-label outline pattern —
+        /// plain grey washes out on the light parchment pages.
+        /// </summary>
+        public static TextMeshProUGUI AddHintCard(Transform parent, string text, float preferredHeight = 52f) {
+            var (obj, _) = Create("Hint", parent);
+            obj.AddComponent<LayoutElement>().preferredHeight = preferredHeight * FontScale;
+            var tmp = AddLabel(obj, text, 13f, TextAlignmentOptions.TopLeft, new Color(0.85f, 0.85f, 0.85f));
+            tmp.enableWordWrapping = true;
+            tmp.raycastTarget = true;
+            tmp.outlineWidth = 0.25f;
+            tmp.outlineColor = new Color32(0, 0, 0, 255);
+            return tmp;
+        }
+
         public static Image AddBackground(GameObject obj, Color color) {
             var img = obj.AddComponent<Image>();
             img.color = color;

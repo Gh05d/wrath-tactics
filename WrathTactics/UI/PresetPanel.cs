@@ -53,11 +53,7 @@ namespace WrathTactics.UI {
                 TextAlignmentOptions.MidlineLeft, Color.white);
 
             // Hint
-            var (hint, _h) = UIHelpers.Create("Hint", root.transform);
-            hint.AddComponent<LayoutElement>().preferredHeight = 40;
-            UIHelpers.AddLabel(hint,
-                "preset.hint".i18n(),
-                13f, TextAlignmentOptions.TopLeft, new Color(0.7f, 0.7f, 0.7f));
+            UIHelpers.AddHintCard(root.transform, "preset.hint".i18n(), 40f);
 
             // Export All Presets — copies the whole collection as a JSON array
             var (exportAllBtn, _ea) = UIHelpers.Create("ExportAllBtn", root.transform);
