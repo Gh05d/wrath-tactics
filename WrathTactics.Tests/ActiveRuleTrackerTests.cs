@@ -101,5 +101,22 @@ namespace WrathTactics.Tests {
 
             Assert.True(res.Stale);
         }
+
+        // IsTrackedCommandDead is the pure core of GetActive's auto-clear.
+        // UnitCommands.Run can silently discard a command without ever setting
+        // IsFinished (CanRunCommand veto on unconscious/CantUseStandardActions,
+        // or TryMergeInto folding it into a running PreviousCommand) — such a
+        // command stays IsStarted=false/IsFinished=false forever and must not
+        // hold the priority gate open for the rest of the combat.
+        [Theory]
+        [InlineData(true,  false, false, true)]  // finished → dead
+        [InlineData(true,  true,  true,  true)]  // finished wins regardless of other flags
+        [InlineData(false, true,  true,  false)] // started + unfinished = running → alive
+        [InlineData(false, true,  false, false)] // slot residency is irrelevant once started
+        [InlineData(false, false, true,  false)] // pre-start but slotted (will run) → alive
+        [InlineData(false, false, false, true)]  // never started, in no slot → engine discarded it
+        public void tracked_command_death_matrix(bool isFinished, bool isStarted, bool occupiesSlot, bool dead) {
+            Assert.Equal(dead, ActiveRuleTracker.IsTrackedCommandDead(isFinished, isStarted, occupiesSlot));
+        }
     }
 }

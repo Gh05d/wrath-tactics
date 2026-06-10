@@ -34,7 +34,6 @@ namespace WrathTactics.Engine {
                     if (allPass) { matchedEnemy = enemy; break; }
                 }
                 if (matchedEnemy == null) return false;
-                LastMatchedEnemy = matchedEnemy;
             }
 
             // Count path: count enemies that pass every non-Count condition AND every Count
@@ -65,6 +64,9 @@ namespace WrathTactics.Engine {
                 if (!CompareCount(count, countThreshold, countOp)) return false;
             }
 
+            // Latch only after the whole bucket passed — latching before the count
+            // gate leaks a unit from a failing group into later OR-groups.
+            if (matchedEnemy != null) LastMatchedEnemy = matchedEnemy;
             return true;
         }
 
@@ -79,8 +81,9 @@ namespace WrathTactics.Engine {
             // AllyByName conditions pin a specific ally per condition (Value2 = UniqueId).
             // They short-circuit the iterative match below: each must pass against its
             // own pinned ally, or the whole group fails. LastMatchedAlly latches onto
-            // the first pinned ally so ConditionTarget / PointAtConditionTarget can
-            // find it downstream.
+            // the first pinned ally (at the end, once the whole bucket passed) so
+            // ConditionTarget / PointAtConditionTarget can find it downstream.
+            UnitEntityData firstPinned = null;
             var byNameConds = conds.Where(c => c.Subject == ConditionSubject.AllyByName).ToList();
             foreach (var c in byNameConds) {
                 var pinned = AllyProvider.Resolve(c.Value2);
@@ -89,7 +92,7 @@ namespace WrathTactics.Engine {
                     return false;
                 }
                 if (!EvaluateUnitProperty(c, pinned)) return false;
-                if (LastMatchedAlly == null) LastMatchedAlly = pinned;
+                if (firstPinned == null) firstPinned = pinned;
             }
 
             var nonCountConds = conds.Where(c =>
@@ -107,7 +110,6 @@ namespace WrathTactics.Engine {
                     if (allPass) { matchedAlly = ally; break; }
                 }
                 if (matchedAlly == null) return false;
-                if (LastMatchedAlly == null) LastMatchedAlly = matchedAlly;
             }
 
             if (countConds.Count > 0) {
@@ -146,6 +148,11 @@ namespace WrathTactics.Engine {
                 }
             }
 
+            // Latch only after the whole bucket passed (see EvaluateEnemyBucket).
+            // Pinned-ally precedence over iterative match mirrors the pre-refactor
+            // "first writer wins" order: byName latched before the non-count loop.
+            var latch = firstPinned ?? matchedAlly;
+            if (latch != null) LastMatchedAlly = latch;
             return true;
         }
     }

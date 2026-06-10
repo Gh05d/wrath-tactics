@@ -229,6 +229,13 @@ namespace WrathTactics.Engine {
                         if (known?.Blueprint != spell) continue;
                         if (book.GetAvailableForCastSpellCount(known) != 0) return true;
                     }
+                    // Custom spells = metamagic-prepared / fused variants. Without this
+                    // loop a spell prepared only as a metamagic variant counts as "not
+                    // castable natively" and its scroll is pushed through the UMD gate.
+                    foreach (var custom in book.GetCustomSpells(level)) {
+                        if (custom?.Blueprint != spell) continue;
+                        if (book.GetAvailableForCastSpellCount(custom) != 0) return true;
+                    }
                     foreach (var special in book.GetSpecialSpells(level)) {
                         if (special?.Blueprint != spell) continue;
                         if (book.GetAvailableForCastSpellCount(special) != 0) return true;

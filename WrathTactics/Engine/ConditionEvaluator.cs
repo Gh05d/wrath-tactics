@@ -62,6 +62,16 @@ namespace WrathTactics.Engine {
         }
 
         static bool EvaluateGroup(ConditionGroup group, UnitEntityData owner) {
+            // Latch hygiene: a FAILED earlier OR-group may have latched
+            // LastMatchedEnemy/Ally before its count gate rejected. Without this
+            // reset, a later group that passes without enemy/ally conditions hands
+            // ConditionTarget a unit from the failed group (possibly dead by now) —
+            // validation then rejects and the rule is silently skipped, or worse,
+            // the wrong unit is targeted. Consumers only read the latches after
+            // Evaluate returns true, i.e. after the passing group — whose values
+            // this reset preserves.
+            ClearMatchedEntities();
+
             if (group.Conditions == null || group.Conditions.Count == 0)
                 return true;
 

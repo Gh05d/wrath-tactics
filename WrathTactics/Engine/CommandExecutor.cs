@@ -51,6 +51,38 @@ namespace WrathTactics.Engine {
             return new TargetWrapper(owner); // fallback preserves pre-refactor "no target = self" behavior
         }
 
+        // UnitCommands.Run can silently discard the command instead of slotting it
+        // (IL-verified): CanRunCommand vetoes when the unit is not IsConscious or has
+        // UnitCondition.CantUseStandardActions (Standard commands), and TryMergeInto
+        // folds a same-Ability UnitUseAbility into a still-running PreviousCommand.
+        // A discarded command never starts and never finishes — tracking it would
+        // wedge ActiveRuleTracker's priority gate until combat end (rules "skipped").
+        // Returns the command actually in flight (the issued one, or the merged slot
+        // occupant), or null when the engine vetoed the run entirely.
+        static UnitCommand RunVerified(UnitEntityData owner, UnitCommand command) {
+            owner.Commands.Run(command);
+            var slots = owner.Commands.Raw;
+            for (int i = 0; i < slots.Length; i++) {
+                if (ReferenceEquals(slots[i], command)) {
+                    PlayerCommandGuard.Track(owner, command);
+                    return command;
+                }
+            }
+            // Merge case: the cast IS happening via the re-promoted PreviousCommand —
+            // treat as success but gate on the live occupant, not our dead object.
+            if (command is UnitUseAbility ours) {
+                for (int i = 0; i < slots.Length; i++) {
+                    if (slots[i] is UnitUseAbility other && other.IsRunning && other.Ability == ours.Ability) {
+                        PlayerCommandGuard.Track(owner, other);
+                        Log.Engine.Debug($"Commands.Run merged {ours.Ability?.Name} into running command for {owner.CharacterName} — gating on slot occupant");
+                        return other;
+                    }
+                }
+            }
+            Log.Engine.Warn($"Commands.Run discarded {command.GetType().Name} for {owner.CharacterName} (engine veto) — treating as not executed");
+            return null;
+        }
+
         static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
             issuedCommand = null;
             ItemEntity inventorySource;
@@ -93,9 +125,10 @@ namespace WrathTactics.Engine {
             // Spellbook / Wand / class ability — animated cast command.
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
-                owner.Commands.Run(command);
-                PlayerCommandGuard.Track(owner, command);
-                issuedCommand = command;
+                issuedCommand = RunVerified(owner, command);
+                // Engine veto (unit CC'd/unconscious): no Rulebook fallback — the unit
+                // must not act at all this tick. Cooldown stays unstamped; retry next tick.
+                if (issuedCommand == null) return false;
                 string tgtDesc = target.IsPoint
                     ? $"point({target.Point.Value.x:F1},{target.Point.Value.z:F1})"
                     : (target.Unit?.CharacterName ?? "self");
@@ -169,9 +202,8 @@ namespace WrathTactics.Engine {
                 return false;
             }
 
-            owner.Commands.Run(command);
-            PlayerCommandGuard.Track(owner, command);
-            issuedCommand = command;
+            issuedCommand = RunVerified(owner, command);
+            if (issuedCommand == null) return false;
             Log.Engine.Info($"Queued item use on {owner.CharacterName}");
             return true;
         }
@@ -237,9 +269,8 @@ namespace WrathTactics.Engine {
             // Spellbook spell, class ability, or quickslot wand — animated cast path.
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {
-                owner.Commands.Run(command);
-                PlayerCommandGuard.Track(owner, command);
-                issuedCommand = command;
+                issuedCommand = RunVerified(owner, command);
+                if (issuedCommand == null) return false;
                 Log.Engine.Info($"Heal (animated): {ability.Name} on {owner.CharacterName} -> {target?.CharacterName ?? "self"}");
                 return true;
             }
@@ -322,9 +353,8 @@ namespace WrathTactics.Engine {
                 return false;
             }
             var command = new UnitSwitchHandEquipmentSet(targetIndex);
-            owner.Commands.Run(command);
-            PlayerCommandGuard.Track(owner, command);
-            issuedCommand = command;
+            issuedCommand = RunVerified(owner, command);
+            if (issuedCommand == null) return false;
             Log.Engine.Info($"SwitchWeaponSet: {owner.CharacterName} -> set {targetIndex}");
             return true;
         }
@@ -334,9 +364,8 @@ namespace WrathTactics.Engine {
             if (target == null) return false;
 
             var command = new UnitAttack(target, null);
-            owner.Commands.Run(command);
-            PlayerCommandGuard.Track(owner, command);
-            issuedCommand = command;
+            issuedCommand = RunVerified(owner, command);
+            if (issuedCommand == null) return false;
             Log.Engine.Info($"Queued attack on {owner.CharacterName} -> {target.CharacterName}");
             return true;
         }

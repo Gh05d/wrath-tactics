@@ -45,17 +45,40 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
-        /// Returns the active entry iff the tracked command is still in flight
-        /// (not null and not IsFinished). Auto-clears finished/null commands.
+        /// Returns the active entry iff the tracked command is still in flight.
+        /// Auto-clears null, finished, and engine-discarded commands. A command
+        /// is discarded (never started, never finished) when UnitCommands.Run
+        /// silently drops it: CanRunCommand veto (unit unconscious, or
+        /// CantUseStandardActions for Standard commands) or TryMergeInto folding
+        /// it into a still-running PreviousCommand. Without the discard check the
+        /// gate wedges until combat end — IsFinished alone never goes true.
         /// </summary>
         public static Entry? GetActive(UnitEntityData unit) {
             if (unit == null) return null;
             if (!activeByUnit.TryGetValue(unit.UniqueId, out var entry)) return null;
-            if (entry.Command == null || entry.Command.IsFinished) {
+            if (entry.Command == null
+                || IsTrackedCommandDead(entry.Command.IsFinished, entry.Command.IsStarted, OccupiesSlot(unit, entry.Command))) {
                 activeByUnit.Remove(unit.UniqueId);
                 return null;
             }
             return entry;
+        }
+
+        /// <summary>Pure core of GetActive's auto-clear (see GetActive doc).</summary>
+        internal static bool IsTrackedCommandDead(bool isFinished, bool isStarted, bool occupiesSlot) {
+            return isFinished || (!isStarted && !occupiesSlot);
+        }
+
+        // Raw returns m_Commands (the per-type slot array). Run() places a command
+        // into its slot synchronously; a started command leaves the slot only by
+        // finishing. So "not started AND in no slot" reliably means "discarded".
+        static bool OccupiesSlot(UnitEntityData unit, UnitCommand cmd) {
+            var slots = unit.Commands?.Raw;
+            if (slots == null) return false;
+            for (int i = 0; i < slots.Length; i++) {
+                if (ReferenceEquals(slots[i], cmd)) return true;
+            }
+            return false;
         }
 
         public static void Clear(UnitEntityData unit) {
