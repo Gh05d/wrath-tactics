@@ -30,6 +30,7 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481). Covers `ConditionEvalu
 Run before pushing changes to `ConditionEvaluator`, `BuffBlueprintProvider`, `CommonBuffRegistry`, or `Models/Enums.cs` (`RangeBrackets`).
 
 - **Mono required**: `sudo apt install mono-complete` (one-time). Without it: "Could not find 'mono' host".
+- **Flaky mono runner — re-run before believing failures**: the first `dotnet test` after a build frequently crashes the mono host (native stacktrace + "Test Run Aborted", or a completed run with nearly ALL tests failed and ~1 passed). In-flight tests get reported as FAILED. A clean re-run finishes in ~0.5 s with everything green; only trust failures that reproduce on a second run.
 - **Game DLLs at test runtime**: test csproj's `AfterTargets="Build"` target copies `GameInstall/Wrath_Data/Managed/*.dll` + `WrathTactics/obj/Debug/publicized/*.dll` to test output. Without the copy, `TypeLoadException` on first `ConditionEvaluator` field load.
 - **InternalsVisibleTo**: `WrathTactics/Properties/AssemblyInfo.cs` exposes internals to the test assembly. Promote private statics to `internal static` to test them.
 - **No CI by design**: game DLLs unreachable from GitHub runners. Run tests locally before release.
@@ -201,6 +202,8 @@ Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The 
 Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, file_group_id 4191).
 
 `deploy.sh` is **dev-only** — Debug build SCP'd to Steam Deck for smoke-testing. Release builds come from `/release`'s Release-config build → `WrathTactics/bin/WrathTactics-X.Y.Z.zip`.
+
+**Nexus-upload action fails with Cloudflare 504**: transient Nexus-side timeout during the multipart part upload, not a workflow/config problem. Fix: `gh run rerun <run-id> --repo Gh05d/wrath-tactics --failed` — don't debug the workflow (observed + resolved this way on v1.18.0).
 
 ## Logs
 
