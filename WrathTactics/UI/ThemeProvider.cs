@@ -18,6 +18,8 @@ namespace WrathTactics.UI {
         public static Sprite TabHeaderInactive { get; private set; }
         public static Sprite ScrollbarTrack { get; private set; }
         public static Sprite ScrollbarHandle { get; private set; }
+        public static Sprite HudButton { get; private set; }
+        public static Sprite HudButtonHover { get; private set; }
 
         public static void Init() {
             // 9-slice border values are read directly from the original Owlcat sprite metadata
@@ -35,16 +37,20 @@ namespace WrathTactics.UI {
             TabHeaderInactive  = Load("tab_header_inactive.png",  new Vector4( 28,  28,  20, 35));
             ScrollbarTrack     = Load("scrollbar_track.png",      new Vector4(  0,  79,   0, 67));
             ScrollbarHandle    = Load("scrollbar_handle.png",     new Vector4(  7,  41,   8, 46));
+            HudButton          = Load("hud_button.png",           Vector4.zero);
+            HudButtonHover     = Load("hud_button_hover.png",     Vector4.zero);
 
-            int loaded = 0;
-            foreach (var s in new[] { PanelBackground, InnerParchment, TitleBarBackground,
+            var all = new[] { PanelBackground, InnerParchment, TitleBarBackground,
                 CloseButtonNormal, CloseButtonHover, CloseButtonPressed,
                 ActionButtonNormal, ActionButtonHover, ActionButtonPressed,
                 TabHeaderActive, TabHeaderInactive,
-                ScrollbarTrack, ScrollbarHandle }) {
+                ScrollbarTrack, ScrollbarHandle,
+                HudButton, HudButtonHover };
+            int loaded = 0;
+            foreach (var s in all) {
                 if (s != null) loaded++;
             }
-            Log.UI.Info($"ThemeProvider initialised — {loaded}/13 sprites loaded.");
+            Log.UI.Info($"ThemeProvider initialised — {loaded}/{all.Length} sprites loaded.");
         }
 
         static Sprite Load(string file, Vector4 border) =>

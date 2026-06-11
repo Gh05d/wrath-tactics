@@ -27,6 +27,9 @@
 
   "global.priority_hint": "全局规则始终优先执行: 只要有一条全局规则触发 (或其动作仍在执行中), 角色自己的规则就会被跳过。像普通攻击这类兜底规则请放在角色页面中。",
   "global.preempt_hint": "已启用的全局规则 ({0}) 会先于这些规则执行, 并可能导致其被跳过。",
+  "hud_button.hide": "隐藏HUD按钮, Ctrl+T 仍可打开此面板",
+  "hud_button.show": "显示HUD按钮",
+  "hud_button.save_failed": "保存失败, 请查看 Logs 文件夹",
 
   "section.if": "如果:",
   "section.then": "那么:",

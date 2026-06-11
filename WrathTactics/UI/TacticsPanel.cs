@@ -478,6 +478,7 @@ namespace WrathTactics.UI {
             // RuleEditorWidget — ApplyFilter ignores it.
             if (selectedUnitId == null) {
                 UIHelpers.AddHintCard(ruleListContent, "global.priority_hint".i18n());
+                AddHudButtonToggleRow();
             } else {
                 // Char-tab counterpart: show how many enabled global rules run ahead
                 // of this list — the "my rules never fire" symptom is debugged here.
@@ -497,6 +498,36 @@ namespace WrathTactics.UI {
 
             ApplyFilter();
         }
+
+        // Global-tab setting row: shows/hides the HUD button (controller players have no
+        // cursor to click it and want it gone; Ctrl+T keeps working). Lives in the rule
+        // list like the hint cards — no RuleEditorWidget, so ApplyFilter ignores it.
+        void AddHudButtonToggleRow() {
+            var (row, _) = UIHelpers.Create("HudButtonToggle", ruleListContent);
+            row.AddComponent<LayoutElement>().preferredHeight = 32f * UIHelpers.FontScale;
+
+            TextMeshProUGUI label = null;
+            var btn = UIHelpers.MakeButton(row.transform, "HudButtonToggleBtn", HudToggleLabel(), 14f,
+                new Color(0.25f, 0.2f, 0.15f, 1f), () => {
+                    var settings = ModSettingsManager.Current;
+                    settings.ShowHudButton = !settings.ShowHudButton;
+                    bool saved = ModSettingsManager.Save();
+                    // Re-enabling should give instant feedback: push the floating-fallback
+                    // retry timer past its threshold so Update() recreates the button on
+                    // the next frame instead of after the 5 s BubbleBuffs grace period.
+                    if (settings.ShowHudButton) hudButtonRetrySeconds = 6f;
+                    // Update the label in place — a full RefreshRuleList would reset the
+                    // rule list scroll position just to repaint one string.
+                    if (label != null)
+                        label.text = saved ? HudToggleLabel() : "hud_button.save_failed".i18n();
+                });
+            btn.FillParent();
+            label = btn.GetComponentInChildren<TextMeshProUGUI>();
+            UIHelpers.EnsureAllHoverable(row);
+        }
+
+        static string HudToggleLabel() =>
+            (ModSettingsManager.Current.ShowHudButton ? "hud_button.hide" : "hud_button.show").i18n();
 
         void UpdateToggleLabel() {
             if (toggleLabel == null) return;
@@ -597,14 +628,24 @@ namespace WrathTactics.UI {
         float hudButtonRetrySeconds;
 
         void Update() {
-            // Re-create only when the button was actually destroyed (BubbleBuffs rebuilds its
-            // root on area load and our child gets torn down with it). DO NOT recreate on
+            // Controller players have no cursor to click the button with and asked for a
+            // way to remove it — machine-global setting (ModSettingsManager, not the
+            // per-save config), toggled on the Global tab. Ctrl+T still opens the panel.
+            // Destroy (not SetActive) so the recreate branch below stays the single owner
+            // of button lifetime; keep the retry timer zeroed so a later re-enable starts
+            // from a clean clock instead of a stale partial accumulation.
+            if (!ModSettingsManager.Current.ShowHudButton) {
+                if (hudButton != null) { Destroy(hudButton); hudButton = null; }
+                hudButtonRetrySeconds = 0f;
+            }
+            // Re-create only when the button was actually destroyed (BubbleBuffs rebuilds
+            // its root on area load and our child gets torn down with it; the hide-toggle
+            // branch above is the other path to null). DO NOT recreate on
             // !activeInHierarchy: dialog scenes deactivate the HUD parent briefly, and the
             // per-frame destroy+reparent cycle leaves the button at a transient layout state
             // — observed mid-screen over dialog text. Unity's destroyed-object equality
             // covers the BB-rebuild teardown case.
-            bool needsButton = hudButton == null;
-            if (needsButton && Game.Instance?.UI?.Canvas != null) {
+            else if (hudButton == null && Game.Instance?.UI?.Canvas != null) {
                 hudButtonRetrySeconds += Time.deltaTime;
                 var canvas = Game.Instance.UI.Canvas.transform;
                 // BubbleBuffs is the only container we can rely on as a parent: BB rebuilds
@@ -644,7 +685,7 @@ namespace WrathTactics.UI {
         void CreateButtonInGameContainer(Transform container) {
             if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
 
-            Sprite helmetSprite = TryExtractGameSprite(Game.Instance.UI.Canvas.transform);
+            Sprite helmetSprite = ResolveHudButtonSprite(Game.Instance.UI.Canvas.transform);
 
             var btn = new GameObject("TacticsBtn", typeof(RectTransform));
             btn.transform.SetParent(container, false);
@@ -663,6 +704,7 @@ namespace WrathTactics.UI {
 
             var btnComp = btn.AddComponent<Button>();
             btnComp.targetGraphic = btnImg;
+            WireHudButtonHover(btnComp, helmetSprite);
             btnComp.onClick.AddListener(() => {
                 Log.UI.Debug("HUD button clicked");
                 Toggle();
@@ -674,7 +716,7 @@ namespace WrathTactics.UI {
         void CreateFloatingHudButton(Transform canvas) {
             if (hudButton != null) { Object.Destroy(hudButton); hudButton = null; }
 
-            Sprite helmetSprite = TryExtractGameSprite(canvas);
+            Sprite helmetSprite = ResolveHudButtonSprite(canvas);
 
             var (btn, btnRect) = UIHelpers.Create("WrathTacticsHudBtn", canvas);
             hudButton = btn;
@@ -701,12 +743,36 @@ namespace WrathTactics.UI {
 
             var btnComp = btn.AddComponent<Button>();
             btnComp.targetGraphic = btnImg;
+            WireHudButtonHover(btnComp, helmetSprite);
             btnComp.onClick.AddListener(() => {
                 Log.UI.Debug("HUD button clicked!");
                 Toggle();
             });
 
             Log.UI.Info($"HUD button created (helmetSprite={(helmetSprite != null ? "found" : "null")})");
+        }
+
+        // Bundled vanilla helmet icon first (Assets/icons/hud_button.png — the same
+        // UI_HudIcon_Character_Default sprite the canvas extraction below chases at
+        // runtime, but deterministic). Live canvas extraction is only the backup for
+        // a missing/corrupt PNG on disk; the flat brown square in the callers is the
+        // last resort. Canvas extraction is known to fail in controller/console UI
+        // mode (different canvas hierarchy) — that failure shipped as the "brown
+        // square in the corner" Nexus report.
+        static Sprite ResolveHudButtonSprite(Transform canvas) =>
+            ThemeProvider.HudButton != null ? ThemeProvider.HudButton : TryExtractGameSprite(canvas);
+
+        // SpriteSwap hover for the bundled icon pair. No-op when the button ended up
+        // with an extracted/null sprite — the default ColorTint transition stays.
+        static void WireHudButtonHover(Button btn, Sprite normal) {
+            if (normal == null || normal != ThemeProvider.HudButton || ThemeProvider.HudButtonHover == null) return;
+            btn.transition = Selectable.Transition.SpriteSwap;
+            // selected/disabled left null — SpriteSwap falls back to the Image's own
+            // sprite, so the base visual stays authoritative if it ever changes.
+            btn.spriteState = new SpriteState {
+                highlightedSprite = ThemeProvider.HudButtonHover,
+                pressedSprite     = ThemeProvider.HudButtonHover,
+            };
         }
 
         static Sprite TryExtractGameSprite(Transform canvas) {

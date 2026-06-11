@@ -27,6 +27,9 @@
 
   "global.priority_hint": "Global rules always run first: while one fires (or its action is still running), the character's own rules are skipped. Put catch-all rules like plain Attack on the character tabs instead.",
   "global.preempt_hint": "Enabled global rules ({0}) run before these rules and can preempt them.",
+  "hud_button.hide": "Hide HUD button — Ctrl+T still opens this panel",
+  "hud_button.show": "Show HUD button",
+  "hud_button.save_failed": "Saving failed — see Logs folder",
 
   "section.if": "IF:",
   "section.then": "THEN:",

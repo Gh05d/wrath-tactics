@@ -17,6 +17,8 @@ Sprites extracted from Wrath of the Righteous 1.4 via UnityPy
 | tab_header_inactive.png | `UI_BoxButton_Default` (75×77) | Substitute: no UI_Tab_Inactive in 1.4; BoxButton_Default gives a flat-tab look |
 | scrollbar_track.png | `UI_ScrollVertical_BackLine` (3×241) |  |
 | scrollbar_handle.png | `UI_ScrollVertical_Handl_Default` (23×95) |  |
+| hud_button.png | `UI_HudIcon_Character_Default` (106×106) | From the `Bundles/ui` bundle (not sharedassets0). The helmet icon of the vanilla ingame-menu Character button — bundled so the HUD button never falls back to a flat brown square when runtime canvas extraction fails (e.g. controller/console UI mode). |
+| hud_button_hover.png | `UI_HudIcon_Character_Hover` (106×106) | Hover state for the above (SpriteSwap). |
 
 ## Re-extraction procedure
 

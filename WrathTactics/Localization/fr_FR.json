@@ -27,6 +27,9 @@
 
   "global.priority_hint": "Les règles globales s'exécutent toujours en premier : tant que l'une se déclenche (ou que son action est en cours), les règles propres au personnage sont ignorées. Placez les règles génériques comme l'attaque simple sur les onglets de personnage.",
   "global.preempt_hint": "Les règles globales activées ({0}) s'exécutent avant celles-ci et peuvent les supplanter.",
+  "hud_button.hide": "Masquer le bouton du HUD — Ctrl+T ouvre toujours ce panneau",
+  "hud_button.show": "Afficher le bouton du HUD",
+  "hud_button.save_failed": "Échec de l'enregistrement — voir le dossier Logs",
 
   "section.if": "SI :",
   "section.then": "ALORS :",
