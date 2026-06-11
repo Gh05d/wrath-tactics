@@ -50,6 +50,7 @@ namespace WrathTactics.Engine {
                 var countOp = countConds[0].CountOperator;
 
                 int count = 0;
+                UnitEntityData firstCounted = null;
                 foreach (var enemy in enemies) {
                     bool allPass = true;
                     foreach (var c in nonCountConds) {
@@ -59,9 +60,19 @@ namespace WrathTactics.Engine {
                     foreach (var cc in countConds) {
                         if (!MatchesPropertyThreshold(cc, enemy)) { allPass = false; break; }
                     }
-                    if (allPass) count++;
+                    if (allPass) {
+                        count++;
+                        if (firstCounted == null) firstCounted = enemy;
+                    }
                 }
                 if (!CompareCount(count, countThreshold, countOp)) return false;
+                // Count-only groups (no per-enemy conditions) previously latched nothing,
+                // so TargetType.ConditionTarget resolved to None and the rule silently
+                // skipped at validation ("rule matches but nobody attacks" report). Fall
+                // back to the first counted match. Stays null for pass-with-zero gates
+                // (e.g. EnemyCount < 3 passing on count=0) — no enemy satisfied the
+                // predicate, so there is no ConditionTarget to offer.
+                if (matchedEnemy == null) matchedEnemy = firstCounted;
             }
 
             // Latch only after the whole bucket passed — latching before the count
@@ -122,6 +133,7 @@ namespace WrathTactics.Engine {
                 var countOp = countConds[0].CountOperator;
 
                 int count = 0;
+                UnitEntityData firstCounted = null;
                 var perAlly = new List<string>();
                 // AllyCount historically includes self; keep that behavior (use GetAllPartyMembers
                 // without filtering owner) for Count, to match the previous EvaluateAllyCount.
@@ -136,7 +148,10 @@ namespace WrathTactics.Engine {
                             if (!MatchesPropertyThreshold(cc, ally)) { allPass = false; failReason = $"count {cc.Property}={cc.Value}"; break; }
                         }
                     }
-                    if (allPass) count++;
+                    if (allPass) {
+                        count++;
+                        if (firstCounted == null) firstCounted = ally;
+                    }
                     int hpPct = ally.Stats.HitPoints.ModifiedValue > 0
                         ? (int)(100f * ally.HPLeft / ally.Stats.HitPoints.ModifiedValue) : 0;
                     float dist = UnityEngine.Vector3.Distance(owner.Position, ally.Position);
@@ -146,6 +161,9 @@ namespace WrathTactics.Engine {
                     Log.Engine.Trace($"AllyBucket miss: count={count} {countOp} threshold={countThreshold} [{string.Join(", ", perAlly)}]");
                     return false;
                 }
+                // Count-only fallback so ConditionTarget resolves — see EvaluateEnemyBucket.
+                // Note: may latch the owner (AllyCount includes self by design).
+                if (matchedAlly == null) matchedAlly = firstCounted;
             }
 
             // Latch only after the whole bucket passed (see EvaluateEnemyBucket).
