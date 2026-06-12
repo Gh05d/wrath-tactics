@@ -136,6 +136,7 @@
   "enum.subject.EnemyHighestHD": "Gegner: höchste TW",
   "enum.subject.EnemyLowestHD": "Gegner: niedrigste TW",
   "enum.subject.AllyByName": "Bestimmter Verbündeter",
+  "enum.subject.EnemyNearest": "Gegner: nächster",
 
   "enum.property.HpPercent": "TP%",
   "enum.property.AC": "RK",

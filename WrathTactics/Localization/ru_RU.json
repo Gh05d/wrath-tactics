@@ -136,6 +136,7 @@
   "enum.subject.EnemyHighestHD": "Враг: макс. КЗ",
   "enum.subject.EnemyLowestHD": "Враг: мин. КЗ",
   "enum.subject.AllyByName": "Конкретный союзник",
+  "enum.subject.EnemyNearest": "Враг: ближайший",
 
   "enum.property.HpPercent": "HP%",
   "enum.property.AC": "КБ",

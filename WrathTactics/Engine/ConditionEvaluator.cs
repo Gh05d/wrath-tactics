@@ -121,6 +121,7 @@ namespace WrathTactics.Engine {
                     case ConditionSubject.EnemyHighestWill:   return EvaluateEnemyPick(condition, owner, UnitWill, biggest: true);
                     case ConditionSubject.EnemyHighestHD:     return EvaluateEnemyPick(condition, owner, UnitHD, biggest: true);
                     case ConditionSubject.EnemyLowestHD:      return EvaluateEnemyPick(condition, owner, UnitHD, biggest: false);
+                    case ConditionSubject.EnemyNearest:       return EvaluateEnemyPick(condition, owner, DistanceToOwner, biggest: false);
                     case ConditionSubject.Combat:              return EvaluateCombat(condition);
                     default:                                   return false;
                 }
@@ -284,6 +285,7 @@ namespace WrathTactics.Engine {
                 case ConditionSubject.EnemyHighestWill:
                 case ConditionSubject.EnemyHighestHD:
                 case ConditionSubject.EnemyLowestHD:
+                case ConditionSubject.EnemyNearest:
                     return true;
                 default:
                     return false;

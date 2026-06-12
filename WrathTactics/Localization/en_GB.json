@@ -136,6 +136,7 @@
   "enum.subject.EnemyHighestHD": "Enemy: highest HD",
   "enum.subject.EnemyLowestHD": "Enemy: lowest HD",
   "enum.subject.AllyByName": "Specific ally",
+  "enum.subject.EnemyNearest": "Enemy: nearest",
 
   "enum.property.HpPercent": "HP%",
   "enum.property.AC": "AC",

@@ -51,6 +51,14 @@ namespace WrathTactics.Engine {
             return UnitExtensions.GetHD(unit);
         }
 
+        // Distance to the rule owner via the CurrentOwner rule-scoped static (set for
+        // the whole Evaluate() lifetime, so available on both the dispatch and the
+        // bucket path). NaN fails the pick closed outside a rule evaluation.
+        static float DistanceToOwner(UnitEntityData unit) {
+            if (unit == null || CurrentOwner == null) return float.NaN;
+            return UnityEngine.Vector3.Distance(CurrentOwner.Position, unit.Position);
+        }
+
         // Returns (currentSpellDC − target's matching save). Returns float.NaN for
         // any disqualifying condition (non-cast action, unresolvable ability, spell
         // with no save). Callers must check IsNaN before comparing.
@@ -209,6 +217,7 @@ namespace WrathTactics.Engine {
                 case ConditionSubject.EnemyLowestWill:     biggest = false; return UnitWill;
                 case ConditionSubject.EnemyHighestHD:      biggest = true;  return UnitHD;
                 case ConditionSubject.EnemyLowestHD:       biggest = false; return UnitHD;
+                case ConditionSubject.EnemyNearest:        biggest = false; return DistanceToOwner;
                 default:                                   return null;
             }
         }

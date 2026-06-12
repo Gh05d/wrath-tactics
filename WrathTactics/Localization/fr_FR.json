@@ -136,6 +136,7 @@
   "enum.subject.EnemyHighestHD": "Ennemi : DV max",
   "enum.subject.EnemyLowestHD": "Ennemi : DV min",
   "enum.subject.AllyByName": "Allié précis",
+  "enum.subject.EnemyNearest": "Ennemi : plus proche",
 
   "enum.property.HpPercent": "PV%",
   "enum.property.AC": "CA",

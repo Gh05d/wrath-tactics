@@ -20,7 +20,8 @@ namespace WrathTactics.Models {
         EnemyHighestWill,    // the single enemy with highest Will save
         EnemyHighestHD,      // the single enemy with highest HD
         EnemyLowestHD,       // the single enemy with lowest HD
-        AllyByName           // a specific ally pinned by UniqueId stored in Condition.Value2
+        AllyByName,          // a specific ally pinned by UniqueId stored in Condition.Value2
+        EnemyNearest         // the single enemy closest to the rule owner
     }
 
     public enum ConditionProperty {
