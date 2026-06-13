@@ -209,7 +209,8 @@ namespace WrathTactics.UI {
                         || condition.Property == ConditionProperty.IsTargetedByEnemy
                         || condition.Property == ConditionProperty.IsSummon
                         || condition.Property == ConditionProperty.IsPet
-                        || condition.Property == ConditionProperty.IsFlanked;
+                        || condition.Property == ConditionProperty.IsFlanked
+                        || condition.Property == ConditionProperty.AbilityDamage;
                     condition.Operator = ConditionOperator.Equal;
                     if (isBool) {
                         var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
@@ -245,7 +246,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.IsTargetedByEnemy
                     || condition.Property == ConditionProperty.IsSummon
                     || condition.Property == ConditionProperty.IsPet
-                    || condition.Property == ConditionProperty.IsFlanked;
+                    || condition.Property == ConditionProperty.IsFlanked
+                    || condition.Property == ConditionProperty.AbilityDamage;
                 bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector
@@ -512,7 +514,10 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
                         ConditionProperty.IsSummon,
-                        ConditionProperty.IsPet
+                        ConditionProperty.IsPet,
+                        ConditionProperty.AbilityDamage,
+                        ConditionProperty.IsFlanked,
+                        ConditionProperty.AdjacentEnemyCount
                     };
                 case ConditionSubject.Ally:
                 case ConditionSubject.AllyByName:
@@ -526,7 +531,10 @@ namespace WrathTactics.UI {
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsTargetedByEnemy,
                         ConditionProperty.IsSummon,
-                        ConditionProperty.IsPet
+                        ConditionProperty.IsPet,
+                        ConditionProperty.AbilityDamage,
+                        ConditionProperty.IsFlanked,
+                        ConditionProperty.AdjacentEnemyCount
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
@@ -538,7 +546,10 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsSummon,
-                        ConditionProperty.IsPet
+                        ConditionProperty.IsPet,
+                        ConditionProperty.AbilityDamage,
+                        ConditionProperty.IsFlanked,
+                        ConditionProperty.AdjacentEnemyCount
                     };
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyBiggestThreat:
@@ -574,7 +585,9 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsTargetingAlly,
                         ConditionProperty.IsTargetedByAlly,
                         ConditionProperty.IsSummon,
-                        ConditionProperty.IsPet
+                        ConditionProperty.IsPet,
+                        ConditionProperty.IsFlanked,
+                        ConditionProperty.AdjacentEnemyCount
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
@@ -590,7 +603,9 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsSummon,
-                        ConditionProperty.IsPet
+                        ConditionProperty.IsPet,
+                        ConditionProperty.IsFlanked,
+                        ConditionProperty.AdjacentEnemyCount
                     };
                 case ConditionSubject.Combat:
                     return new List<ConditionProperty> {

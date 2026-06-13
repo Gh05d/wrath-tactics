@@ -129,6 +129,23 @@ namespace WrathTactics.Engine {
             return dr != null && dr.IsImmune(energy);
         }
 
+        // True if any of the six ability scores currently carries temporary Damage — the
+        // condition (Lesser) Restoration heals. ModifiableValueAttributeStat.Damage is the
+        // engine-tracked ability-damage counter (separate from .Drain, which only full
+        // Restoration clears and which we deliberately do NOT count here). Stats are always
+        // constructed for a unit with a Descriptor, but guard defensively — this runs on
+        // every party + visible unit each eval tick.
+        internal static bool HasAbilityDamage(UnitEntityData unit) {
+            var s = unit?.Stats;
+            if (s == null) return false;
+            return s.Strength.Damage > 0
+                || s.Dexterity.Damage > 0
+                || s.Constitution.Damage > 0
+                || s.Intelligence.Damage > 0
+                || s.Wisdom.Damage > 0
+                || s.Charisma.Damage > 0;
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {

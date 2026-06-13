@@ -233,6 +233,15 @@ namespace WrathTactics.Engine {
                     return EqualsBool(flanked, condition);
                 }
 
+                case ConditionProperty.AbilityDamage: {
+                    // Any of the six ability scores carries temporary Damage — the thing
+                    // (Lesser) Restoration heals. Drain is deliberately NOT counted: its
+                    // name is "Ability damage", and only Restoration (not Lesser) clears
+                    // drain, so a damage-only check matches the common heal-rule intent.
+                    bool damaged = HasAbilityDamage(unit);
+                    return EqualsBool(damaged, condition);
+                }
+
                 case ConditionProperty.AdjacentEnemyCount: {
                     // Counts visible in-combat enemies within Melee range (≤2 m / 5 ft) of
                     // the evaluated unit. Re-uses RangeBrackets.Melee for consistency with
@@ -385,6 +394,13 @@ namespace WrathTactics.Engine {
                     bool flanked = unit.CombatState?.IsFlanked ?? false;
                     bool wantFlanked = ParseBoolValue(condition.Value);
                     bool match = flanked == wantFlanked;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.AbilityDamage: {
+                    bool damaged = HasAbilityDamage(unit);
+                    bool wantDamaged = ParseBoolValue(condition.Value);
+                    bool match = damaged == wantDamaged;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

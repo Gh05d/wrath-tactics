@@ -165,6 +165,7 @@
   "enum.property.IsSummon": "是召唤生物",
   "enum.property.IsPet": "是宠物",
   "enum.property.IsFlanked": "被夹击",
+  "enum.property.AbilityDamage": "属性伤害",
   "enum.property.AdjacentEnemyCount": "相邻敌人数",
   "enum.property.HasDescriptorEffect": "受影响",
   "enum.property.ImmuneToEnergy": "免疫能量",
