@@ -1,0 +1,20 @@
+name: List Nexus Files (temp)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List mod files
+        env:
+          NEXUS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+        run: |
+          MOD_JSON=$(curl -s -H "apikey: $NEXUS_API_KEY" \
+            "https://api.nexusmods.com/v3/games/pathfinderwrathoftherighteous/mods/1005")
+          MOD_ID=$(echo "$MOD_JSON" | jq -r '.data.id')
+          echo "### numeric mod id: $MOD_ID"
+          curl -s -H "apikey: $NEXUS_API_KEY" \
+            "https://api.nexusmods.com/v3/mods/$MOD_ID/files" \
+            | jq -r '.data.mod_files[] | "FILEID id=\(.id) name=\(.name) active=\(.is_active) versions=\(.versions_count)"'
