@@ -3,29 +3,60 @@ name: Upload to Nexus Mods
 on:
   release:
     types: [published]
+  # Manual re-upload for a given tag (e.g. when a release-triggered run failed).
+  # Runs from the default branch, so it always uses the current workflow.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to (re)upload to Nexus"
+        required: true
 
 jobs:
   upload-to-nexus:
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release tag
+        env:
+          DISPATCH_TAG: ${{ github.event.inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=$DISPATCH_TAG" >> "$GITHUB_ENV"
+          else
+            echo "TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          fi
+
       - name: Download release asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download ${{ github.event.release.tag_name }} --pattern "*.zip" --repo ${{ github.repository }} --clobber
+          gh release download "$TAG" --pattern "*.zip" --repo ${{ github.repository }} --clobber
           ls *.zip || { echo "No zip asset found in release"; exit 1; }
 
-      - name: Get zip filename and version
+      - name: Get zip filename, version and description
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "ZIP_FILE=$(ls *.zip)" >> "$GITHUB_ENV"
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          {
+            echo "DESCRIPTION<<NEXUS_DESC_EOF"
+            gh release view "$TAG" --repo ${{ github.repository }} --json body --jq .body
+            echo "NEXUS_DESC_EOF"
+          } >> "$GITHUB_ENV"
 
+      # Nexus v3 createModFileVersion flow: POST /mod-files/{file_id}/versions.
+      # file_id is the mod-file id from GET /v3/mods/{numeric_mod_id}/files
+      # (-> data.mod_files[].id); this single-file mod's id is 7334711 (same
+      # value as the old file_group_id). Pinned to an immutable tag — NEVER @main:
+      # a moving branch shipped the 2026-06-17 breaking input migration.
       - name: Upload to Nexus Mods
-        uses: Nexus-Mods/upload-action@main
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_group_id: ${{ vars.NEXUSMODS_FILE_GROUP_ID }}
+          file_id: ${{ vars.NEXUSMODS_FILE_ID }}
           filename: ${{ env.ZIP_FILE }}
           version: ${{ env.VERSION }}
-          description: ${{ github.event.release.body }}
-          file_category: main
+          description: ${{ env.DESCRIPTION }}
+          category: main
+          allow_mod_manager_download: true
