@@ -55,6 +55,53 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 | 3. Mass heal | AllyCount `>= 3` with HpPercent < 60 | Cast Spell → Mass Cure Light Wounds on Self |
 | 4. Keep Bless up | Self missing buff "Bless" | Cast Spell → Bless on Self |
 
+## Understanding conditions
+
+A few mechanics that aren't obvious from the UI:
+
+### Groups: AND inside, OR between
+
+Conditions stacked in the **same group** must *all* be true (AND). Add a **second group** for an "or else" branch (OR).
+
+For **Enemy** and **Ally** conditions, AND is *same-unit*: every Enemy row in one group has to be true for **the same single enemy**. So `Enemy HP < 50%` AND `Enemy missing Bless` in one group means "one enemy that is both below 50% and unbuffed" — not two different enemies. To mean different enemies, split them into separate groups.
+
+### "Lowest / Highest / Nearest" subjects sort — they don't stack
+
+Subjects like **Enemy Lowest HP**, **Enemy Lowest AC** or **Enemy Nearest** tell a group *which order* to scan enemies in; they do **not** add an extra "must be the absolute lowest" test. Within one group, only the **first** such subject decides the order.
+
+So a group of:
+
+```
+Enemy Lowest HP  →  WithinRange (<= Long)
+Enemy Lowest AC  →  WithinRange (<= Long)
+```
+
+resolves to **the lowest-HP enemy that is within Long range**. The "Lowest AC" row just repeats the range check — it does *not* also require that enemy to be the lowest-AC one. There is no way to demand "lowest HP and lowest AC at the same time"; pick the one that matters and express the other as a plain property (e.g. *Enemy Lowest HP* with *AC < 25*). And if you only want to hit the weakest enemy in range, you don't even need a condition — just set the action's **target** directly to *Enemy Lowest HP*.
+
+### DC − Save
+
+Takes the **save DC of the spell this rule will cast** (your live caster DC, with all buffs and feats) and subtracts the target's matching saving throw — Fortitude, Reflex or Will, whichever that spell uses:
+
+```
+DC − Save = margin
+```
+
+A **positive** margin means the enemy is *likely to fail* the save; negative means they'll probably make it. Use it to fire save-or-die / save-or-suck spells only at worthwhile targets, e.g. *cast Phantasmal Killer if Enemy DC − Save ≥ 0*. It only produces a value for spells that actually force a saving throw — spells with no save (Magic Missile) and non-save effects like Demoralize can't be measured this way.
+
+### Hit Margin (AB − AC)
+
+Your **ally's attack bonus** minus the **enemy's AC**:
+
+```
+AB − AC = margin
+```
+
+A **positive** margin means you hit easily — it's how many points of slack you have before penalties start costing you hits. A **negative** margin is how far short you are. Both numbers are the *current* values with every active buff, stance and debuff folded in, so you never have to track exact numbers yourself. The `(Ally)` field picks whose attack bonus to use: leave it empty for the party's best, or pin a specific companion. Great for stance decisions, e.g. *toggle Power Attack on only while Hit Margin ≥ -1*.
+
+### Range brackets
+
+**WithinRange** uses brackets, not raw meters: Melee (≤2 m), Cone (≤5 m), Short (≤10 m), Medium (≤20 m), Long (≤40 m). Use **`<= Short`** for "within 10 m or closer" — `= Short` means *only* the 5–10 m band and excludes anything nearer.
+
 ## BubbleBuffs compatibility
 
 Wrath Tactics plays nicely with [Buff It 2 The Limit (BubbleBuffs)](https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/948). The HUD button for Wrath Tactics is placed next to BubbleBuffs' quick-buttons when both mods are installed. There are no shared state conflicts — BubbleBuffs handles pre-combat buff routines, Wrath Tactics handles in-combat tactical decisions.

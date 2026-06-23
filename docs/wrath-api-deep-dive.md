@@ -135,6 +135,25 @@ Also extend `PickMetric` if the new subject is a sort-pick (EnemyLowest* / Enemy
 
 The legacy methods (`EvaluateEnemy`, `EvaluateEnemyPick`, etc.) remain in the file but are unreachable from the bucketed path. Don't extend them — extend the bucket evaluators.
 
+### `pick-subject-grouping`
+
+How pick-subjects (`EnemyLowestHp`, `EnemyLowestAC`, `EnemyNearest` — the whole `EnemyLowest*`/`EnemyHighest*` family in `PickMetric`) behave **inside** an Enemy bucket. This is the part users routinely misread. Evaluated in `ConditionEvaluator.Buckets.cs:EvaluateEnemyBucket` (~L9).
+
+A pick-subject does exactly **two** things, and only two:
+
+1. It is enemy-scope (`IsEnemyScope`), so it joins the same-unit-AND bucket like any other `Enemy.*` row.
+2. **If it is the FIRST pick-subject in the group**, its `PickMetric` sets the iteration **sort order**: `nonCountConds.FirstOrDefault(c => PickMetric(...) != null)` (L17) → `OrderBy` / `OrderByDescending` (L19-24).
+
+It does **NOT** add an "is-the-extremum" predicate. The per-enemy pass/fail is purely `EvaluateUnitProperty(c, enemy)` against the row's `ConditionProperty` (L31-32) — the subject is invisible to that check.
+
+Consequences:
+
+- A group sorts by the **first** pick-subject only. Any second pick-subject contributes nothing but its own property check.
+- `EnemyLowestHp` + `WithinRange<=Long` alone = "walk enemies lowest-HP-first, return the first one within Long range" = the lowest-HP in-range enemy. Intuitive.
+- `EnemyLowestHp WithinRange<=Long` **AND** `EnemyLowestAC WithinRange<=Long` in ONE group resolves to the *same* enemy — lowest-HP, in range. The `EnemyLowestAC` row is not first, so it sorts nothing; it only re-checks `WithinRange`, i.e. a redundant range gate. It does **not** require the target to also be the lowest-AC enemy. "Lowest-HP AND lowest-AC simultaneously" is not expressible — `LastMatchedEnemy` (→ `ConditionTarget`) is the single enemy the bucket latched (L80).
+
+To target by HP and *gate* on an AC fact, put the AC condition as a **property** on the pick row (e.g. `EnemyLowestHp` + `AC < 25`), not as a second pick-subject. And if a rule just wants "attack the lowest-HP enemy", `TargetType.EnemyLowestHp` resolves it directly via `TargetResolver` — no condition needed.
+
 ### `active-rule-tracker`
 
 Per-unit, records `(RuleListSource, entry.Id, UnitCommand)` whenever `CommandExecutor.Execute` queues a `UnitCommand` for a fired rule.
@@ -192,6 +211,31 @@ UI: `ConditionRowWidget` renders an `ABAllyPin` ally-picker (`allowAny=true`) wh
 - Read `CurrentOwner` from the rule-scoped static
 - Return `float.NaN` → `false` on uncomputable
 - Add a Trace log for thresholds
+
+### `spelldcminussave`
+
+`SpellDCMinusSave` (UI label "DC − Save") is the other enemy-scope computed-delta condition, sibling to `abminusac-condition`. Evaluated in `ConditionEvaluator.PickMetrics.cs:ComputeDCMinusSave` (~L70).
+
+Formula: `DC − save`, where
+
+- `DC` = the **rule's own `[Then]` action ability** save DC: `ActionValidator.FindAbility(CurrentOwner, CurrentAction.AbilityId).CalculateParams().DC` (L99). It reads the action the rule is about to cast — not a fixed spell — so the threshold tracks the live, fully-modified caster DC.
+- `save` = the target enemy's matching save bonus via `UnitExtensions.GetSave(target, saveType)` (L100).
+
+**Sign**: positive ⇒ DC exceeds the enemy's save ⇒ enemy is *likely to FAIL*. Negative ⇒ enemy probably makes the save. So `Enemy > DC−Save >= 0` gates a save-or-suck spell to targets worth casting it on.
+
+**Save-type resolution** mirrors `AbilityEffectRunAction.GetSavingThrowTypeInContext` (see `dynamic-save-type`):
+
+1. `ability.MagicHackData?.SavingThrowType` (L83) — Magic Deceiver fused spells carry the live save on the AbilityData, not the static blueprint component
+2. else `ability.Blueprint.GetComponent<AbilityEffectRunAction>()?.SavingThrowType` (L87-89)
+3. else `Unknown`
+
+**Returns `float.NaN` (row fails closed) when**:
+
+- `CurrentAction` is not `CastSpell`/`CastAbility` (L72) — there is no spell to read a DC from
+- `FindAbility` returns null (L76)
+- save type resolves to `Unknown` (L94) — no-save spells (Magic Missile, SR-only) and pure utility/buffs produce no margin
+
+**User-facing consequence**: this condition only does anything on spells/abilities that **force a saving throw**. It is NOT the Intimidate/Demoralize DC (`10 + HD + Wis`) — that's a skill check, not a `SavingThrowType` effect, so pairing DC−Save with Demoralize yields `NaN` and the row never fires.
 
 ### `catch-discipline`
 
