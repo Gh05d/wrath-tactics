@@ -67,6 +67,13 @@ WrathTactics/
     PresetRegistry     # Built-in rule presets (heal, buff, attack patterns)
     SplashItemRegistry # Tracks throwable splash weapons (Alchemist's Fire, etc.)
     SplashItemResolver # Resolves which splash item to use based on ThrowSplashMode
+    AllyProvider       # Party-and-pet list for ally pickers; resolves pinned ally (ABMinusAC Value2)
+    MetamagicRodResolver # First suitable metamagic rod on a unit (null → normal cast)
+    UnitClusterMetrics # Positional cluster metrics (FindMostClustered for AoE targeting)
+    RuleListSource     # Enum: Global vs. Character rule-list origin (priority gate)
+    BuffIndexCache     # Persisted buff metadata index, game-version+locale stamped
+    BuffPackScanner    # Full blueprint enumeration → buff metadata (main-thread, persisted)
+    AssetLoader        # Loads PNGs as 9-slice Sprites for UI
   Models/              # Data structures
     TacticsRule        # Single rule: conditions → action → target
     TacticsConfig      # Per-save config (rules per unit + global rules)
@@ -191,6 +198,7 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 - **`AbilityData.IsAvailable`** is the authoritative "can cast right now?": composes `IsAvailableInSpellbook && IsAvailableForCast && !TemporarilyDisabled`. Iterates `CasterRestrictions[]` (in-combat gates, silenced, polymorph, forbidden spellbooks, UMD). **Filter ANY candidate-enumeration** over `RawFacts` or spellbook spells. ([deep-dive](docs/wrath-api-deep-dive.md#isavailable))
 - **Two `IsDead` cases in `ConditionEvaluator.cs`**: `EvaluateUnitProperty` (~L468, hot path) and `MatchesPropertyThreshold` (~L576, count-subject path). Keep both in sync. Correct check: `unit.Descriptor?.State?.IsFinallyDead ?? false` — **not** `State.IsDead` (true for down-but-auto-recovering allies on Normal). ([deep-dive](docs/wrath-api-deep-dive.md#unitstateisdead-vs-isfinallydead))
 - **Targeting-relation primitives**: `unit.Commands.Standard?.TargetUnit` (engine current command target) + `unit.CombatState.EngagedUnits` (returns `KeyCollection`, NOT Dictionary — `.Contains(victim)` via LINQ). Centralized in `Engine/TargetingRelations.Has(attacker, victim)`. Approach-phase units match neither — accepted blind spot, latency ≤1 tick. ([deep-dive](docs/wrath-api-deep-dive.md#targeting-relation-primitives))
+  - **Ally-pin honors a self-pin; only the no-pin (any-ally) path excludes the owner**: `IsTargetingAlly`/`IsTargetedByAlly` loops in `ConditionEvaluator.UnitProperty.cs` guard with `if (pinned == null && ally == CurrentOwner) continue;`. The picker (`AllyProvider.GetAll` → full `PartyAndPets`) lists the rule owner, so an unconditional `ally == CurrentOwner` skip silently dropped a self-pin → condition never matched → gated toggle/rule never fired (1.20.1 report "Enemy Targeted-by-Ally not working"). Self-pinned `IsTargetedByAlly` = "the enemy I'm attacking" — the one direction `IsTargetingSelf` (enemy→me) doesn't cover. Lesson: when a picker offers a value, the evaluator must honor it.
 - **Summoned-creature detection**: `unit.Get<UnitPartSummonedMonster>() != null`. Does NOT cover pets / animal companions / Aivu / Eidolons (those carry `UnitPartPet`) — asymmetry is correct semantic for "limit summon spam" rules. ([deep-dive](docs/wrath-api-deep-dive.md#summon-detection))
 - **Pet detection**: `unit.Get<UnitPartPet>() != null` (part lives on the *pet*, not the master). `PetType` enum: `AnimalCompanion=0`, `MythicSkeletalChampion=1` (Lich), `AzataHavocDragon=2` (Aivu), `Clone=3`, `NightHag=4`. Summoner Eidolons also carry `UnitPartPet`. Engine canonical probe is `ContextConditionIsAnimalCompanion` (`Get<UnitPartPet>` then `Type == 0`).
 - **`GetHD()` vs `GetEffectiveHD()`**: `GetHD` = `Progression.CharacterLevel` only (used by `HitDice` — engine HD-cap rules exclude Mythic). `GetEffectiveHD` adds `MythicLevel` for `EnemyHDMinusPartyLevel` margin comparisons. **Don't unify.** `EnemyHDMinusPartyLevel` uses `Player.Party` (NOT `PartyAndPets`) — the one documented exception. ([deep-dive](docs/wrath-api-deep-dive.md#gethd-vs-geteffectivehd))
@@ -203,7 +211,7 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 
 Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`) → Discord-post generation.
 
-Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, file_group_id 4191).
+Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, `file_id`/`file_group_id` = `7334711`, tracked in repo var `NEXUSMODS_FILE_ID` — see parent CLAUDE.md §Nexus Mods).
 
 `deploy.sh` is **dev-only** — Debug build SCP'd to Steam Deck for smoke-testing. Release builds come from `/release`'s Release-config build → `WrathTactics/bin/WrathTactics-X.Y.Z.zip`.
 
@@ -223,7 +231,7 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 - K&R brace style (opening brace on same line)
 - 4-space indentation
 - `var` when type is apparent
-- **Partial-class file split for fat engine files**: `ActionValidator` is `partial` across `ActionValidator.cs` (top-level `CanExecute` dispatcher), `.Cast.cs`, `.UseItem.cs`, `.Toggle.cs`, `.Heal.cs`, `.Find.cs` — each file owns one Action-type's worth of `Can*` / `Find*` methods. When adding a new Action-type: new file `ActionValidator.<Type>.cs`, `partial class ActionValidator`, file-local `using`s. Don't merge back — it grew to 902 LOC once.
+- **Partial-class file split for fat engine files**: `ActionValidator` is `partial` across `ActionValidator.cs` (top-level `CanExecute` dispatcher), `.Cast.cs`, `.UseItem.cs`, `.Toggle.cs`, `.Heal.cs`, `.SwitchWeaponSet.cs`, `.Find.cs` — each file owns one Action-type's worth of `Can*` / `Find*` methods. When adding a new Action-type: new file `ActionValidator.<Type>.cs`, `partial class ActionValidator`, file-local `using`s. Don't merge back — it grew to 902 LOC once.
 - **`catch (Exception ex)` is reserved for three patterns**: per-tick/per-frame guards (Unity main-thread protection), user-surface persistence (status-line surfaces), and static/sentinel blueprint init. Everything else narrows to a specific exception type. ([deep-dive](docs/wrath-api-deep-dive.md#catch-discipline))
 - UI strings are English-only. No mixed-language — use `Yes`/`No`, `!=`, etc.
 - Equality conditions use inline `=`/`!=` operator dropdowns. Extend the operator pattern to new properties (HasBuff, HasCondition, CreatureType, Alignment) rather than adding a perpendicular Negate/NOT button.
