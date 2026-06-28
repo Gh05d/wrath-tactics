@@ -82,7 +82,14 @@ namespace WrathTactics.Engine {
                     var pinned = AllyProvider.Resolve(condition.Value2);
                     bool match = false;
                     foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
-                        if (ally == null || ally == CurrentOwner) continue;
+                        if (ally == null) continue;
+                        // Skip the rule owner only in legacy any-ally mode (no explicit pin).
+                        // An explicit self-pin is honored: the picker lists the owner, so
+                        // "Targeted by Ally = Yes, pin = self" must mean "the enemy I'm attacking"
+                        // (and "Targeting Ally" self-pin == IsTargetingSelf). Unconditionally
+                        // skipping the owner made a self-pin silently never match → toggle/rule
+                        // gated on it never fired.
+                        if (pinned == null && ally == CurrentOwner) continue;
                         if (!ally.IsInGame) continue;
                         if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
                         if (pinned != null && ally != pinned) continue;
@@ -103,7 +110,14 @@ namespace WrathTactics.Engine {
                     var pinned = AllyProvider.Resolve(condition.Value2);
                     bool match = false;
                     foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
-                        if (ally == null || ally == CurrentOwner) continue;
+                        if (ally == null) continue;
+                        // Skip the rule owner only in legacy any-ally mode (no explicit pin).
+                        // An explicit self-pin is honored: the picker lists the owner, so
+                        // "Targeted by Ally = Yes, pin = self" must mean "the enemy I'm attacking"
+                        // (and "Targeting Ally" self-pin == IsTargetingSelf). Unconditionally
+                        // skipping the owner made a self-pin silently never match → toggle/rule
+                        // gated on it never fired.
+                        if (pinned == null && ally == CurrentOwner) continue;
                         if (!ally.IsInGame) continue;
                         if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
                         if (pinned != null && ally != pinned) continue;
