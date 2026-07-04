@@ -210,7 +210,7 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 
 ## Release Process
 
-Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`) → Discord-post generation.
+Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`).
 
 Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, `file_id`/`file_group_id` = `7334711`, tracked in repo var `NEXUSMODS_FILE_ID` — see parent CLAUDE.md §Nexus Mods).
 

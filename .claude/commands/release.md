@@ -235,43 +235,6 @@ ZIP: WrathTactics/bin/WrathTactics-X.Y.Z.zip
 
 ---
 
-## Schritt 9: Discord Post
-
-Generiere die fertige Discord-Nachricht zum Copy-Pasten in Owlcat's `#mod-updates`-Kanal. Basis sind die „What's New"-Bullets aus Schritt 3, **aber stark gekürzt** — Discord bevorzugt kurze Scan-baren Text, nicht die ausführlichen Erklärungen der GitHub-Release-Notes.
-
-Kürzungsregel: Jeder Bullet max. eine Zeile, nur das WAS (nicht das WARUM/WIE). Entferne Erklärungen in Klammern, technische Details, Root-Cause-Begründungen.
-
-Beispiel:
-- GitHub: „CastSpell rules can now fall back across Scroll / Potion / quickslot Wand sources via a new Sources dropdown; metamagic + variant rules stay Spellbook-only by design."
-- Discord: „CastSpell: new Sources dropdown (Spell / Scroll / Potion / Wand fallback)"
-
-Falls die Bullet-Liste leer wäre (z.B. nur `chore:`-Commits seit letztem Tag), verwende stattdessen den Platzhalter-Bullet `- Maintenance release`.
-
-Ausgabeformat im Terminal (exakt so, inkl. Delimiter-Zeilen):
-
-```
-=== Discord Post (alles zwischen den Zeilen kopieren) ===
-**Wrath Tactics vX.Y.Z**
-
-- <bullet 1>
-- <bullet 2>
-- ...
-
-GitHub: https://github.com/Gh05d/wrath-tactics/releases/tag/vX.Y.Z
-Nexus: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005
-=== End Discord Post ===
-```
-
-Regeln:
-
-- Mod-Name + Version in einer Zeile fett (`**...**`), danach eine Leerzeile.
-- Bullets mit `- ` prefix, genau wie in den GitHub-Release-Notes aus Schritt 3.
-- Beide Links als reine URLs (kein Markdown-Link-Syntax) — Discord erzeugt automatisch Previews.
-- Keine „Installation" oder „Requirements" Sektionen — Discord-Post bleibt kurz, Details sind auf Nexus.
-- Schritt 9 ist rein informativ: schlägt er fehl, ist das Release bereits durch (Tag gepushed, GitHub Release live, Nexus Action läuft). Nicht abbrechen, nicht rückgängig machen.
-
----
-
 ## Fehlerbehandlung — Übersicht
 
 | Fehler | Verhalten |
