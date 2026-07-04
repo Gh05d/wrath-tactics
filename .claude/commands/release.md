@@ -94,9 +94,7 @@ Führe alle Checks aus, bevor du irgendetwas änderst.
 
    Nexus-Upload wird automatisch von der GitHub Action übernommen (`.github/workflows/nexus-upload.yml`).
 
-5. **Dem User die Release Notes zeigen** und fragen: „Release Notes so in Ordnung, oder soll ich etwas anpassen?"
-
-   Warte auf Freigabe oder Änderungswünsche. Überarbeite bis der User zustimmt.
+   Keine separate Freigabe-Runde für die Notes — sie werden am Bestätigungs-Gate (Schritt 6) als Vorschau angezeigt und können dort noch beanstandet werden.
 
 ---
 
