@@ -166,6 +166,7 @@
   "enum.property.IsPet": "Ist Tiergefährte",
   "enum.property.IsFlanked": "Wird flankiert",
   "enum.property.AbilityDamage": "Attributsschaden",
+  "enum.property.NegativeLevels": "Negative Stufen",
   "enum.property.AdjacentEnemyCount": "Gegner angrenzend",
   "enum.property.HasDescriptorEffect": "Betroffen von",
   "enum.property.ImmuneToEnergy": "Immun gegen Energie",

@@ -146,6 +146,16 @@ namespace WrathTactics.Engine {
                 || s.Charisma.Damage > 0;
         }
 
+        // True if the unit carries any negative levels (energy drain) — the condition
+        // Restoration removes. UnitPartNegativeLevels.Count sums every drain entry,
+        // temporary AND permanent alike (verified IL: get_Count sums Data.Count over
+        // m_LevelsData with no EnergyDrainType filter). The part is absent on units
+        // that were never drained, hence the null guard.
+        internal static bool HasNegativeLevels(UnitEntityData unit) {
+            var part = unit?.Get<Kingmaker.UnitLogic.Parts.UnitPartNegativeLevels>();
+            return part != null && part.Count > 0;
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {

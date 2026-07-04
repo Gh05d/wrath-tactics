@@ -166,6 +166,7 @@
   "enum.property.IsPet": "Питомец",
   "enum.property.IsFlanked": "Окружён",
   "enum.property.AbilityDamage": "Урон характеристик",
+  "enum.property.NegativeLevels": "Отрицательные уровни",
   "enum.property.AdjacentEnemyCount": "Соседних врагов",
   "enum.property.HasDescriptorEffect": "Подвержен",
   "enum.property.ImmuneToEnergy": "Иммунитет к энергии",

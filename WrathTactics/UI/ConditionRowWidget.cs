@@ -210,7 +210,8 @@ namespace WrathTactics.UI {
                         || condition.Property == ConditionProperty.IsSummon
                         || condition.Property == ConditionProperty.IsPet
                         || condition.Property == ConditionProperty.IsFlanked
-                        || condition.Property == ConditionProperty.AbilityDamage;
+                        || condition.Property == ConditionProperty.AbilityDamage
+                        || condition.Property == ConditionProperty.NegativeLevels;
                     condition.Operator = ConditionOperator.Equal;
                     if (isBool) {
                         var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
@@ -247,7 +248,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.IsSummon
                     || condition.Property == ConditionProperty.IsPet
                     || condition.Property == ConditionProperty.IsFlanked
-                    || condition.Property == ConditionProperty.AbilityDamage;
+                    || condition.Property == ConditionProperty.AbilityDamage
+                    || condition.Property == ConditionProperty.NegativeLevels;
                 bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector
@@ -516,6 +518,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.AbilityDamage,
+                        ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
                         ConditionProperty.AdjacentEnemyCount
                     };
@@ -533,6 +536,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.AbilityDamage,
+                        ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
                         ConditionProperty.AdjacentEnemyCount
                     };
@@ -548,6 +552,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.AbilityDamage,
+                        ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
                         ConditionProperty.AdjacentEnemyCount
                     };

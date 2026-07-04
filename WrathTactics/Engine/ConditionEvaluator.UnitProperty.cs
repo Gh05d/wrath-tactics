@@ -256,6 +256,14 @@ namespace WrathTactics.Engine {
                     return EqualsBool(damaged, condition);
                 }
 
+                case ConditionProperty.NegativeLevels: {
+                    // Any negative levels (energy drain) present — the thing Restoration
+                    // removes. Counts temporary and permanent drain alike (see
+                    // HasNegativeLevels).
+                    bool drained = HasNegativeLevels(unit);
+                    return EqualsBool(drained, condition);
+                }
+
                 case ConditionProperty.AdjacentEnemyCount: {
                     // Counts visible in-combat enemies within Melee range (≤2 m / 5 ft) of
                     // the evaluated unit. Re-uses RangeBrackets.Melee for consistency with
@@ -415,6 +423,13 @@ namespace WrathTactics.Engine {
                     bool damaged = HasAbilityDamage(unit);
                     bool wantDamaged = ParseBoolValue(condition.Value);
                     bool match = damaged == wantDamaged;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.NegativeLevels: {
+                    bool drained = HasNegativeLevels(unit);
+                    bool wantDrained = ParseBoolValue(condition.Value);
+                    bool match = drained == wantDrained;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

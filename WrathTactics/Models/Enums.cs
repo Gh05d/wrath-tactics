@@ -56,7 +56,8 @@ namespace WrathTactics.Models {
         AdjacentEnemyCount,       // numeric — enemies within Melee range (≤2 m / 5 ft); see RangeBrackets.MaxMeters
         HasDescriptorEffect,      // Value = SpellDescriptor name (Poison/Disease/Bleed) — any active buff carrying that descriptor; =/!=
         ImmuneToEnergy,           // Value = DamageEnergyType name (Fire/Cold/Electricity/Acid/Sonic) — UnitPartDamageReduction.IsImmune; =/!=
-        AbilityDamage             // Yes/No — any of the six ability scores carries Damage (Str/Dex/Con/Int/Wis/Cha); for Restoration / Lesser Restoration rules. Drain not counted.
+        AbilityDamage,            // Yes/No — any of the six ability scores carries Damage (Str/Dex/Con/Int/Wis/Cha); for Restoration / Lesser Restoration rules. Drain not counted.
+        NegativeLevels            // Yes/No — UnitPartNegativeLevels.Count > 0 (temporary + permanent energy drain); for Restoration rules.
     }
 
     public enum ConditionOperator {
