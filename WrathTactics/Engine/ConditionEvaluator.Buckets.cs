@@ -8,10 +8,15 @@ namespace WrathTactics.Engine {
     public static partial class ConditionEvaluator {
         static bool EvaluateEnemyBucket(List<Condition> conds, UnitEntityData owner) {
             var enemies = GetVisibleEnemies(owner).ToList();
-            if (enemies.Count == 0) return false;
-
             var nonCountConds = conds.Where(c => c.Subject != ConditionSubject.EnemyCount).ToList();
             var countConds    = conds.Where(c => c.Subject == ConditionSubject.EnemyCount).ToList();
+
+            // Count-only groups stay evaluable with zero visible enemies so
+            // zero-accepting gates (EnemyCount = 0 / <= N / < N / !=) can pass —
+            // mirrors EvaluateAllyBucket. Existential conditions still fail below
+            // (no enemy can match), so only pure count gates get through.
+            if (enemies.Count == 0 && countConds.Count == 0)
+                return false;
 
             // Sort by the first Pick subject's metric (if any).
             Condition pickCond = nonCountConds.FirstOrDefault(c => PickMetric(c.Subject, out _) != null);
@@ -41,12 +46,7 @@ namespace WrathTactics.Engine {
             // Operator = first Count row's CountOperator — bucket UI emits one count row, so
             // mixed operators across multiple Count rows is a misuse; take the first.
             if (countConds.Count > 0) {
-                float countThreshold = 1f;
-                foreach (var cc in countConds) {
-                    if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
-                        countThreshold = v;
-                }
+                float countThreshold = ResolveCountThreshold(countConds);
                 var countOp = countConds[0].CountOperator;
 
                 int count = 0;
@@ -86,7 +86,11 @@ namespace WrathTactics.Engine {
         // satisfied Count threshold.
         static bool EvaluateAllyBucket(List<Condition> conds, UnitEntityData owner) {
             var allies = GetAllPartyMembers(owner).Where(a => a != owner).ToList();
-            if (allies.Count == 0 && conds.All(c => c.Subject != ConditionSubject.AllyCount))
+            var nonCountConds = conds.Where(c =>
+                c.Subject != ConditionSubject.AllyCount
+                && c.Subject != ConditionSubject.AllyByName).ToList();
+            var countConds    = conds.Where(c => c.Subject == ConditionSubject.AllyCount).ToList();
+            if (allies.Count == 0 && countConds.Count == 0)
                 return false;
 
             // AllyByName conditions pin a specific ally per condition (Value2 = UniqueId).
@@ -106,11 +110,6 @@ namespace WrathTactics.Engine {
                 if (firstPinned == null) firstPinned = pinned;
             }
 
-            var nonCountConds = conds.Where(c =>
-                c.Subject != ConditionSubject.AllyCount
-                && c.Subject != ConditionSubject.AllyByName).ToList();
-            var countConds    = conds.Where(c => c.Subject == ConditionSubject.AllyCount).ToList();
-
             UnitEntityData matchedAlly = null;
             if (nonCountConds.Count > 0) {
                 foreach (var ally in allies) {
@@ -124,12 +123,7 @@ namespace WrathTactics.Engine {
             }
 
             if (countConds.Count > 0) {
-                float countThreshold = 1f;
-                foreach (var cc in countConds) {
-                    if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out float v) && v > countThreshold)
-                        countThreshold = v;
-                }
+                float countThreshold = ResolveCountThreshold(countConds);
                 var countOp = countConds[0].CountOperator;
 
                 int count = 0;
@@ -172,6 +166,28 @@ namespace WrathTactics.Engine {
             var latch = firstPinned ?? matchedAlly;
             if (latch != null) LastMatchedAlly = latch;
             return true;
+        }
+
+        // Count threshold = max usable Value2 across Count rows; 1 when NO row
+        // yields a usable value (empty/garbage field keeps the legacy "at least 1"
+        // default). An explicit 0 must survive: EnemyCount = 0 / <= 0 are valid
+        // "no matching enemies" gates — a max-accumulator seeded at 1 (pre-1.21.1)
+        // silently clamped 0 to 1. Negative and NaN parses are rejected like
+        // garbage (the old clamp already swallowed them): letting them through
+        // would create always-true gates (count >= -1) or poison the fold
+        // (Math.Max propagates NaN; NaN also fails the >= 0 check). +Infinity
+        // is rejected as new behavior — the old fold let it through as an
+        // always-false >= gate, useless by construction.
+        internal static float ResolveCountThreshold(List<Condition> countConds) {
+            float? threshold = null;
+            foreach (var cc in countConds) {
+                if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out float v)
+                    && v >= 0f && !float.IsInfinity(v)) {
+                    threshold = threshold.HasValue ? System.Math.Max(threshold.Value, v) : v;
+                }
+            }
+            return threshold ?? 1f;
         }
     }
 }
