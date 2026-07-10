@@ -1,0 +1,41 @@
+# Spellbook, AbilityData, Items, Heal
+
+Operative rules for `ActionValidator.Find` / `ActionValidator.Cast/UseItem/Heal`, `SpellDropdownProvider`, and everything AbilityData/spellbook/item related. IL evidence and incident reports: [`../docs/wrath-api-deep-dive.md`](../docs/wrath-api-deep-dive.md).
+
+## Spellbook Storage & Slots
+
+- **Three-array spellbook storage**: `m_KnownSpells` + `m_CustomSpells` + `m_SpecialSpells`. ANY enumeration MUST hit all three (`GetKnownSpells` + `GetCustomSpells` + `GetSpecialSpells`). 1.14.1 heal-picker regression: `FindBestHealEx` missed `GetCustomSpells`. ([deep-dive](../docs/wrath-api-deep-dive.md#spellbook-storage-layout))
+- **Spellbook max level**: loop to `book.MaxSpellLevel` (instance prop) — never hardcode `<= 9`. Mythic caps at 10. 1.14.1 regression: `CountAvailableSlotsAboveLevel` hardcoded 9, dropped mythic level-10 slots from `SpellSlotsAboveLevel`.
+- **`GetAvailableForCastSpellCount` returns `-1` for cantrips** (level 0 sentinel). `0` = no slot or spell-not-in-book. Validators must compare `== 0` (fail) / `!= 0` (pass), never `<= 0` / `> 0` — treating `-1` as "no slots" silently rejects every cantrip rule. ([deep-dive](../docs/wrath-api-deep-dive.md#getavailableforcastspellcount-cantrip-sentinel))
+- **Spellbook slot counts**: `GetSpellsPerDay(level)` is MAX per-day capacity (never decrements) — wrong for "can I still cast?". Use `GetAvailableForCastSpellCount(ability)`.
+- **Ability resource cost**: use `AbilityResourceLogic.CalculateCost(ability)` not `.Amount` — honors overrides, `IsSpendResource`, `ResourceCostIncreasing/DecreasingFacts`, custom `IAbilityResourceCostCalculator`. Matches engine `Spend()` path.
+
+## AbilityData & Variants
+
+- **AbilityData ctors**: `(BlueprintAbility, UnitDescriptor)`, `(Ability)`, `(BlueprintAbility, Spellbook, int level)`, **`(AbilityData parent, BlueprintAbility variant)`** for `AbilityVariants` (works for spellbook spells AND class abilities). No 3-param `(blueprint, descriptor, ItemEntity)`.
+- **Variant ctor bug**: 2-arg `new AbilityData(parent, variant)` silently drops `SpellLevelInSpellbook` → `GetAvailableForCastSpellCount` returns 0. Fix: copy `data.SpellLevelInSpellbook = parent.SpellLevelInSpellbook` after construction. Centralized in `ActionValidator.MakeVariantData`. `IsAvailable` is NOT a workaround. ([deep-dive](../docs/wrath-api-deep-dive.md#variant-ctor-bug))
+- **Variant slot-lookup mismatch**: `Spellbook.GetAvailableForCastSpellCount` compares blueprint refs strictly; variant AbilityData has `Blueprint=variant` while prepared slot is keyed on parent — count returns 0, validator rejects. Pass `ability.ConvertedFrom ?? ability` to the slot probe. Use the public `ConvertedFrom` property, NEVER the `m_ConvertedFrom` field (kills test runtime). ([deep-dive](../docs/wrath-api-deep-dive.md#variant-slot-lookup))
+- **Variant components (`AbilityVariants` + `AbilityShadowSpell`)**: any variant-aware feature must enumerate both across `GetKnownSpells` + `GetCustomSpells` + `GetSpecialSpells` (SIX sites: `SpellDropdownProvider.GetSpells` and `ActionValidator.Find.FindAbilityEx`). Custom-spells loop is the metamagic-prepared / fused-spell path. Known gap: item/inventory branch still skips variants. ([deep-dive](../docs/wrath-api-deep-dive.md#variant-component-handling))
+- **`new AbilityData(parent, variant)` sets `.Blueprint = variant`**: `GetComponent<X>` sees only variant-level components. Fall back via `ability.m_ConvertedFrom?.Blueprint` (publicizer-accessible).
+- **`AbilityData.IsAvailable`** is the authoritative "can cast right now?": composes `IsAvailableInSpellbook && IsAvailableForCast && !TemporarilyDisabled`. Iterates `CasterRestrictions[]` (in-combat gates, silenced, polymorph, forbidden spellbooks, UMD). **Filter ANY candidate-enumeration** over `RawFacts` or spellbook spells. ([deep-dive](../docs/wrath-api-deep-dive.md#isavailable))
+- **Modded metamagic enum scanning**: `Enum.GetValues(typeof(Metamagic))` misses raw-bit modded values (`1 << N` bare consts). `BuildMetamagicTag` post-scans the mask for leftover bits after the foreach — don't remove that loop. ([deep-dive](../docs/wrath-api-deep-dive.md#metamagic-leftover-bits))
+
+## Items
+
+- `UnitUseAbility.CreateCastCommand` rejects synthetic AbilityData — only works for real spellbook spells.
+- **Synthetic AbilityData fallback**: inventory items have synthetic AbilityData → `CreateCastCommand` silently drops them. Use `Rulebook.Trigger<RuleCastSpell>` (FX, no animation) OR quickslot the item (animation path). UseItem scans BOTH `owner.Abilities.RawFacts` AND `Game.Instance.Player.Inventory`; dedup is per-(ability-GUID, item-type), four-pass POTION → SCROLL → WAND → UTILITY. ([deep-dive](../docs/wrath-api-deep-dive.md#synthetic-abilitydata))
+- **Item consumption**: always `item.SpendCharges(caster.Descriptor)` — engine-authoritative across Wand/Potion/Scroll, removes 0-charge wands, honors bypass features. Hand-rolled `Charges--` / `Inventory.Remove` are wrong. ([deep-dive](../docs/wrath-api-deep-dive.md#item-consumption))
+- **`UsableItemType` enum (5 values)**: `Other=0 / Wand=1 / Scroll=2 / Potion=3 / Utility=4`. Activatable rods (e.g. Skeletal Finger) are `Type=Other` with `m_Ability=null` — those belong to ToggleActivatable, not UseItem. ([deep-dive](../docs/wrath-api-deep-dive.md#usableitemtype-enum))
+
+## Heal Classification & Immunities
+
+- **`ClassifyHeal` keyword tables**: returns `HealEnergyType.{Positive,Negative,None}`; Negative checked first. Known imprecision: `cure` matches Cure Disease/Deafness/Neutralize Poison (UMD-gate limits mis-casts); `restoration` deliberately absent. ([deep-dive](../docs/wrath-api-deep-dive.md#classifyheal))
+- **NegativeEnergyAffinity detection**: heal/damage flip is driven by the canonical fact `d5ee498e19722854198439629c1841a5`. Query via `UnitHelper.HasFact(descriptor, bp)` from `ActionValidator.IsNegativeEnergyAffine`. Don't reintroduce `Type.name.Contains("undead")` — vanilla undead carry specific subtype names. ([deep-dive](../docs/wrath-api-deep-dive.md#negative-energy-affinity))
+- **Energy immunity**: `unit.Get<UnitPartDamageReduction>().IsImmune(DamageEnergyType)` — clean pre-cast check. Castable energies: Fire/Cold/Electricity/Acid/Sonic (no Force in `DamageEnergyType`). Effect/descriptor immunity (`BuffDescriptorImmunity` / `SpellImmunityType.IsImmune`) needs a `MechanicsContext` → NOT checkable before an actual cast; don't try.
+
+## Targeting & DC
+
+- **Spell point-castability**: `AbilityData.CanTargetPoint` / `BlueprintAbility.CanTargetPoint`. Also `.CanTargetSelf / CanTargetEnemies / CanTargetFriends`. `AbilityData.CanTarget(wrapper)` is the engine-authoritative combined check.
+- **Live spell DC**: `AbilityData.CalculateParams()` → `AbilityParams` with `.DC`, `.CasterLevel`, `.SpellLevel`, `.Concentration`. Parameterless, cheap.
+- **Spell save type**: `BlueprintAbility` has NO direct `SavingThrowType` field — lives on `AbilityEffectRunAction` (often null on buffs/utility). Authoritative resolver: `ability.MagicHackData?.SavingThrowType ?? bp.GetComponent<AbilityEffectRunAction>()?.SavingThrowType ?? Unknown`. Magic Deceiver fused spells carry the live save on AbilityData. ([deep-dive](../docs/wrath-api-deep-dive.md#dynamic-save-type))
+- **`SavingThrowType` enum**: `{ Unknown=0, Fortitude=1, Reflex=2, Will=3 }`. `Unknown` = "no save" (Magic Missile, SR-only) — treat as "can't compute".
