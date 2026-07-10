@@ -104,9 +104,10 @@ namespace WrathTactics.Engine {
                 switch (condition.Subject) {
                     case ConditionSubject.Self:                return EvaluateUnitProperty(condition, owner);
                     case ConditionSubject.Ally:                return EvaluateAlly(condition, owner);
-                    case ConditionSubject.AllyCount:           return EvaluateAllyCount(condition, owner);
                     case ConditionSubject.Enemy:               return EvaluateEnemy(condition, owner);
-                    case ConditionSubject.EnemyCount:          return EvaluateEnemyCount(condition, owner);
+                    // EnemyCount/AllyCount never reach this switch: EvaluateGroup routes
+                    // every IsEnemyScope/IsAllyScope subject into the buckets, which own
+                    // the count semantics (ResolveCountThreshold + CompareCount).
                     case ConditionSubject.EnemyBiggestThreat:  return EvaluateEnemyPick(condition, owner, e => ThreatCalculator.Calculate(e), biggest: true);
                     case ConditionSubject.EnemyLowestThreat:   return EvaluateEnemyPick(condition, owner, e => ThreatCalculator.Calculate(e), biggest: false);
                     case ConditionSubject.EnemyHighestHp:      return EvaluateEnemyPick(condition, owner, HpPercent, biggest: true);
@@ -143,24 +144,6 @@ namespace WrathTactics.Engine {
             return false;
         }
 
-        static bool EvaluateAllyCount(Condition condition, UnitEntityData owner) {
-            // Value  = property threshold (e.g., "60" for HP < 60%)
-            // Value2 = count threshold (e.g., "2" for 2 allies)
-            // Operator      = comparison for the property (e.g., HP < 60)
-            // CountOperator = comparison for the count itself (e.g., count >= 2)
-            float countThreshold;
-            if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
-                countThreshold = 1; // default: at least 1
-
-            int count = 0;
-            foreach (var ally in GetAllPartyMembers(owner)) {
-                if (MatchesPropertyThreshold(condition, ally))
-                    count++;
-            }
-            return CompareCount(count, countThreshold, condition.CountOperator);
-        }
-
         static bool EvaluateEnemy(Condition condition, UnitEntityData owner) {
             int checkedCount = 0;
             var uniqueTypes = new HashSet<string>();
@@ -175,21 +158,6 @@ namespace WrathTactics.Engine {
             }
             Log.Engine.Trace($"  EvaluateEnemy({condition.Property}={condition.Value}) for {owner.CharacterName}: checked {checkedCount} in-combat enemies, no match. All: {string.Join(", ", uniqueTypes)}");
             return false;
-        }
-
-        static bool EvaluateEnemyCount(Condition condition, UnitEntityData owner) {
-            // Value2 = count threshold; Value = property threshold; CountOperator = comparison for the count.
-            float countThreshold;
-            if (!float.TryParse(condition.Value2, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out countThreshold))
-                countThreshold = 1; // default: at least 1
-
-            int count = 0;
-            foreach (var enemy in GetVisibleEnemies(owner)) {
-                if (MatchesPropertyThreshold(condition, enemy))
-                    count++;
-            }
-            return CompareCount(count, countThreshold, condition.CountOperator);
         }
 
         internal static bool CompareCount(int actual, float threshold, ConditionOperator op) {
