@@ -44,7 +44,7 @@ You set the rules once, the mod handles the rest while you focus on positioning 
    - **\<Character name\>** — rules specific to one companion
    - **Presets** — save/load rule collections (savegame-independent)
 3. Click **+ New Rule**, configure conditions and action, arrange priority with the ↑/↓ buttons
-4. Start combat — the mod evaluates rules every ~3 seconds (configurable)
+4. Start combat — the mod evaluates rules every ~3 seconds (configurable). Rules only run **in combat** unless you explicitly opt them in for out-of-combat use — see [Out-of-combat rules](#out-of-combat-rules)
 
 ### Example: a "healer bot" rule set for Daeran
 
@@ -58,6 +58,19 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 ## Understanding conditions
 
 A few mechanics that aren't obvious from the UI:
+
+### Out-of-combat rules
+
+By default, rules only fire **while the party is in combat** — so your setups don't go off while you explore, loot, or talk. To let a specific rule also run outside combat, add this condition to it:
+
+```
+Combat  →  Is In Combat  →  No
+```
+
+Any rule carrying that condition gets evaluated out of combat (every ~2 seconds instead of the in-combat ~3). Typical uses: keeping a long-duration buff up between fights, or re-toggling a stance that drops after combat ends. Two things to know:
+
+- Rules **without** the condition are never evaluated outside combat — that's deliberate, not a bug.
+- The condition is a real condition: while you're in combat it is *false*, so the group containing it won't match mid-fight. For a rule that should work in **both** states, put the condition in a second condition group (groups are OR'd).
 
 ### Groups: AND inside, OR between
 
