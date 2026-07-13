@@ -228,8 +228,13 @@ namespace WrathTactics.UI {
         // Emits picker entries for runtime conversions (AbilityData.GetConversions) of one
         // parent ability. Two shapes:
         //  - Different-blueprint conversion (TTT AddSpecificSpellConversion, Preferred Spell):
-        //    key = parent>Vconversion. Skipped when the blueprint is already visible anywhere
-        //    else in this dropdown (emittedBlueprints) — kills variant/spontaneous-cure noise.
+        //    key = parent>Vconversion. Skipped when the blueprint is visible as a STATIC
+        //    entry from pass 1 (emittedBlueprints: known/custom/special spells + variants) —
+        //    kills variant/spontaneous-cure noise. Deliberately a Contains-check, NOT an Add:
+        //    each conversion-emitting parent gets its own entry, because metamagic-prepared
+        //    parents are distinct casts (base Fireball L3 AND Heightened Fireball L10 both
+        //    offer Cluster Bomb; their keys differ in @L and #mask). Exact duplicates are
+        //    caught by the key-level `seen` set.
         //  - Same-blueprint conversion (TTT AbilityActionTypeConversion, e.g. Quick Channel):
         //    only the action type differs, so the key carries ~A<actionType> and the label an
         //    " (Move)"-style suffix. Not subject to the emittedBlueprints filter — the parent
@@ -261,7 +266,7 @@ namespace WrathTactics.UI {
                         FormatWithInternal($"{labelPrefix}: {conv.Name} ({conv.ActionType})", conv.Blueprint),
                         key, conv.Blueprint.Icon));
                 } else {
-                    if (!emittedBlueprints.Add(convGuid)) continue;
+                    if (emittedBlueprints.Contains(convGuid)) continue;
                     var key = MakeKey(parent, level, convGuid);
                     if (!seen.Add(key)) continue;
                     result.Add(new SpellEntry(
