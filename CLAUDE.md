@@ -120,7 +120,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).
-- **CodeGraph stale lock**: `database is locked` ⇒ `rm -rf .codegraph/codegraph.db.lock/`.
+- **CodeGraph stale lock**: `database is locked` ODER Agenten melden „not initialized" trotz vorhandener `.codegraph/` ⇒ `rm -rf .codegraph/codegraph.db.lock/`.
 
 ## Release Process
 
@@ -129,6 +129,8 @@ Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The 
 Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, `file_id` = `7334711`, repo var `NEXUSMODS_FILE_ID` — see parent `docs/nexus.md`).
 
 **Nexus-upload action fails with Cloudflare 504**: transient Nexus-side timeout, not a workflow problem. Fix: `gh run rerun <run-id> --repo Gh05d/wrath-tactics --failed`; await outcome via `gh run watch <run-id> --repo Gh05d/wrath-tactics --exit-status` (don't poll `gh run list`).
+
+**Deck offline blockiert einen Release nicht** (Präzedenz 1.21.0–1.22.1), aber: fehlenden Smoke-Test im Nexus-Reply offenlegen, im Auto-Memory vermerken, In-Game-Test nachholen sobald das Deck online ist.
 
 ## Logs
 
