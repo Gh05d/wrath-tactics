@@ -22,34 +22,44 @@ namespace WrathTactics.UI {
         /// <summary>
         /// Parsed form of a compound ability key. Level=-1 means unspecified (legacy key).
         /// VariantGuid=null means no variant. MetamagicMask=0 means no metamagic.
+        /// ActionType=-1 means unspecified — only conversion entries that share the parent's
+        /// blueprint GUID (e.g. TTT Quick Channel's move-action channel) carry it.
         /// </summary>
         public struct ParsedKey {
             public string BlueprintGuid;
             public int Level;
             public string VariantGuid;
             public int MetamagicMask;
+            public int ActionType;
         }
 
         /// <summary>
         /// Builds a compound ability key:
-        ///   guid[@L&lt;level&gt;][&gt;V&lt;variantGuid&gt;][#&lt;metamagicMask&gt;]
+        ///   guid[@L&lt;level&gt;][&gt;V&lt;variantGuid&gt;][~A&lt;actionType&gt;][#&lt;metamagicMask&gt;]
         /// level &lt; 0 omits the level segment (for non-spellbook abilities). Metamagic is read from the AbilityData.
         /// </summary>
-        public static string MakeKey(AbilityData spell, int level = -1, string variantGuid = null) {
-            var sb = new System.Text.StringBuilder(spell.Blueprint.AssetGuid.ToString());
+        public static string MakeKey(AbilityData spell, int level = -1, string variantGuid = null, int actionType = -1) {
+            int mask = (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
+                ? (int)spell.MetamagicData.MetamagicMask : 0;
+            return MakeKeyCore(spell.Blueprint.AssetGuid.ToString(), level, variantGuid, mask, actionType);
+        }
+
+        /// <summary>Pure builder behind <see cref="MakeKey"/> — testable without game objects.</summary>
+        public static string MakeKeyCore(string blueprintGuid, int level, string variantGuid, int metamagicMask, int actionType) {
+            var sb = new System.Text.StringBuilder(blueprintGuid);
             if (level >= 0) sb.Append("@L").Append(level);
             if (!string.IsNullOrEmpty(variantGuid)) sb.Append(">V").Append(variantGuid);
-            if (spell.MetamagicData != null && spell.MetamagicData.NotEmpty)
-                sb.Append("#").Append((int)spell.MetamagicData.MetamagicMask);
+            if (actionType >= 0) sb.Append("~A").Append(actionType);
+            if (metamagicMask != 0) sb.Append("#").Append(metamagicMask);
             return sb.ToString();
         }
 
         /// <summary>
-        /// Parses a compound ability key. Missing segments get defaults (Level=-1, VariantGuid=null, MetamagicMask=0).
-        /// Legacy keys (bare GUID, or guid#meta) parse cleanly as Level=-1.
+        /// Parses a compound ability key. Missing segments get defaults (Level=-1, VariantGuid=null,
+        /// MetamagicMask=0, ActionType=-1). Legacy keys (bare GUID, or guid#meta) parse cleanly as Level=-1.
         /// </summary>
         public static ParsedKey ParseKey(string key) {
-            var result = new ParsedKey { Level = -1 };
+            var result = new ParsedKey { Level = -1, ActionType = -1 };
             if (string.IsNullOrEmpty(key)) return result;
 
             int end = key.Length;
@@ -58,6 +68,13 @@ namespace WrathTactics.UI {
             if (hash >= 0 && int.TryParse(key.Substring(hash + 1), out int mask)) {
                 result.MetamagicMask = mask;
                 end = hash;
+            }
+
+            int aIdx = key.IndexOf("~A", StringComparison.Ordinal);
+            if (aIdx >= 0 && aIdx < end) {
+                if (int.TryParse(key.Substring(aIdx + 2, end - aIdx - 2), out int act))
+                    result.ActionType = act;
+                end = aIdx;
             }
 
             int vIdx = key.IndexOf(">V", StringComparison.Ordinal);
@@ -117,30 +134,48 @@ namespace WrathTactics.UI {
         public static List<SpellEntry> GetSpells(UnitEntityData unit) {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
+            var emittedBlueprints = new HashSet<string>();
+            var conversionSources = new List<(AbilityData spell, int level)>();
 
             foreach (var book in unit.Spellbooks) {
                 int maxLevel = book.MaxSpellLevel;
                 for (int level = 0; level <= maxLevel; level++) {
                     // Base known spells — expand AbilityVariants (Command, Plague Storm, …) per variant
                     foreach (var spell in book.GetKnownSpells(level)) {
-                        if (!TryEmitVariantEntries(spell, level, seen, result))
-                            EmitBareSpellEntry(spell, level, seen, result);
+                        if (!TryEmitVariantEntries(spell, level, seen, emittedBlueprints, result))
+                            EmitBareSpellEntry(spell, level, seen, emittedBlueprints, result);
+                        conversionSources.Add((spell, level));
                     }
                     // Custom spells (metamagic variants, fused spells) — expand AbilityVariants
                     // so a metamagic-prepared Summon Monster II surfaces all its sub-options
                     // (1 wolf / 1d3 dogs / …) carrying the metamagic tag, mirroring the known-spells path.
                     foreach (var spell in book.GetCustomSpells(level)) {
-                        if (!TryEmitVariantEntries(spell, level, seen, result))
-                            EmitBareSpellEntry(spell, level, seen, result);
+                        if (!TryEmitVariantEntries(spell, level, seen, emittedBlueprints, result))
+                            EmitBareSpellEntry(spell, level, seen, emittedBlueprints, result);
+                        conversionSources.Add((spell, level));
                     }
                     // Special spells — Cleric Domain, Shaman Spirit, Sorcerer Bloodline,
                     // Witch Patron lists (added by AddSpecialSpellList → Spellbook.AddSpecial).
                     // Owlcat's own SpellBookView reads all three collections; mod parity.
                     foreach (var spell in book.GetSpecialSpells(level)) {
-                        if (!TryEmitVariantEntries(spell, level, seen, result))
-                            EmitBareSpellEntry(spell, level, seen, result);
+                        if (!TryEmitVariantEntries(spell, level, seen, emittedBlueprints, result))
+                            EmitBareSpellEntry(spell, level, seen, emittedBlueprints, result);
+                        conversionSources.Add((spell, level));
                     }
                 }
+            }
+
+            // Second pass: runtime conversions (AbilityData.GetConversions). Runs after ALL
+            // static enumeration so the emittedBlueprints filter can drop conversions that are
+            // already visible some other way — the engine's conversion list re-includes every
+            // AbilityVariants entry, and spontaneous conversion offers spells the caster already
+            // knows (a cleric's cure line). What survives is genuinely conversion-only content:
+            // TTT-style AddSpecificSpellConversion targets (Magic Trick – Fireball's Cluster Bomb)
+            // and same-blueprint action-type conversions (Quick Channel).
+            foreach (var (spell, level) in conversionSources) {
+                var tag = BuildMetamagicTag(spell);
+                string tagSuffix = tag.Length > 0 ? " " + tag : "";
+                EmitConversionEntries(spell, level, $"[L{level}] {spell.Name}{tagSuffix}", seen, emittedBlueprints, result);
             }
 
             return result.OrderBy(e => e.Name).ToList();
@@ -149,10 +184,13 @@ namespace WrathTactics.UI {
         public static List<SpellEntry> GetAbilities(UnitEntityData unit) {
             var result = new List<SpellEntry>();
             var seen = new HashSet<string>();
+            var emittedBlueprints = new HashSet<string>();
+            var conversionSources = new List<AbilityData>();
 
             // Class abilities (non-item, non-spellbook)
             foreach (var ability in unit.Abilities.RawFacts) {
                 if (ability.Data.SourceItem != null) continue;
+                conversionSources.Add(ability.Data);
 
                 // Check for variants (sub-abilities like Evil Eye - AC)
                 var variants = GetBlueprintComponent<Kingmaker.UnitLogic.Abilities.Components.AbilityVariants>(ability.Blueprint);
@@ -161,6 +199,7 @@ namespace WrathTactics.UI {
                     foreach (var variant in variants.Variants) {
                         if (variant == null) continue;
                         var varGuid = variant.AssetGuid.ToString();
+                        emittedBlueprints.Add(varGuid);
                         if (seen.Add(varGuid))
                             result.Add(new SpellEntry(
                                 FormatWithInternal(variant.Name, variant),
@@ -169,6 +208,7 @@ namespace WrathTactics.UI {
                 } else {
                     // Regular ability without variants
                     var guid = ability.Blueprint.AssetGuid.ToString();
+                    emittedBlueprints.Add(guid);
                     if (seen.Add(guid))
                         result.Add(new SpellEntry(
                             FormatWithInternal(ability.Name, ability.Blueprint),
@@ -176,7 +216,59 @@ namespace WrathTactics.UI {
                 }
             }
 
+            // Second pass: runtime conversions — same filter rationale as GetSpells.
+            // Class-ability conversion entries carry compound keys (parent>Vconversion[~An]),
+            // unlike the legacy bare-GUID entries above; FindAbilityEx resolves both forms.
+            foreach (var data in conversionSources)
+                EmitConversionEntries(data, -1, data.Name, seen, emittedBlueprints, result);
+
             return result.OrderBy(e => e.Name).ToList();
+        }
+
+        // Emits picker entries for runtime conversions (AbilityData.GetConversions) of one
+        // parent ability. Two shapes:
+        //  - Different-blueprint conversion (TTT AddSpecificSpellConversion, Preferred Spell):
+        //    key = parent>Vconversion. Skipped when the blueprint is already visible anywhere
+        //    else in this dropdown (emittedBlueprints) — kills variant/spontaneous-cure noise.
+        //  - Same-blueprint conversion (TTT AbilityActionTypeConversion, e.g. Quick Channel):
+        //    only the action type differs, so the key carries ~A<actionType> and the label an
+        //    " (Move)"-style suffix. Not subject to the emittedBlueprints filter — the parent
+        //    is legitimately in the list already.
+        // GetConversions executes third-party conversion handlers (TTT raises an EventBus event
+        // from a Harmony postfix), so one broken mod component must not kill the whole picker:
+        // per-parent catch, warn, continue.
+        static void EmitConversionEntries(AbilityData parent, int level, string labelPrefix,
+                HashSet<string> seen, HashSet<string> emittedBlueprints, List<SpellEntry> result) {
+            List<AbilityData> conversions;
+            try {
+                conversions = parent.GetConversions().ToList();
+            } catch (Exception ex) {
+                Logging.Log.UI.Warn($"GetConversions failed for {parent.Blueprint?.name}: {ex.Message}");
+                return;
+            }
+
+            var parentGuid = parent.Blueprint.AssetGuid.ToString();
+            foreach (var conv in conversions) {
+                if (conv?.Blueprint == null) continue;
+                var convGuid = conv.Blueprint.AssetGuid.ToString();
+
+                if (convGuid == parentGuid) {
+                    int convAction = (int)conv.ActionType;
+                    if (convAction == (int)parent.ActionType) continue; // indistinguishable duplicate
+                    var key = MakeKey(parent, level, convGuid, convAction);
+                    if (!seen.Add(key)) continue;
+                    result.Add(new SpellEntry(
+                        FormatWithInternal($"{labelPrefix}: {conv.Name} ({conv.ActionType})", conv.Blueprint),
+                        key, conv.Blueprint.Icon));
+                } else {
+                    if (!emittedBlueprints.Add(convGuid)) continue;
+                    var key = MakeKey(parent, level, convGuid);
+                    if (!seen.Add(key)) continue;
+                    result.Add(new SpellEntry(
+                        FormatWithInternal($"{labelPrefix}: {conv.Name}", conv.Blueprint),
+                        key, conv.Blueprint.Icon));
+                }
+            }
         }
 
         public static List<SpellEntry> GetActivatables(UnitEntityData unit) {
@@ -210,7 +302,7 @@ namespace WrathTactics.UI {
         // emitted, false when neither component was present so the caller can fall
         // back to a single bare entry. A spell carrying both components emits from
         // both — no vanilla blueprint does this but the loops are independent.
-        static bool TryEmitVariantEntries(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
+        static bool TryEmitVariantEntries(AbilityData spell, int level, HashSet<string> seen, HashSet<string> emittedBlueprints, List<SpellEntry> result) {
             bool emitted = false;
             var tag = BuildMetamagicTag(spell);
             string tagSuffix = tag.Length > 0 ? " " + tag : "";
@@ -219,6 +311,7 @@ namespace WrathTactics.UI {
             if (variants != null && variants.m_Variants != null && variants.m_Variants.Length > 0) {
                 foreach (var variant in variants.Variants) {
                     if (variant == null) continue;
+                    emittedBlueprints.Add(variant.AssetGuid.ToString());
                     var key = MakeKey(spell, level, variant.AssetGuid.ToString());
                     if (seen.Add(key)) {
                         result.Add(new SpellEntry(
@@ -233,6 +326,7 @@ namespace WrathTactics.UI {
             if (shadow != null && shadow.SpellList?.Get() != null) {
                 foreach (var variant in shadow.GetAvailableSpells()) {
                     if (variant == null) continue;
+                    emittedBlueprints.Add(variant.AssetGuid.ToString());
                     var key = MakeKey(spell, level, variant.AssetGuid.ToString());
                     if (seen.Add(key)) {
                         result.Add(new SpellEntry(
@@ -246,7 +340,8 @@ namespace WrathTactics.UI {
             return emitted;
         }
 
-        static void EmitBareSpellEntry(AbilityData spell, int level, HashSet<string> seen, List<SpellEntry> result) {
+        static void EmitBareSpellEntry(AbilityData spell, int level, HashSet<string> seen, HashSet<string> emittedBlueprints, List<SpellEntry> result) {
+            emittedBlueprints.Add(spell.Blueprint.AssetGuid.ToString());
             var key = MakeKey(spell, level);
             if (!seen.Add(key)) return;
             var tag = BuildMetamagicTag(spell);

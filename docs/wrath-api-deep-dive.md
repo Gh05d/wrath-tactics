@@ -515,6 +515,24 @@ These are three different code paths; bugs typically affect ONE. Canonical traps
 - Metamagic-prepared variant spells (Quickened Summon Monster II → 1d3 dogs) — fixed in 1.16.1 by routing the custom-spells loop through `TryEmitVariantEntries`
 - Heal-picker custom-spells miss — fixed in 1.14.1 in `FindBestHealEx`
 
+### `getconversions`
+
+`AbilityData.GetConversions()` (public instance, returns `IEnumerable<AbilityData>`; IL: non-iterator, builds a fresh `TempList` per call, RVA 0x377370) is the engine's runtime conversion list — the action-bar flyout source for both spellbook spells (`ActionBarGroupSlot.SetToggleAdditionalSpells`) and class abilities (`SetSpontaneousControls`, IL_0086). It assembles:
+
+- **AbilityVariants** — via `new AbilityData(this, variantBp)`, the SAME 2-arg ctor as `MakeVariantData` (so conversions inherit its SpellLevelInSpellbook drop; `FindConversion` re-applies the level fix)
+- **Spontaneous class conversion** (`BlueprintCharacterClass` cure/inflict lines), `UnitPartSpellFool`, `AbilityRestoreSpellSlot`
+
+**Third-party surface (verified against TTT-Core source, 2026-07-13)**: TTT-Core postfixes `GetConversions` and raises `ISpontaneousConversionHandler` on the caster. Two component shapes:
+
+| Component | Shape | Example | AbilityData produced |
+|---|---|---|---|
+| `AddSpecificSpellConversion` | different blueprint | Magic Trick (Fireball) → `FireballClusterBomb` (`e2d75b899edb49dd8b3d9912009b63a4`, `m_Parent`=Fireball) | `new AbilityData(parent, convertBp)` — vanilla ctor |
+| `AbilityActionTypeConversion` | SAME blueprint, only ActionType differs | Quick Channel (move-action channel, ResourceMultiplier 2) | `CustomSpeedAbilityData : AbilityData` with `CustomActionType`; base `ActionType`/`RuntimeActionType` getters are Harmony-postfixed, so `(int)conv.ActionType` works through the base reference |
+
+**Mod integration (1.21.1+)**: picker (`SpellDropdownProvider.EmitConversionEntries`) runs a conversion pass AFTER all static enumeration, filtered by a set of already-emitted blueprint GUIDs — this drops the variant re-inclusions and spontaneous-cure noise, leaving conversion-only content. Same-blueprint conversions bypass that filter and get the `~A<actionType>` key segment as discriminator (`guid[@L<n>][>V<guid>][~A<n>][#<mask>]`). Resolution: `ActionValidator.FindConversion` as fallback after `FindVariantBlueprint` missed; a same-blueprint key without `~A` is deliberately unresolvable (ambiguous with the parent). Cast side needs nothing: conversions flow through `UnitUseAbility.CreateCastCommand` with the `Rulebook.Trigger` fallback, and the slot probe already uses `ConvertedFrom ?? ability`.
+
+**Caveat**: the class-ability resource pre-check in `FindCastSpellSource` reads the blueprint's `AbilityResourceLogic` — a conversion with a resource override (Quick Channel costs 2 uses via `CustomSpeedResourceOverride`) is under-estimated (1). Worst case: the cast is attempted with 1 use left and the engine vetoes it (RunVerified null → no cooldown stamp → retry next tick). Accepted edge; revisit if reported.
+
 ### `metamagic-leftover-bits`
 
 `Enum.GetValues(typeof(Metamagic))` only enumerates flags declared at compile time in Assembly-CSharp.
