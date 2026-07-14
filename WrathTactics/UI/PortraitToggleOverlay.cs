@@ -50,6 +50,11 @@ namespace WrathTactics.UI {
         }
 
         static void Discover() {
+            // FontScale is lazily refreshed by TacticsPanel.Toggle() only —
+            // badges are usually created before any panel open, so refresh
+            // here or 22f * FontScale silently multiplies by a stale 1.0.
+            UIHelpers.RefreshFontScale();
+
             foreach (var cell in Object.FindObjectsOfType<PartyCharacterPCView>())
                 EnsureBadge(cell);
             foreach (var cell in Object.FindObjectsOfType<PartyCharacterConsoleView>())

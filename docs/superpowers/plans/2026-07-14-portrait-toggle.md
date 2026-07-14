@@ -318,7 +318,7 @@ Expected: build + SCP of DLL/Info.json to the deck succeeds. If a prior build wa
 1. Badges render on every party portrait; corner/size do not cover the level-up button or HP bar (tune `rect.anchoredPosition`/`size` if they do).
 2. Click toggles green ↔ grey-strikethrough AND does NOT select/deselect the character (raycast interception works).
 3. Disabled char: no rule fires for them (watch a fight); re-enable → rules resume.
-4. State matches the panel header toggle both ways (flip in panel → badge updates; flip on badge with panel open → panel label updates).
+4. State matches the panel header toggle: flip in panel, close panel → badge shows the new state. (Badge-side flips with the panel open are not testable — the panel's fullscreen backdrop blocks clicks on the badges; `NotifyExternalConfigChange` is defensive only.)
 5. Party of >6: page with the arrows — badges show the correct per-unit state after paging (pooled-cell re-bind).
 6. Console/gamepad UI mode (if active on deck): badges appear there too, or — if the console tree isn't live — no errors in the mod log.
 7. UMM options (Ctrl+F10): unchecking hides all badges; re-checking restores them.

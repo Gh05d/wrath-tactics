@@ -83,8 +83,8 @@ namespace WrathTactics {
 
         static bool OnUnload(UnityModManager.ModEntry modEntry) {
             try {
-                if (saveLoadWatcher != null) EventBus.Unsubscribe(saveLoadWatcher);
                 UI.PortraitToggleOverlay.Cleanup();
+                if (saveLoadWatcher != null) EventBus.Unsubscribe(saveLoadWatcher);
                 UI.TacticsPanel.Uninstall();
                 harmony.UnpatchAll(modEntry.Info.Id);
             } finally {
