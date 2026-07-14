@@ -57,6 +57,11 @@ namespace WrathTactics {
             } catch (Exception ex) {
                 Logging.Log.Engine.Error(ex, "Buff pack scan error");
             }
+            try {
+                UI.PortraitToggleOverlay.Sync(delta);
+            } catch (Exception ex) {
+                Logging.Log.UI.Error(ex, "Portrait toggle sync error");
+            }
         }
 
         static bool OnUnload(UnityModManager.ModEntry modEntry) {
