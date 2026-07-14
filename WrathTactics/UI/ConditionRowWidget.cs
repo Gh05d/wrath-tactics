@@ -136,11 +136,14 @@ namespace WrathTactics.UI {
                         (int)condition.Operator, v => {
                             condition.Operator = (ConditionOperator)v;
                             onChanged?.Invoke();
+                            // Bracket labels are operator-dependent — rebuild so
+                            // they refresh live (same pattern as Subject/Property).
+                            if (condition.Property == ConditionProperty.WithinRange) Rebuild();
                         });
 
                     if (condition.Property == ConditionProperty.WithinRange) {
                         var bracketNames = RangeBracketNames;
-                        var bracketLabels = GetValueLabelsForProperty(ConditionProperty.WithinRange);
+                        var bracketLabels = GetRangeBracketLabels(condition.Operator);
                         int brIdx = bracketNames.IndexOf(condition.Value);
                         if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                         PopupSelector.Create(root, "CountRangeBracketValue", 0.67f, 0.88f, bracketLabels, brIdx, v => {
@@ -259,6 +262,9 @@ namespace WrathTactics.UI {
                         (int)condition.Operator, v => {
                             condition.Operator = (ConditionOperator)v;
                             onChanged?.Invoke();
+                            // Bracket labels are operator-dependent — rebuild so
+                            // they refresh live (same pattern as Subject/Property).
+                            if (condition.Property == ConditionProperty.WithinRange) Rebuild();
                         });
                 } else if (usesEqOp) {
                     CreateEqOperator(root, 0.38f, 0.44f, "EqOperator");
@@ -329,7 +335,7 @@ namespace WrathTactics.UI {
                     CreateBuffSelector(root, 0.45f, 0.88f);
                 } else if (isWithinRange) {
                     var bracketNames = RangeBracketNames;
-                    var bracketLabels = GetValueLabelsForProperty(ConditionProperty.WithinRange);
+                    var bracketLabels = GetRangeBracketLabels(condition.Operator);
                     int brIdx = bracketNames.IndexOf(condition.Value);
                     if (brIdx < 0) { brIdx = 2; condition.Value = bracketNames[brIdx]; } // default: Short
                     PopupSelector.Create(root, "RangeBracketValue", 0.51f, 0.88f, bracketLabels, brIdx, v => {
@@ -412,6 +418,19 @@ namespace WrathTactics.UI {
         }
 
         // Display-side labels — locale-dependent. Same order/length as the keys list.
+        // Bracket labels are operator-dependent (EffectiveLabel): the same
+        // bracket reads "Short (≤ 5 m)" under "<" but "Short (≤ 10 m)" under
+        // "<=". Order must match RangeBracketNames (index-mapped).
+        static List<string> GetRangeBracketLabels(ConditionOperator op) {
+            return new List<string> {
+                RangeBrackets.EffectiveLabel(RangeBracket.Melee, op),
+                RangeBrackets.EffectiveLabel(RangeBracket.Cone, op),
+                RangeBrackets.EffectiveLabel(RangeBracket.Short, op),
+                RangeBrackets.EffectiveLabel(RangeBracket.Medium, op),
+                RangeBrackets.EffectiveLabel(RangeBracket.Long, op),
+            };
+        }
+
         static List<string> GetValueLabelsForProperty(ConditionProperty property) {
             switch (property) {
                 case ConditionProperty.CreatureType: return EnumLabels.LabelsForCreatureType();
@@ -419,14 +438,8 @@ namespace WrathTactics.UI {
                 case ConditionProperty.HasCondition: return EnumLabels.LabelsForCondition();
                 case ConditionProperty.HasDescriptorEffect: return EnumLabels.LabelsForDescriptorEffect();
                 case ConditionProperty.ImmuneToEnergy:      return EnumLabels.LabelsForEnergy();
-                case ConditionProperty.WithinRange:
-                    return new List<string> {
-                        RangeBrackets.Label(RangeBracket.Melee),
-                        RangeBrackets.Label(RangeBracket.Cone),
-                        RangeBrackets.Label(RangeBracket.Short),
-                        RangeBrackets.Label(RangeBracket.Medium),
-                        RangeBrackets.Label(RangeBracket.Long),
-                    };
+                // WithinRange deliberately absent: bracket labels are operator-
+                // dependent — use GetRangeBracketLabels(condition.Operator).
                 default: return new List<string>();
             }
         }
