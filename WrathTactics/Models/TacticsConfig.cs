@@ -6,6 +6,10 @@ namespace WrathTactics.Models {
         [JsonProperty] public List<TacticsRule> GlobalRules { get; set; } = new();
         [JsonProperty] public Dictionary<string, List<TacticsRule>> CharacterRules { get; set; } = new();
         [JsonProperty] public Dictionary<string, bool> TacticsEnabled { get; set; } = new();
+        // Master switch for the per-portrait tactics badges (PortraitToggleOverlay).
+        // Default true; missing field in legacy save configs deserializes to true
+        // (bundled Newtonsoft ignores unknown/missing members — no migration).
+        [JsonProperty] public bool ShowPortraitToggles { get; set; } = true;
         [JsonProperty] public float TickIntervalSeconds { get; set; } = 3f;
         [JsonProperty] public float OutOfCombatTickIntervalSeconds { get; set; } = 2f;
         [JsonProperty] public bool DebugLogging { get; set; }
