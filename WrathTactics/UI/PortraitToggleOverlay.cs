@@ -37,6 +37,18 @@ namespace WrathTactics.UI {
             }
         }
 
+        // Mirror of TacticsPanel.Uninstall(): badges live under GAME-owned
+        // portrait cells, so mod-unload must destroy them explicitly or they
+        // survive as clickable orphans that keep writing config.
+        public static void Cleanup() {
+            for (int i = badges.Count - 1; i >= 0; i--) {
+                if (badges[i] != null)
+                    UnityEngine.Object.Destroy(badges[i].gameObject);
+            }
+            badges.Clear();
+            discoveryTimer = 0f;
+        }
+
         static void Discover() {
             foreach (var cell in Object.FindObjectsOfType<PartyCharacterPCView>())
                 EnsureBadge(cell);

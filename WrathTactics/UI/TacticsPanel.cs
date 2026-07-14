@@ -35,8 +35,10 @@ namespace WrathTactics.UI {
 
         // Lets external UI (portrait badges) refresh the open panel after
         // flipping TacticsEnabled, so the header toggle label never goes stale.
+        // Guards on isVisible (the panel's real visibility flag — the instance
+        // itself sits on the always-active DontDestroyOnLoad controller).
         public static void NotifyExternalConfigChange() {
-            if (instance == null || !instance.gameObject.activeInHierarchy) return;
+            if (instance == null || !instance.isVisible) return;
             instance.RefreshRuleList();
         }
 
