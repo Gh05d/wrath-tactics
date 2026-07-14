@@ -202,5 +202,38 @@ namespace WrathTactics.Models {
         public static string Label(RangeBracket b) {
             return WrathTactics.Localization.EnumLabels.For(b);
         }
+
+        // Effective interval the evaluator actually checks for (bracket, op) —
+        // mirrors the WithinRange operator switch in ConditionEvaluator
+        // (Equal: lo<d<=hi; LessThan: d<=lo; GreaterOrEqual: d>lo; ...).
+        // Null for operators outside the six comparison values.
+        public static string EffectiveHint(RangeBracket b, ConditionOperator op) {
+            float lo = LowerMeters(b);
+            float hi = MaxMeters(b);
+            switch (op) {
+                case ConditionOperator.Equal:          return $"{M(lo)}–{M(hi)} m";
+                case ConditionOperator.NotEqual:       return $"≠ {M(lo)}–{M(hi)} m";
+                case ConditionOperator.LessOrEqual:    return $"≤ {M(hi)} m";
+                case ConditionOperator.LessThan:       return $"≤ {M(lo)} m";
+                case ConditionOperator.GreaterOrEqual: return $"> {M(lo)} m";
+                case ConditionOperator.GreaterThan:    return $"> {M(hi)} m";
+                default:                               return null;
+            }
+        }
+
+        // Localized bracket name + effective interval: "Short (≤ 5 m)". The
+        // static "( 10 m )" part of Label() misled users into reading "< Short
+        // (10 m)" as "closer than 10 m" (it means "below the bracket": ≤ 5 m).
+        public static string EffectiveLabel(RangeBracket b, ConditionOperator op) {
+            var hint = EffectiveHint(b, op);
+            if (hint == null) return Label(b);
+            var label = Label(b);
+            int paren = label.IndexOf('(');
+            var name = paren > 0 ? label.Substring(0, paren).Trim() : label.Trim();
+            return $"{name} ({hint})";
+        }
+
+        static string M(float meters) =>
+            meters.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
