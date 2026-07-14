@@ -296,5 +296,8 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "Полностью обычное"
+  "enum.metamagic.CompletelyNormal": "Полностью обычное",
+
+  "settings.portrait_toggles": "Показывать переключатели тактики на портретах группы",
+  "settings.load_save_first": "Загрузите сохранение, чтобы изменить настройки Wrath Tactics."
 }

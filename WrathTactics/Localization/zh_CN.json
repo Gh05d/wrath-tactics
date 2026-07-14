@@ -296,5 +296,8 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "完全正常"
+  "enum.metamagic.CompletelyNormal": "完全正常",
+
+  "settings.portrait_toggles": "在队伍头像上显示战术开关",
+  "settings.load_save_first": "请先读取存档再修改 Wrath Tactics 设置。"
 }

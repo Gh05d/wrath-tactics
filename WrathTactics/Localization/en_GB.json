@@ -296,5 +296,8 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "Completely Normal"
+  "enum.metamagic.CompletelyNormal": "Completely Normal",
+
+  "settings.portrait_toggles": "Show tactics on/off badges on the party portraits",
+  "settings.load_save_first": "Load a save to change Wrath Tactics settings."
 }

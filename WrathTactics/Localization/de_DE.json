@@ -296,5 +296,8 @@
   "enum.metamagic.Persistent": "Persistent",
   "enum.metamagic.Selective": "Selective",
   "enum.metamagic.Bolstered": "Bolstered",
-  "enum.metamagic.CompletelyNormal": "Vollständig normal"
+  "enum.metamagic.CompletelyNormal": "Vollständig normal",
+
+  "settings.portrait_toggles": "Taktik-Schalter auf den Gruppenporträts anzeigen",
+  "settings.load_save_first": "Lade einen Spielstand, um Wrath-Tactics-Einstellungen zu ändern."
 }

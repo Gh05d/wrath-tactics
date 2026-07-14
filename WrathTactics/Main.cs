@@ -2,7 +2,9 @@ using System;
 using HarmonyLib;
 using Kingmaker;
 using Kingmaker.PubSubSystem;
+using UnityEngine;
 using UnityModManagerNet;
+using WrathTactics.Localization;
 using WrathTactics.Logging;
 
 namespace WrathTactics {
@@ -17,6 +19,7 @@ namespace WrathTactics {
             ModPath = modEntry.Path;
             modEntry.OnUnload = OnUnload;
             modEntry.OnUpdate = OnUpdate;
+            modEntry.OnGUI = OnGUI;
 
             Logging.DebugLog.Init(modEntry.Path);
             Logging.Log.Engine.Info($"Wrath Tactics loading (session log: {Logging.DebugLog.CurrentSessionPath})");
@@ -61,6 +64,20 @@ namespace WrathTactics {
                 UI.PortraitToggleOverlay.Sync(delta);
             } catch (Exception ex) {
                 Logging.Log.UI.Error(ex, "Portrait toggle sync error");
+            }
+        }
+
+        static void OnGUI(UnityModManager.ModEntry modEntry) {
+            if (Game.Instance?.Player == null) {
+                GUILayout.Label("settings.load_save_first".i18n());
+                return;
+            }
+            var config = Persistence.ConfigManager.Current;
+            bool newVal = GUILayout.Toggle(config.ShowPortraitToggles,
+                " " + "settings.portrait_toggles".i18n());
+            if (newVal != config.ShowPortraitToggles) {
+                config.ShowPortraitToggles = newVal;
+                Persistence.ConfigManager.Save();
             }
         }
 
