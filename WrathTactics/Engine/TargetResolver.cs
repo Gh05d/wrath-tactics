@@ -45,7 +45,8 @@ namespace WrathTactics.Engine {
                 }
                 case TargetType.PointAtConditionTarget: {
                     var anchor = ConditionEvaluator.LastMatchedEnemy?.Position
-                               ?? ConditionEvaluator.LastMatchedAlly?.Position;
+                               ?? ConditionEvaluator.LastMatchedAlly?.Position
+                               ?? ConditionEvaluator.LastMatchedSelf?.Position;
                     if (!anchor.HasValue) return ResolvedTarget.None;
 
                     var delta = owner.Position - anchor.Value;
@@ -221,11 +222,16 @@ namespace WrathTactics.Engine {
         }
 
         static UnitEntityData GetConditionTarget(UnitEntityData owner) {
-            // Prefer enemy match, then ally match
+            // Prefer enemy match, then ally, then self. Self is latched only when a
+            // Self-scope condition matched in the passing group, so a rule like
+            // "Self HasCondition = Death's Door -> Target: Condition target" resolves
+            // to the owner instead of failing to null.
             if (ConditionEvaluator.LastMatchedEnemy != null)
                 return ConditionEvaluator.LastMatchedEnemy;
             if (ConditionEvaluator.LastMatchedAlly != null)
                 return ConditionEvaluator.LastMatchedAlly;
+            if (ConditionEvaluator.LastMatchedSelf != null)
+                return ConditionEvaluator.LastMatchedSelf;
             return null;
         }
 

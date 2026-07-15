@@ -18,6 +18,13 @@ namespace WrathTactics.Engine {
         // Set during evaluation — the last entity that matched an Enemy/Ally condition
         public static UnitEntityData LastMatchedEnemy { get; private set; }
         public static UnitEntityData LastMatchedAlly { get; private set; }
+        // Set when a Self-scope condition matches. Lowest precedence for ConditionTarget
+        // (enemy > ally > self) so a pure Self group's match still yields a target — the
+        // owner — instead of resolving to null (which silently skipped target-requiring
+        // actions, e.g. "Self HasCondition = Death's Door -> Target: Condition target").
+        // Cleared with the others in ClearMatchedEntities so a failed OR-group can't leak
+        // it into a later group that passes without a Self condition.
+        public static UnitEntityData LastMatchedSelf { get; private set; }
 
         // Rule-scoped ambient state — set in Evaluate(rule, owner), cleared in finally.
         // Accessed by SpellDCMinusSave evaluation so the property helper stays one-arg
@@ -39,6 +46,7 @@ namespace WrathTactics.Engine {
         public static void ClearMatchedEntities() {
             LastMatchedEnemy = null;
             LastMatchedAlly = null;
+            LastMatchedSelf = null;
         }
 
         public static bool Evaluate(TacticsRule rule, UnitEntityData owner) {
@@ -102,7 +110,12 @@ namespace WrathTactics.Engine {
         static bool EvaluateCondition(Condition condition, UnitEntityData owner) {
             try {
                 switch (condition.Subject) {
-                    case ConditionSubject.Self:                return EvaluateUnitProperty(condition, owner);
+                    case ConditionSubject.Self:
+                        // Latch the owner so a Self match populates ConditionTarget
+                        // (see LastMatchedSelf). Only committed on match; a failing
+                        // Self condition leaves the latch untouched (cleared per group).
+                        if (EvaluateUnitProperty(condition, owner)) { LastMatchedSelf = owner; return true; }
+                        return false;
                     case ConditionSubject.Ally:                return EvaluateAlly(condition, owner);
                     case ConditionSubject.Enemy:               return EvaluateEnemy(condition, owner);
                     // EnemyCount/AllyCount never reach this switch: EvaluateGroup routes
