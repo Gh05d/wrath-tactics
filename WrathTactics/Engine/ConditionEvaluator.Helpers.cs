@@ -5,35 +5,72 @@ using KmAlignment = Kingmaker.Enums.Alignment;
 
 namespace WrathTactics.Engine {
     public static partial class ConditionEvaluator {
+        // Exact blueprint GUIDs of the game's creature-type facts, keyed by the
+        // lowercase dropdown key (EnumLabels.KeysForCreatureType). The engine has
+        // no IsUndead-style API — its own targeting conditions (AbilityTargetHasFact /
+        // ContextConditionHasFact) check these same type features, so GUID equality
+        // is the authoritative test. Humanoid and Ooze have no type-fact blueprint;
+        // they fall through to the exact-name rule only.
+        static readonly System.Collections.Generic.Dictionary<string, string[]> TypeFactGuids =
+            new System.Collections.Generic.Dictionary<string, string[]> {
+                ["aberration"]        = new[] { "3bec99efd9a363242a6c8d9957b75e91" },
+                ["animal"]            = new[] { "a95311b3dc996964cbaa30ff9965aaf6" },
+                ["construct"]         = new[] { "fd389783027d63343b4a5634bd81645f" },
+                ["dragon"]            = new[] { "455ac88e22f55804ab87c2467deff1d6" },
+                ["fey"]               = new[] { "018af8005220ac94a9a4f47b3e9c2b4e" },
+                ["magicalbeast"]      = new[] { "625827490ea69d84d8e599a33929fdc6" },
+                ["monstroushumanoid"] = new[] { "57614b50e8d86b24395931fffc5e409b" },
+                // PlantType + PlantTypeFake (units the game treats as plants for targeting)
+                ["plant"]             = new[] { "706e61781d692a042b35941f14bc41c5", "b0efed5c0c814e3486fb8c8932af3bcc" },
+                ["outsider"]          = new[] { "9054d3988d491d944ac144e27b6bc318" },
+                ["undead"]            = new[] { "734a29b693e9ec346ba2951b27987e33" },
+                ["vermin"]            = new[] { "09478937695300944a179530664e42ec" },
+                ["incorporeal"]       = new[] { "c4a7f98d743bc784c9d4cf2105852c39" },
+                // Swarms have no SwarmType — SwarmDiminutiveFeature + SwarmTinyFeature
+                ["swarm"]             = new[] { "2e3e840ab458ce04c92064489f87ecc2", "5a04735fd0e952142bfc8ecf995e2361" },
+            };
+
+        // Substring matching is FORBIDDEN here: any buff whose name merely contains
+        // the key turns a type check into a false positive (Nexus report 2026-07:
+        // 'WrathOfTheUndeadCountBuff' — a hidden item fact on Iz Adamantine Golems —
+        // made CreatureType=Undead match constructs). Exact GUID or exact name only.
+        internal static bool IsCreatureTypeFactMatch(string target, string factName, string factGuid) {
+            if (TypeFactGuids.TryGetValue(target, out var guids)) {
+                foreach (var g in guids)
+                    if (g == factGuid) return true;
+            }
+            return factName == target + "type" || factName == target;
+        }
+
         internal static bool CheckCreatureType(UnitEntityData unit, string typeValue) {
             if (string.IsNullOrEmpty(typeValue)) return false;
             string target = typeValue.ToLowerInvariant();
 
-            // Check Blueprint.Type (unit type blueprint)
+            // Blueprint.Type is the bestiary species ("Ghoul", "BlackDragon"), not the
+            // category — kept as a curated-name fallback (e.g. "dragon" in "BlackDragon").
             string bpTypeName = unit.Blueprint.Type?.name?.ToLowerInvariant() ?? "";
             if (bpTypeName.Contains(target)) {
                 Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Blueprint.Type: '{bpTypeName}'");
                 return true;
             }
 
-            // Check all features on the unit — creature types are typically features
-            // named "UndeadType", "AnimalType", "ConstructType", etc.
             var progression = unit.Descriptor.Progression;
             if (progression?.Features != null) {
                 foreach (var fact in progression.Features.Enumerable) {
-                    var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
-                    if (fname.Contains(target)) {
-                        Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Feature: '{fname}'");
+                    var bp = fact?.Blueprint;
+                    if (bp == null) continue;
+                    if (IsCreatureTypeFactMatch(target, bp.name?.ToLowerInvariant() ?? "", bp.AssetGuid.ToString())) {
+                        Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Feature: '{bp.name}'");
                         return true;
                     }
                 }
             }
 
-            // Also check all raw facts on the descriptor
             foreach (var fact in unit.Descriptor.Facts.List) {
-                var fname = fact?.Blueprint?.name?.ToLowerInvariant() ?? "";
-                if (fname.Contains(target)) {
-                    Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Fact: '{fname}'");
+                var bp = fact?.Blueprint;
+                if (bp == null) continue;
+                if (IsCreatureTypeFactMatch(target, bp.name?.ToLowerInvariant() ?? "", bp.AssetGuid.ToString())) {
+                    Log.Engine.Trace($"CreatureType matched on {unit.CharacterName} via Fact: '{bp.name}'");
                     return true;
                 }
             }
