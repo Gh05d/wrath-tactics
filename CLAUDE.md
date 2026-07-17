@@ -117,6 +117,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Widgets MUST invoke `onChanged?.Invoke()`, never `ConfigManager.Save()` directly** — direct save silently discards preset edits (`gotchas-persistence.md`).
 - **Enums are APPEND-ONLY** — preset/config JSON persists numeric indices (`gotchas-persistence.md`).
 - **`PresetId`-only rules have empty bodies by design** — cleanup passes must exempt them (`gotchas-persistence.md`).
+- **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts (`WrathOfTheUndeadCountBuff` machte Golems zu Untoten); Bug-Klasse traf HasBuff (pre-1.17.4) UND CreatureType (pre-1.23.3). Details `gotchas-conditions.md`.
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).
