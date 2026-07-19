@@ -236,7 +236,7 @@ namespace WrathTactics.Engine {
 
 
 
-        static bool CompareFloat(float left, ConditionOperator op, float right) {
+        internal static bool CompareFloat(float left, ConditionOperator op, float right) {
             switch (op) {
                 case ConditionOperator.LessThan:      return left < right;
                 case ConditionOperator.GreaterThan:   return left > right;
