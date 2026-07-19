@@ -139,6 +139,7 @@
   "enum.subject.EnemyNearest": "Enemy: nearest",
 
   "enum.property.HpPercent": "HP%",
+  "enum.property.HpFlat": "Current HP",
   "enum.property.AC": "AC",
   "enum.property.HasBuff": "HasBuff",
   "enum.property.HasCondition": "HasCondition",

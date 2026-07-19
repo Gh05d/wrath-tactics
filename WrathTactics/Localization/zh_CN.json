@@ -139,6 +139,7 @@
   "enum.subject.EnemyNearest": "敌人: 最近",
 
   "enum.property.HpPercent": "HP%",
+  "enum.property.HpFlat": "当前HP",
   "enum.property.AC": "AC",
   "enum.property.HasBuff": "拥有增益",
   "enum.property.HasCondition": "拥有状态",

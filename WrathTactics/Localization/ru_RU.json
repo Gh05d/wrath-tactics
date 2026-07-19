@@ -139,6 +139,7 @@
   "enum.subject.EnemyNearest": "Враг: ближайший",
 
   "enum.property.HpPercent": "HP%",
+  "enum.property.HpFlat": "Текущие HP",
   "enum.property.AC": "КБ",
   "enum.property.HasBuff": "Есть бафф",
   "enum.property.HasCondition": "Есть состояние",

@@ -139,6 +139,7 @@
   "enum.subject.EnemyNearest": "Ennemi : plus proche",
 
   "enum.property.HpPercent": "PV%",
+  "enum.property.HpFlat": "PV actuels",
   "enum.property.AC": "CA",
   "enum.property.HasBuff": "A buff",
   "enum.property.HasCondition": "A état",

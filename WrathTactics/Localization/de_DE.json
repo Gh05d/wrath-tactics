@@ -139,6 +139,7 @@
   "enum.subject.EnemyNearest": "Gegner: nächster",
 
   "enum.property.HpPercent": "TP%",
+  "enum.property.HpFlat": "Aktuelle TP",
   "enum.property.AC": "RK",
   "enum.property.HasBuff": "Hat Buff",
   "enum.property.HasCondition": "Hat Zustand",
