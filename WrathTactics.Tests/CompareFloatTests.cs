@@ -23,6 +23,8 @@ namespace WrathTactics.Tests {
         // Clamp-at-zero boundary: dead/downed units compare as 0 on the hot path
         [InlineData(0f, ConditionOperator.LessOrEqual, 100f, true)]
         [InlineData(0f, ConditionOperator.GreaterThan,   0f, false)]
+        // Corrupted persisted operator index fails closed via the default branch
+        [InlineData(1f, (ConditionOperator)99, 1f, false)]
         public void CompareFloat_returns_expected(float left, ConditionOperator op,
             float right, bool expected) {
             Assert.Equal(expected, ConditionEvaluator.CompareFloat(left, op, right));

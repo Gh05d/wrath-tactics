@@ -23,3 +23,4 @@ Recipes for diagnosing user reports and deck-side behavior. General bug-report p
 ## Silent Freezes
 
 - **Panel rendered but unresponsive, no log output** ⇒ suspect `StackOverflowException` (uncatchable, kills Unity main thread silently). Diagnose via code search for self-recursion, not via logs — see [`gotchas-persistence.md`](gotchas-persistence.md) (`PersistEdit` precedent).
+- **`Current HP` (HpFlat) matches dead allies at 0**: hot path clamps negative `HPLeft` to 0, so `Ally · Current HP · <= X` also matches corpses — same semantics as `HpPercent`. Intended exclusion is an additional `IsDead != Yes` row; Enemy scope is unaffected (`GetVisibleEnemies` filters `HPLeft > 0`).
