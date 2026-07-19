@@ -122,6 +122,7 @@ namespace WrathTactics.UI {
 
                 // Determine which value widget to show based on property type
                 bool propNeedsOperator = condition.Property == ConditionProperty.HpPercent
+                    || condition.Property == ConditionProperty.HpFlat
                     || condition.Property == ConditionProperty.AC
                     || condition.Property == ConditionProperty.HitDice
                     || condition.Property == ConditionProperty.SpellDCMinusSave
@@ -521,7 +522,7 @@ namespace WrathTactics.UI {
             switch (subject) {
                 case ConditionSubject.Self:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HpPercent, ConditionProperty.HpFlat, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition,
                         ConditionProperty.HasDescriptorEffect,
                         ConditionProperty.ImmuneToEnergy,
@@ -538,7 +539,7 @@ namespace WrathTactics.UI {
                 case ConditionSubject.Ally:
                 case ConditionSubject.AllyByName:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HpPercent, ConditionProperty.HpFlat, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.HasDescriptorEffect,
                         ConditionProperty.ImmuneToEnergy,
@@ -555,7 +556,7 @@ namespace WrathTactics.UI {
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.HasBuff,
+                        ConditionProperty.HpPercent, ConditionProperty.HpFlat, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.IsDead,
                         ConditionProperty.HasDescriptorEffect,
                         ConditionProperty.ImmuneToEnergy,
@@ -586,7 +587,7 @@ namespace WrathTactics.UI {
                 case ConditionSubject.EnemyLowestHD:
                 case ConditionSubject.EnemyNearest:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.AC,
+                        ConditionProperty.HpPercent, ConditionProperty.HpFlat, ConditionProperty.AC,
                         ConditionProperty.SaveFortitude, ConditionProperty.SaveReflex, ConditionProperty.SaveWill,
                         ConditionProperty.HasBuff, ConditionProperty.HasCondition,
                         ConditionProperty.HasDescriptorEffect,
@@ -609,7 +610,7 @@ namespace WrathTactics.UI {
                     };
                 case ConditionSubject.EnemyCount:
                     return new List<ConditionProperty> {
-                        ConditionProperty.HpPercent, ConditionProperty.AC, ConditionProperty.HasBuff,
+                        ConditionProperty.HpPercent, ConditionProperty.HpFlat, ConditionProperty.AC, ConditionProperty.HasBuff,
                         ConditionProperty.HasCondition, ConditionProperty.CreatureType,
                         ConditionProperty.HasDescriptorEffect,
                         ConditionProperty.ImmuneToEnergy,
