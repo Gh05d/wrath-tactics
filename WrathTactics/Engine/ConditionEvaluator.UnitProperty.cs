@@ -19,6 +19,9 @@ namespace WrathTactics.Engine {
                     float hpPct = (float)unit.HPLeft / unit.Stats.HitPoints.ModifiedValue * 100f;
                     return CompareFloat(hpPct, condition.Operator, threshold);
 
+                case ConditionProperty.HpFlat:
+                    return CompareFloat(Math.Max(0, unit.HPLeft), condition.Operator, threshold);
+
                 case ConditionProperty.AC:
                     int ac = unit.Stats.AC.ModifiedValue;
                     return CompareFloat(ac, condition.Operator, threshold);
@@ -293,6 +296,13 @@ namespace WrathTactics.Engine {
                         System.Globalization.CultureInfo.InvariantCulture, out threshold))
                         return false;
                     return CompareFloat(hpPct, condition.Operator, threshold);
+
+                case ConditionProperty.HpFlat:
+                    if (unit.HPLeft <= 0) return false; // Don't count dead as "low HP"
+                    if (!float.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out threshold))
+                        return false;
+                    return CompareFloat(unit.HPLeft, condition.Operator, threshold);
 
                 case ConditionProperty.AC:
                     float ac = unit.Stats.AC.ModifiedValue;
