@@ -165,6 +165,7 @@
   "enum.property.IsTargetedByEnemy": "Цель врага",
   "enum.property.IsSummon": "Призванное существо",
   "enum.property.IsPet": "Питомец",
+  "enum.property.WieldsRangedWeapon": "Дальнобойное оружие",
   "enum.property.IsFlanked": "Окружён",
   "enum.property.AbilityDamage": "Урон характеристик",
   "enum.property.NegativeLevels": "Отрицательные уровни",
