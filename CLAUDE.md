@@ -10,7 +10,7 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 ~/.dotnet/dotnet build WrathTactics/WrathTactics.csproj -p:SolutionDir=$(pwd)/
 ```
 
-**Release build** (produces distribution zip): add `-c Release` — the `CreateZip` target only runs in Release config; output `bin/WrathTactics-<version>.zip`.
+**Release build** (produces distribution zip): add `-c Release` — the `CreateZip` target only runs in Release config; output `bin/WrathTactics-<version>.zip`. NU1900 warnings im Build = NuGet-Vulnerability-Index via Proxy unerreichbar — harmlos, kein Artefakt-Problem.
 
 **Version bump requires TWO files**: `WrathTactics/Info.json` (UMM reads this) and `WrathTactics/WrathTactics.csproj` `<Version>`. Bumping only one ships a zip with the stale version in its name.
 

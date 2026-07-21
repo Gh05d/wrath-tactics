@@ -15,6 +15,7 @@ Operative rules for `TacticsEvaluator`, `ActionValidator`, `CommandExecutor`, `P
 - **Cast fallback chain spans CastSpell + CastAbility (since 1.15)**: `ResolveCastSpellChain` is the authoritative validator + executor entry point for both Cast types — never re-introduce single-GUID validation on either branch (breaks rule fall-through when primary unavailable). ([deep-dive](../docs/wrath-api-deep-dive.md#cast-fallback-chain))
 - **`ResolvedTarget` wrapper**: `TargetResolver.Resolve` returns a struct (Unit XOR Point, both null = `None`). `ActionValidator.CanExecute` and `CommandExecutor.Execute` branch on `IsPoint`. `ResolvedTarget.None` fails validation — no silent self-cast fallback.
 - **`TargetWrapper` dual ctors**: `(UnitEntityData)` for unit, `(Vector3 point, float? orientation = null, UnitEntityData unit = null)` for point. `UnitUseAbility.CreateCastCommand(AbilityData, TargetWrapper)` takes either.
+- **Cast fires once per round, AttackTarget full-attacks**: `CastSpell`/`CastAbility` issue `UnitUseAbility` — a standard action, ONE activation per command. `AttackTarget` issues `new UnitAttack(target, null)` — the same command class the engine's auto-engage uses, i.e. a full attack with iteratives. Kinetic blasts are weapons under the hood: blast as in-game default attack + rule action AttackTarget ⇒ ~2 blasts/round at BAB 6+ (user-corroborated, Nexus v1.25.0 thread; not IL-traced end-to-end). Triage: "ability only fires once per round" reports → recommend AttackTarget, not Cast.
 
 ## Activatables
 
