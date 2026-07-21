@@ -215,7 +215,8 @@ namespace WrathTactics.UI {
                         || condition.Property == ConditionProperty.IsPet
                         || condition.Property == ConditionProperty.IsFlanked
                         || condition.Property == ConditionProperty.AbilityDamage
-                        || condition.Property == ConditionProperty.NegativeLevels;
+                        || condition.Property == ConditionProperty.NegativeLevels
+                        || condition.Property == ConditionProperty.WieldsRangedWeapon;
                     condition.Operator = ConditionOperator.Equal;
                     if (isBool) {
                         var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
@@ -253,7 +254,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.IsPet
                     || condition.Property == ConditionProperty.IsFlanked
                     || condition.Property == ConditionProperty.AbilityDamage
-                    || condition.Property == ConditionProperty.NegativeLevels;
+                    || condition.Property == ConditionProperty.NegativeLevels
+                    || condition.Property == ConditionProperty.WieldsRangedWeapon;
                 bool needsOperator = !usesEqOp && !isBoolProperty;
 
                 // Operator popup selector
@@ -531,6 +533,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasClass,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
+                        ConditionProperty.WieldsRangedWeapon,
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
@@ -549,6 +552,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsTargetedByEnemy,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
+                        ConditionProperty.WieldsRangedWeapon,
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
@@ -565,6 +569,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
+                        ConditionProperty.WieldsRangedWeapon,
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
@@ -605,6 +610,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsTargetedByAlly,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
+                        ConditionProperty.WieldsRangedWeapon,
                         ConditionProperty.IsFlanked,
                         ConditionProperty.AdjacentEnemyCount
                     };
@@ -623,6 +629,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
+                        ConditionProperty.WieldsRangedWeapon,
                         ConditionProperty.IsFlanked,
                         ConditionProperty.AdjacentEnemyCount
                     };
