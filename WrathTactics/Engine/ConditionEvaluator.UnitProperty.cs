@@ -179,6 +179,12 @@ namespace WrathTactics.Engine {
                     return EqualsBool(isPet, condition);
                 }
 
+                case ConditionProperty.WieldsRangedWeapon: {
+                    // "Archer" detection is weapon-based, not class-based — mobs are
+                    // Fighters/Rangers with bows. See WieldsRangedWeapon helper for IL notes.
+                    return EqualsBool(WieldsRangedWeapon(unit), condition);
+                }
+
                 case ConditionProperty.HasBuff: {
                     bool hasBuff = unit.Buffs.RawFacts.Any(b =>
                         b.Blueprint.AssetGuid.ToString() == condition.Value);
@@ -366,6 +372,13 @@ namespace WrathTactics.Engine {
                     bool isPet = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartPet>() != null;
                     bool wantPet = ParseBoolValue(condition.Value);
                     bool match = isPet == wantPet;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.WieldsRangedWeapon: {
+                    bool ranged = WieldsRangedWeapon(unit);
+                    bool wantRanged = ParseBoolValue(condition.Value);
+                    bool match = ranged == wantRanged;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

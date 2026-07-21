@@ -193,6 +193,16 @@ namespace WrathTactics.Engine {
             return part != null && part.Count > 0;
         }
 
+        // True if the unit currently fights with a ranged weapon. GetFirstWeapon is the
+        // engine's canonical "what does this unit attack with" probe (verified IL: primary
+        // hand unless unarmed, else secondary hand, else first armed natural limb — CanBeNull,
+        // so unarmed/natural-only units yield null → false). Blueprint.IsRanged delegates to
+        // WeaponType.AttackType ∈ {Ranged, RangedTouch}. Live check of the CURRENT weapon
+        // set — an enemy that swaps to a melee set stops matching on the next tick.
+        internal static bool WieldsRangedWeapon(UnitEntityData unit) {
+            return unit?.GetFirstWeapon()?.Blueprint?.IsRanged == true;
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {
