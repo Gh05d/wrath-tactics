@@ -30,6 +30,29 @@ namespace WrathTactics.Engine {
                 ["swarm"]             = new[] { "2e3e840ab458ce04c92064489f87ecc2", "5a04735fd0e952142bfc8ecf995e2361" },
             };
 
+        // 'Humanoid' has no type fact of its own, so it cannot be matched positively.
+        // The engine solves this by EXCLUSION: HoldPerson (Spells/Level3/HoldPerson.jbp)
+        // and Daze (Spells/Level0/Daze.jbp) both define a legal humanoid target as one
+        // carrying none of these facts. We mirror HoldPerson, the stricter of the two —
+        // its extra SubtypeExtraplanar entry is what Daze's list omits, which is why the
+        // game itself lets you Daze a 4-HD demon. Monsters pick their type fact up from
+        // monster classes (AddClassLevels -> OutsiderClass / DragonClass / ...), so the
+        // fact lands in Progression.Features at runtime — the same place we read.
+        static readonly string[] NonHumanoidTypeKeys = {
+            "aberration", "animal", "construct", "dragon", "fey", "magicalbeast",
+            "monstroushumanoid", "outsider", "plant", "undead", "vermin", "swarm",
+        };
+        const string SubtypeExtraplanarGuid = "136fa0343d5b4b348bdaa05d83408db3";
+
+        // True when this fact proves the unit is NOT a humanoid. Exact-match only,
+        // same rule as IsCreatureTypeFactMatch — a substring match here would flip a
+        // real humanoid to "not humanoid" on any incidentally named buff.
+        internal static bool IsNonHumanoidFact(string factName, string factGuid) {
+            foreach (var key in NonHumanoidTypeKeys)
+                if (IsCreatureTypeFactMatch(key, factName, factGuid)) return true;
+            return factGuid == SubtypeExtraplanarGuid || factName == "subtypeextraplanar";
+        }
+
         // Substring matching is FORBIDDEN here: any buff whose name merely contains
         // the key turns a type check into a false positive (Nexus report 2026-07:
         // 'WrathOfTheUndeadCountBuff' — a hidden item fact on Iz Adamantine Golems —
@@ -45,6 +68,9 @@ namespace WrathTactics.Engine {
         internal static bool CheckCreatureType(UnitEntityData unit, string typeValue) {
             if (string.IsNullOrEmpty(typeValue)) return false;
             string target = typeValue.ToLowerInvariant();
+
+            // Humanoid is absence-defined — the positive paths below can never match it.
+            if (target == "humanoid") return IsHumanoidByExclusion(unit);
 
             // Blueprint.Type is the bestiary species ("Ghoul", "BlackDragon"), not the
             // category — kept as a curated-name fallback (e.g. "dragon" in "BlackDragon").
@@ -77,6 +103,37 @@ namespace WrathTactics.Engine {
 
             Log.Engine.Trace($"CreatureType NO MATCH for {unit.CharacterName} (Blueprint.Type='{bpTypeName}', looking for '{target}')");
             return false;
+        }
+
+        // Humanoid := carries no fact that marks another creature type. Scans the same
+        // two fact collections as CheckCreatureType, so a type granted by a monster class
+        // (Progression.Features) counts just as much as one added straight to the unit.
+        // Known hole: oozes have no type fact anywhere in the game data, so they read as
+        // humanoid — the engine's own humanoid-only spells share that hole.
+        static bool IsHumanoidByExclusion(UnitEntityData unit) {
+            var progression = unit.Descriptor?.Progression;
+            if (progression?.Features != null) {
+                foreach (var fact in progression.Features.Enumerable) {
+                    var bp = fact?.Blueprint;
+                    if (bp == null) continue;
+                    if (IsNonHumanoidFact(bp.name?.ToLowerInvariant() ?? "", bp.AssetGuid.ToString())) {
+                        Log.Engine.Trace($"CreatureType Humanoid rejected on {unit.CharacterName} via Feature: '{bp.name}'");
+                        return false;
+                    }
+                }
+            }
+
+            foreach (var fact in unit.Descriptor.Facts.List) {
+                var bp = fact?.Blueprint;
+                if (bp == null) continue;
+                if (IsNonHumanoidFact(bp.name?.ToLowerInvariant() ?? "", bp.AssetGuid.ToString())) {
+                    Log.Engine.Trace($"CreatureType Humanoid rejected on {unit.CharacterName} via Fact: '{bp.name}'");
+                    return false;
+                }
+            }
+
+            Log.Engine.Trace($"CreatureType Humanoid matched on {unit.CharacterName} (no non-humanoid type fact)");
+            return true;
         }
 
         static bool CheckAlignment(UnitEntityData unit, string component) {

@@ -7,6 +7,7 @@ namespace WrathTactics.Tests {
         const string SwarmDiminutiveGuid = "2e3e840ab458ce04c92064489f87ecc2";
         const string SwarmTinyGuid = "5a04735fd0e952142bfc8ecf995e2361";
         const string IncorporealGuid = "c4a7f98d743bc784c9d4cf2105852c39";
+        const string SubtypeExtraplanarGuid = "136fa0343d5b4b348bdaa05d83408db3";
         const string UnrelatedGuid = "00000000000000000000000000000000";
 
         // Nexus report 2026-07: Iz Adamantine Golems carry the item buff
@@ -52,6 +53,35 @@ namespace WrathTactics.Tests {
         [InlineData("ooze")]
         public void KeysWithoutGuid_RejectArbitraryFacts(string key) {
             Assert.False(ConditionEvaluator.IsCreatureTypeFactMatch(key, key + "relatedbuff", UnrelatedGuid));
+        }
+
+        // Humanoid is absence-defined (see IsNonHumanoidFact): these facts are what
+        // HoldPerson itself excludes, so each one must disqualify a unit.
+        [Theory]
+        [InlineData("whatever", UndeadTypeGuid)]
+        [InlineData("whatever", SwarmDiminutiveGuid)]
+        [InlineData("whatever", SwarmTinyGuid)]
+        [InlineData("whatever", SubtypeExtraplanarGuid)]
+        [InlineData("undeadtype", UnrelatedGuid)]
+        [InlineData("dragontype", UnrelatedGuid)]
+        [InlineData("monstroushumanoidtype", UnrelatedGuid)]
+        [InlineData("subtypeextraplanar", UnrelatedGuid)]
+        public void NonHumanoidFact_DisqualifiesHumanoid(string factName, string factGuid) {
+            Assert.True(ConditionEvaluator.IsNonHumanoidFact(factName, factGuid));
+        }
+
+        // The substring trap in reverse: an incidentally named buff must not strip
+        // humanoid off a real humanoid. Incorporeal is a subtype, not a creature type —
+        // HoldPerson does not exclude it, so neither do we.
+        [Theory]
+        [InlineData("wrathoftheundeadcountbuff", UnrelatedGuid)]
+        [InlineData("animalisticbuff", UnrelatedGuid)]
+        [InlineData("planttypefakesomething", UnrelatedGuid)]
+        [InlineData("extraplanarbindingbuff", UnrelatedGuid)]
+        [InlineData("whatever", IncorporealGuid)]
+        [InlineData("oozetype", UnrelatedGuid)]
+        public void UnrelatedOrNonExcludedFact_KeepsHumanoid(string factName, string factGuid) {
+            Assert.False(ConditionEvaluator.IsNonHumanoidFact(factName, factGuid));
         }
     }
 }
