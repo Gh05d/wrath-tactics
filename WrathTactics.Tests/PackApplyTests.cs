@@ -46,20 +46,30 @@ namespace WrathTactics.Tests {
         }
 
         [Fact]
-        public void PlanApply_still_adds_a_member_present_only_from_another_pack() {
-            // Two packs sharing a preset must each own their own copy — removing pack B
-            // must not strip a rule that pack A also asked for.
+        public void PlanApply_skips_a_member_already_present_from_another_pack() {
+            // Preset-based dedup: one rule per preset per list, no matter which pack asks.
+            // Prevents the duplicate spam from applying two packs that share members.
             var existing = new List<TacticsRule> { Linked("p1", "B") };
-            var plan = PackRegistry.PlanApply(Pack("A", "p1"), existing, AllExist);
+            var plan = PackRegistry.PlanApply(Pack("A", "p1", "p2"), existing, AllExist);
 
             Assert.Single(plan);
-            Assert.Equal("A", plan[0].PackId);
+            Assert.Equal("p2", plan[0].PresetId);
         }
 
         [Fact]
-        public void PlanApply_still_adds_a_member_present_as_a_hand_built_link() {
+        public void PlanApply_skips_a_member_already_present_as_a_hand_built_link() {
             var existing = new List<TacticsRule> { Linked("p1", null) };
             var plan = PackRegistry.PlanApply(Pack("A", "p1"), existing, AllExist);
+
+            Assert.Empty(plan);
+        }
+
+        [Fact]
+        public void PlanApply_ignores_rules_without_a_preset_link_when_deduping() {
+            // A standalone rule has no PresetId; it can never be "the same rule" as a member.
+            var existing = new List<TacticsRule> { new TacticsRule { Name = "hand-built" } };
+            var plan = PackRegistry.PlanApply(Pack("A", "p1"), existing, AllExist);
+
             Assert.Single(plan);
         }
 
@@ -140,10 +150,11 @@ namespace WrathTactics.Tests {
         }
 
         [Fact]
-        public void CountAlreadyApplied_does_not_count_a_rule_from_a_different_pack() {
-            var existing = new List<TacticsRule> { Linked("p1", "B") };
-            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1"), existing);
-            Assert.Equal(0, count);
+        public void CountAlreadyApplied_counts_a_member_present_from_any_pack() {
+            // Must use the same membership rule as PlanApply, or added + already-present
+            // stops adding up and the status message lies again.
+            var rules = new List<TacticsRule> { Linked("p1", "B"), Linked("p2", null) };
+            Assert.Equal(2, PackRegistry.CountAlreadyApplied(Pack("A", "p1", "p2"), rules));
         }
 
         [Fact]

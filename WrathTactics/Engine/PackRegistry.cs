@@ -77,10 +77,10 @@ namespace WrathTactics.Engine {
 
         /// <summary>
         /// Returns the rules to append so <paramref name="pack"/> is fully represented in
-        /// <paramref name="existing"/>. Members already present *from this pack* are skipped,
-        /// which makes re-applying a sync rather than a duplicate. Members present from a
-        /// different pack (or as a hand-made link) are still added: each pack owns its own
-        /// rules so removing one pack never strips another's.
+        /// <paramref name="existing"/>. Members already present as a preset-linked rule —
+        /// from this pack, from another pack, or hand-built — are skipped, which makes
+        /// re-applying (or applying a second pack sharing members) a sync rather than a
+        /// duplicate spam.
         /// Never mutates <paramref name="existing"/>.
         /// </summary>
         public static List<TacticsRule> PlanApply(TacticsPack pack, List<TacticsRule> existing,
@@ -89,14 +89,20 @@ namespace WrathTactics.Engine {
             var plan = new List<TacticsRule>();
             if (pack?.PresetIds == null) return plan;
 
-            var alreadyFromThisPack = new HashSet<string>(
+            // Preset-based dedup: one rule per preset per list, whatever pack asks for it.
+            // The old key was PackId+PresetId, which let two packs sharing a member each
+            // insert their own copy — and since every "Save List as Pack" mints a fresh pack
+            // id over the same presets, re-saving and re-applying spammed the list. Rules
+            // are no longer owned exclusively by a pack (the chip detaches instead of
+            // deleting), so there is nothing left for per-pack ownership to protect.
+            var alreadyLinked = new HashSet<string>(
                 (existing ?? new List<TacticsRule>())
-                    .Where(r => r != null && r.PackId == pack.Id && !string.IsNullOrEmpty(r.PresetId))
+                    .Where(r => r != null && !string.IsNullOrEmpty(r.PresetId))
                     .Select(r => r.PresetId));
 
             foreach (var presetId in pack.PresetIds) {
                 if (string.IsNullOrEmpty(presetId)) continue;
-                if (alreadyFromThisPack.Contains(presetId)) continue;
+                if (alreadyLinked.Contains(presetId)) continue;
                 if (presetExists != null && !presetExists(presetId)) {
                     Log.Persistence.Warn($"Pack '{pack.Name}': member preset id={presetId} no longer exists — skipped");
                     continue;
@@ -109,27 +115,30 @@ namespace WrathTactics.Engine {
                     PresetId = presetId,
                     PackId = pack.Id,
                 });
-                alreadyFromThisPack.Add(presetId);
+                alreadyLinked.Add(presetId);
             }
             return plan;
         }
 
         /// <summary>
-        /// How many of the pack's members are already present as rules of THIS pack in
-        /// <paramref name="rules"/>. Same membership test PlanApply uses to skip them, so the
-        /// two numbers add up — a member skipped for any other reason (unresolvable preset,
-        /// empty or duplicate id) is deliberately NOT counted here.
+        /// How many of the pack's members are already present as a preset-linked rule in
+        /// <paramref name="rules"/>, regardless of which pack (if any) that rule belongs to.
+        /// Same membership test PlanApply uses to skip them, so the two numbers add up — a
+        /// member skipped for any other reason (unresolvable preset, empty or duplicate id)
+        /// is deliberately NOT counted here.
         /// </summary>
         public static int CountAlreadyApplied(TacticsPack pack, List<TacticsRule> rules) {
             if (pack?.PresetIds == null || rules == null) return 0;
-            var fromThisPack = new HashSet<string>(
-                rules.Where(r => r != null && r.PackId == pack.Id && !string.IsNullOrEmpty(r.PresetId))
+            // Same membership rule as PlanApply — if these two disagree, added + already-present
+            // no longer sums to the pack's member count and the status message misreports again.
+            var alreadyLinked = new HashSet<string>(
+                rules.Where(r => r != null && !string.IsNullOrEmpty(r.PresetId))
                      .Select(r => r.PresetId));
             int count = 0;
             var counted = new HashSet<string>();
             foreach (var presetId in pack.PresetIds) {
                 if (string.IsNullOrEmpty(presetId)) continue;
-                if (!fromThisPack.Contains(presetId)) continue;
+                if (!alreadyLinked.Contains(presetId)) continue;
                 if (!counted.Add(presetId)) continue;   // a duplicated member id is one slot, not two
                 count++;
             }
