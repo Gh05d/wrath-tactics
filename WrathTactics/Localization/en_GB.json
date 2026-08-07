@@ -114,6 +114,7 @@
   "status.pack_nothing_to_add": "'{0}' is already fully applied",
   "status.pack_removed": "Removed {0} rule(s) of '{1}'",
   "status.pack_saved_from_list": "Saved {0} rule(s) as pack '{1}'",
+  "status.pack_saved_from_list_partial": "Saved {0} rule(s) as pack '{1}' — {2} rule(s) could not be saved as presets",
   "status.pack_save_list_empty": "Nothing to save — this list has no rules",
 
   "picker.no_abilities": "(no abilities available)",

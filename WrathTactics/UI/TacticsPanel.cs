@@ -699,6 +699,7 @@ namespace WrathTactics.UI {
             };
 
             int promoted = 0;
+            int skipped = 0;
             foreach (var rule in list) {
                 if (rule == null) continue;
                 string presetId = rule.PresetId;
@@ -707,6 +708,7 @@ namespace WrathTactics.UI {
                     if (preset == null) {
                         // Promotion failed on disk; PromoteRuleToPreset left the rule intact.
                         Log.UI.Warn($"Save list as pack: could not promote rule '{rule.Name}' — skipped");
+                        skipped++;
                         continue;
                     }
                     presetId = preset.Id;
@@ -738,10 +740,16 @@ namespace WrathTactics.UI {
                 return;
             }
             ConfigManager.Save();
-            SetPackStatus(
-                string.Format("status.pack_saved_from_list".i18n(), pack.PresetIds.Count, pack.Name),
-                new Color(0.6f, 0.85f, 0.6f));
-            Log.UI.Info($"Saved {pack.PresetIds.Count} rule(s) as pack '{pack.Name}' ({promoted} newly promoted)");
+            if (skipped > 0) {
+                SetPackStatus(
+                    string.Format("status.pack_saved_from_list_partial".i18n(), pack.PresetIds.Count, pack.Name, skipped),
+                    new Color(1f, 0.8f, 0.4f));
+            } else {
+                SetPackStatus(
+                    string.Format("status.pack_saved_from_list".i18n(), pack.PresetIds.Count, pack.Name),
+                    new Color(0.6f, 0.85f, 0.6f));
+            }
+            Log.UI.Info($"Saved {pack.PresetIds.Count} rule(s) as pack '{pack.Name}' ({promoted} newly promoted, {skipped} skipped)");
             RefreshRuleList();
         }
 
