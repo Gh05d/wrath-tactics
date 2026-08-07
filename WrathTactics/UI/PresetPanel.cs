@@ -99,6 +99,12 @@ namespace WrathTactics.UI {
             var (sep, _s) = UIHelpers.Create("Sep", root.transform);
             sep.AddComponent<LayoutElement>().preferredHeight = 10;
 
+            // Packs section — rebuild deferred so a rename's onEndEdit is off the stack
+            // before its TMP_InputField gets destroyed (same reason as the preset rename).
+            PackPanel.Build(root.transform,
+                () => StartCoroutine(DeferredRebuild()),
+                (text, color) => SetStatus(text, color));
+
             var presets = PresetRegistry.All();
             if (presets.Count == 0) {
                 var (empty, _e) = UIHelpers.Create("Empty", root.transform);
