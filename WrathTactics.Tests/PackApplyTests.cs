@@ -169,5 +169,57 @@ namespace WrathTactics.Tests {
             Assert.Equal(0, PackRegistry.CountAlreadyApplied(null, new List<TacticsRule>()));
             Assert.Equal(0, PackRegistry.CountAlreadyApplied(Pack("A", "p1"), null));
         }
+
+        [Fact]
+        public void AdoptUnownedMembers_adopts_an_unowned_rule_linking_a_member() {
+            // Simulates the "Remove pack marking" scenario: UnstampPackFromList nulled
+            // PackId but left PresetId, so this rule is the pack's member with no owner.
+            var rule = Linked("p1", null);
+            var rules = new List<TacticsRule> { rule };
+
+            int adopted = PackRegistry.AdoptUnownedMembers(Pack("A", "p1", "p2"), rules);
+
+            Assert.Equal(1, adopted);
+            Assert.Equal("A", rule.PackId);
+        }
+
+        [Fact]
+        public void AdoptUnownedMembers_does_not_touch_a_rule_owned_by_another_pack() {
+            var rule = Linked("p1", "B");
+            var rules = new List<TacticsRule> { rule };
+
+            int adopted = PackRegistry.AdoptUnownedMembers(Pack("A", "p1"), rules);
+
+            Assert.Equal(0, adopted);
+            Assert.Equal("B", rule.PackId);
+        }
+
+        [Fact]
+        public void AdoptUnownedMembers_ignores_rules_whose_preset_is_not_a_member() {
+            var rule = Linked("p9", null);
+            var rules = new List<TacticsRule> { rule };
+
+            int adopted = PackRegistry.AdoptUnownedMembers(Pack("A", "p1", "p2"), rules);
+
+            Assert.Equal(0, adopted);
+            Assert.Null(rule.PackId);
+        }
+
+        [Fact]
+        public void AdoptUnownedMembers_ignores_rules_with_no_preset_id() {
+            var rule = new TacticsRule { Name = "hand-built" };
+            var rules = new List<TacticsRule> { rule };
+
+            int adopted = PackRegistry.AdoptUnownedMembers(Pack("A", "p1"), rules);
+
+            Assert.Equal(0, adopted);
+            Assert.Null(rule.PackId);
+        }
+
+        [Fact]
+        public void AdoptUnownedMembers_tolerates_null_pack_and_null_list() {
+            Assert.Equal(0, PackRegistry.AdoptUnownedMembers(null, new List<TacticsRule>()));
+            Assert.Equal(0, PackRegistry.AdoptUnownedMembers(Pack("A", "p1"), null));
+        }
     }
 }

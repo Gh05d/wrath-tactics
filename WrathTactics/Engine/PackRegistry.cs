@@ -150,6 +150,29 @@ namespace WrathTactics.Engine {
             return count;
         }
 
+        /// <summary>
+        /// Re-stamps this pack's PackId onto rules that link one of its member presets and
+        /// belong to no pack. Makes "remove pack marking" reversible: re-applying the pack
+        /// re-adopts the rules it left behind, instead of finding them already linked (and so
+        /// skipped by the preset-based dedup) and reporting "already fully applied" forever.
+        /// Only touches rules with a null/empty PackId, so it can never take a rule from
+        /// another pack. Returns how many it adopted.
+        /// </summary>
+        public static int AdoptUnownedMembers(TacticsPack pack, List<TacticsRule> rules) {
+            if (pack?.PresetIds == null || rules == null) return 0;
+
+            var memberIds = new HashSet<string>(pack.PresetIds.Where(id => !string.IsNullOrEmpty(id)));
+            int adopted = 0;
+            foreach (var rule in rules) {
+                if (rule == null) continue;
+                if (!string.IsNullOrEmpty(rule.PackId)) continue;
+                if (string.IsNullOrEmpty(rule.PresetId) || !memberIds.Contains(rule.PresetId)) continue;
+                rule.PackId = pack.Id;
+                adopted++;
+            }
+            return adopted;
+        }
+
         /// <summary>Distinct pack ids present in a rule list, in first-appearance order.</summary>
         public static List<string> AppliedPackIds(List<TacticsRule> rules) {
             var result = new List<string>();

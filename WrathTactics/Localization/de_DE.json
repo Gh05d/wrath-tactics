@@ -124,6 +124,7 @@
   "status.import_success": "{0} Preset(s) importiert.",
   "status.pack_applied": "'{0}' angewendet: {1} Regel(n) hinzugefügt, {2} bereits vorhanden",
   "status.pack_nothing_to_add": "'{0}' ist bereits vollständig angewendet",
+  "status.pack_readopted": "'{0}' erneut mit {1} bestehender Regel(n) verknüpft",
   "status.pack_no_usable_members": "Nichts anzuwenden — '{0}' hat keine verwendbaren Presets mehr",
   "status.pack_save_list_filtered": "Erst den Filter leeren — „Liste als Paket speichern“ wirkt auf die gesamte Liste, nicht nur auf die gefilterten Zeilen",
   "status.pack_removed": "{0} Regel(n) von '{1}' entfernt",

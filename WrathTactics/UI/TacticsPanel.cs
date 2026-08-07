@@ -288,7 +288,7 @@ namespace WrathTactics.UI {
             var (toggleBtn, toggleRect) = UIHelpers.Create("ToggleBtn", row.transform);
             toggleRect.SetAnchor(0, 0.5, 0, 1);
             toggleRect.sizeDelta = Vector2.zero;
-            toggleLabel = UIHelpers.AddLabel(toggleBtn, "toggle.global_rules".i18n(), 18f,
+            toggleLabel = UIHelpers.AddPageLabel(toggleBtn, "toggle.global_rules".i18n(), 18f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
             toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
 
@@ -622,7 +622,7 @@ namespace WrathTactics.UI {
             var labelLE = labelObj.AddComponent<LayoutElement>();
             labelLE.preferredWidth = 70;
             labelLE.flexibleWidth = 0;
-            UIHelpers.AddLabel(labelObj, "pack.row_label".i18n(), 14f,
+            UIHelpers.AddPageLabel(labelObj, "pack.row_label".i18n(), 14f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
 
             foreach (var packId in Engine.PackRegistry.AppliedPackIds(rules)) {
@@ -631,7 +631,7 @@ namespace WrathTactics.UI {
                 var captured = pack;
                 var (chip, _c) = UIHelpers.Create($"PackChip_{pack.Id}", row.transform);
                 var chipLE = chip.AddComponent<LayoutElement>();
-                chipLE.preferredWidth = 130;
+                chipLE.preferredWidth = 130f * UIHelpers.FontScale;
                 chipLE.flexibleWidth = 0;
                 UIHelpers.AddBackground(chip, PackPalette.ColorAt(pack.ColorIndex));
                 UIHelpers.AddLabel(chip, pack.Name + "  ▾", 13f, TextAlignmentOptions.Midline);
@@ -671,7 +671,7 @@ namespace WrathTactics.UI {
                 var statusLE = statusObj.AddComponent<LayoutElement>();
                 statusLE.preferredWidth = 240;
                 statusLE.flexibleWidth = 1;
-                UIHelpers.AddLabel(statusObj, lastPackStatus, 12f,
+                UIHelpers.AddPageLabel(statusObj, lastPackStatus, 12f,
                     TextAlignmentOptions.MidlineLeft, lastPackStatusColor);
             }
 
@@ -689,7 +689,7 @@ namespace WrathTactics.UI {
             var packs = Engine.PackRegistry.All();
             if (packs.Count == 0) {
                 SetPackStatus("pack.none_defined".i18n(), new Color(1f, 0.5f, 0.4f));
-                Log.UI.Info("No packs available — create one on the Presets tab first");
+                Log.UI.Info("No packs available — create one on the Packs tab first");
                 RefreshRuleList();
                 return;
             }
@@ -703,13 +703,21 @@ namespace WrathTactics.UI {
             });
         }
 
-        // Re-applying is a sync: only members missing from THIS pack's rules get appended,
-        // so a user who deleted one rule can restore it without producing duplicates.
         void ApplyPack(TacticsPack pack) {
             var list = selectedUnitId == null
                 ? ConfigManager.Current.GlobalRules
                 : GetOrCreateCharacterRules(selectedUnitId);
 
+            // Re-adopt any of this pack's members that "Remove pack marking" (UnstampPackFromList)
+            // left behind unowned, BEFORE PlanApply/CountAlreadyApplied run — those two only see
+            // whether a preset is linked at all, not who owns it, so an unowned rule already reads
+            // as "already applied" and would otherwise never get its chip back.
+            int readopted = Engine.PackRegistry.AdoptUnownedMembers(pack, list);
+
+            // Re-applying is a sync: PlanApply dedups by preset id across the whole list (any
+            // pack, or a hand-built link), so only members with no existing preset-linked rule
+            // get appended — a user who deleted one rule can restore it without producing
+            // duplicates, and a preset shared with another already-applied pack is not re-added.
             var plan = Engine.PackRegistry.PlanApply(pack, list,
                 presetId => Engine.PresetRegistry.Get(presetId) != null);
 
@@ -725,6 +733,12 @@ namespace WrathTactics.UI {
                 // which would otherwise report this broken pack as healthy.
                 SetPackStatus(string.Format("status.pack_no_usable_members".i18n(), pack.Name),
                     new Color(1f, 0.8f, 0.4f));
+            } else if (plan.Count == 0 && readopted > 0) {
+                // Nothing NEW was added, but rules left behind by a prior "Remove pack marking"
+                // were just re-linked to this pack — say so instead of "already fully applied",
+                // which would read as a no-op even though the chip just came back.
+                SetPackStatus(string.Format("status.pack_readopted".i18n(), pack.Name, readopted),
+                    new Color(0.6f, 0.85f, 0.6f));
             } else {
                 SetPackStatus(
                     plan.Count == 0
@@ -732,7 +746,7 @@ namespace WrathTactics.UI {
                         : string.Format("status.pack_applied".i18n(), pack.Name, plan.Count, alreadyPresent),
                     plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
             }
-            Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present");
+            Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present, {readopted} readopted");
             RefreshRuleList();
         }
 
@@ -883,7 +897,8 @@ namespace WrathTactics.UI {
                     promoted++;
                 }
                 // A list may legitimately hold the same preset twice; the pack keeps one slot
-                // per preset because PlanApply de-duplicates per pack anyway.
+                // per preset because PlanApply's dedup is preset-based across the whole list,
+                // so a duplicate member id would never produce a second rule anyway.
                 if (!pack.PresetIds.Contains(presetId)) pack.PresetIds.Add(presetId);
                 // Only claim rules that don't belong to a pack yet. Re-stamping a rule that
                 // came from another pack would silently steal it: its old chip would vanish
@@ -943,8 +958,6 @@ namespace WrathTactics.UI {
                 var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
                 toggleLabel.text = string.Format(template, charName);
                 toggleLabel.color = enabled ? Color.white : Color.gray;
-                toggleLabel.outlineWidth = 0.25f;
-                toggleLabel.outlineColor = new Color32(0, 0, 0, 255);
             }
         }
 

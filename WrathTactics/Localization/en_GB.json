@@ -124,6 +124,7 @@
   "status.import_success": "Imported {0} preset(s).",
   "status.pack_applied": "Applied '{0}': {1} rule(s) added, {2} already present",
   "status.pack_nothing_to_add": "'{0}' is already fully applied",
+  "status.pack_readopted": "'{0}' re-applied to {1} existing rule(s)",
   "status.pack_no_usable_members": "Nothing to apply — '{0}' has no usable members left",
   "status.pack_save_list_filtered": "Clear the filter first — Save List as Pack works on the whole list, not just what's shown",
   "status.pack_removed": "Removed {0} rule(s) of '{1}'",

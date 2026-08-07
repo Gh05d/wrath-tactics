@@ -200,5 +200,20 @@ namespace WrathTactics.UI {
 
             UIHelpers.EnsureAllHoverable(popup);
         }
+
+        // Without this, TacticsPanel's own ESC handler (Update() in TacticsPanel.cs) is the
+        // only thing listening for Escape while this dialog is open: it closes the whole panel
+        // instead, leaving this full-screen modal orphaned on the canvas with no owner, and a
+        // later Confirm would commit against a ConfigManager.Current a savegame load may have
+        // replaced by then. Mirrors BuffPickerOverlay.Update(), including the `closed` guard —
+        // onConfirm can also set `closed` and destroy the overlay in the same frame.
+        void Update() {
+            if (closed) return;
+            if (Input.GetKeyDown(KeyCode.Escape)) {
+                closed = true;
+                var overlay = transform.parent != null ? transform.parent.gameObject : gameObject;
+                Destroy(overlay);
+            }
+        }
     }
 }
