@@ -11,9 +11,15 @@ namespace WrathTactics.UI {
 
             var (header, _) = UIHelpers.Create("Header", parent);
             header.AddComponent<LayoutElement>().preferredHeight = 44;
-            var headerBg = isLinked
-                ? new Color(0.22f, 0.3f, 0.4f, 1f)   // blue-grey for linked
-                : new Color(0.25f, 0.22f, 0.18f, 1f); // default brown
+            // Pack origin wins over the generic linked tint so a character running several
+            // packs can tell at a glance which rules belong together. A dangling PackId
+            // (pack deleted) resolves to null and falls back to the normal colours.
+            var pack = Engine.PackRegistry.Get(rule.PackId);
+            var headerBg = pack != null
+                ? PackPalette.HeaderTint(pack.ColorIndex)
+                : isLinked
+                    ? new Color(0.22f, 0.3f, 0.4f, 1f)   // blue-grey for linked
+                    : new Color(0.25f, 0.22f, 0.18f, 1f); // default brown
             UIHelpers.AddBackground(header, headerBg);
 
             // HLG — childControlWidth=true so LayoutElement.preferredWidth/flexibleWidth work
