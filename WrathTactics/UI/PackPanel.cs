@@ -127,6 +127,14 @@ namespace WrathTactics.UI {
                 onChanged();
             });
 
+            var (exportBtn, _x) = UIHelpers.Create("PackExportBtn", row.transform);
+            var exportLE = exportBtn.AddComponent<LayoutElement>();
+            exportLE.preferredWidth = 70;
+            exportLE.flexibleWidth = 0;
+            UIHelpers.AddBackground(exportBtn, new Color(0.3f, 0.3f, 0.5f, 1f));
+            UIHelpers.AddLabel(exportBtn, "pack.button.export".i18n(), 14f, TextAlignmentOptions.Midline);
+            exportBtn.AddComponent<Button>().onClick.AddListener(() => ExportPackToClipboard(pack, setStatus));
+
             var (delBtn, _d) = UIHelpers.Create("PackDelBtn", row.transform);
             var delLE = delBtn.AddComponent<LayoutElement>();
             delLE.preferredWidth = 70;
@@ -142,6 +150,35 @@ namespace WrathTactics.UI {
             });
 
             if (expanded) CreateMemberEditor(parent, pack, onChanged, setStatus);
+        }
+
+        /// <summary>
+        /// Copies a self-contained bundle: the pack plus a full copy of every member preset.
+        /// Exporting ids alone would resolve to nothing on the recipient's machine.
+        /// </summary>
+        static void ExportPackToClipboard(TacticsPack pack, Action<string, Color> setStatus) {
+            var presets = new List<TacticsRule>();
+            foreach (var id in pack.PresetIds) {
+                var preset = PresetRegistry.Get(id);
+                if (preset != null) presets.Add(preset);
+            }
+            if (presets.Count == 0) {
+                setStatus(string.Format("status.pack_export_empty".i18n(), pack.Name),
+                    new Color(1f, 0.5f, 0.4f));
+                return;
+            }
+
+            var bundle = new PackBundle { Pack = pack, Presets = presets };
+            GUIUtility.systemCopyBuffer =
+                Newtonsoft.Json.JsonConvert.SerializeObject(bundle, Newtonsoft.Json.Formatting.Indented);
+            setStatus(string.Format("status.pack_export_copied".i18n(), pack.Name, presets.Count),
+                new Color(0.6f, 0.85f, 0.6f));
+        }
+
+        /// <summary>Clipboard wire format for a shared pack. Presets are inlined copies.</summary>
+        public class PackBundle {
+            public TacticsPack Pack;
+            public List<TacticsRule> Presets;
         }
 
         static void CreateMemberEditor(Transform parent, TacticsPack pack, Action onChanged,

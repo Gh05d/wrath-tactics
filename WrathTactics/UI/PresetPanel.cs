@@ -238,6 +238,19 @@ namespace WrathTactics.UI {
                 SetStatus("status.clipboard_empty".i18n(), new Color(1f, 0.5f, 0.4f));
                 return;
             }
+
+            // A pack bundle is a JSON object; the legacy preset export is a JSON array.
+            // Sniff the first non-whitespace character rather than attempting both parses.
+            if (text[0] == '{') {
+                if (TryImportPackBundle(text, out var packStatus, out var packColor)) {
+                    SetStatus(packStatus, packColor);
+                    onPresetsChanged?.Invoke();
+                    Rebuild();
+                } else {
+                    SetStatus(packStatus, packColor);
+                }
+                return;
+            }
             List<TacticsRule> parsed;
             try {
                 parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<List<TacticsRule>>(text);
@@ -291,6 +304,60 @@ namespace WrathTactics.UI {
             }
             onPresetsChanged?.Invoke();
             Rebuild();
+        }
+
+        /// <summary>
+        /// Imports a pack bundle produced by PackPanel's Export. Member presets are imported
+        /// as new presets (fresh ids, so an existing preset is never overwritten) and the pack
+        /// is rewritten to point at those new ids.
+        /// </summary>
+        bool TryImportPackBundle(string text, out string status, out Color color) {
+            PackPanel.PackBundle bundle;
+            try {
+                bundle = Newtonsoft.Json.JsonConvert.DeserializeObject<PackPanel.PackBundle>(text);
+            } catch (Newtonsoft.Json.JsonException ex) {
+                status = string.Format("status.clipboard_invalid_json".i18n(), ex.Message);
+                color = new Color(1f, 0.5f, 0.4f);
+                return false;
+            }
+            if (bundle?.Pack == null || bundle.Presets == null) {
+                status = "status.clipboard_not_array".i18n();
+                color = new Color(1f, 0.5f, 0.4f);
+                return false;
+            }
+
+            // oldId -> newId, so the pack's member list can be remapped after import.
+            var idMap = new Dictionary<string, string>();
+            foreach (var preset in bundle.Presets) {
+                if (preset == null || string.IsNullOrEmpty(preset.Id)) continue;
+                var oldId = preset.Id;
+                preset.Id = Guid.NewGuid().ToString();
+                preset.PresetId = null;
+                preset.PackId = null;
+                if (PresetRegistry.Save(preset)) idMap[oldId] = preset.Id;
+            }
+
+            var pack = bundle.Pack;
+            pack.Id = Guid.NewGuid().ToString();
+            var remapped = new List<string>();
+            foreach (var oldId in pack.PresetIds) {
+                if (oldId != null && idMap.TryGetValue(oldId, out var newId)) remapped.Add(newId);
+            }
+            pack.PresetIds = remapped;
+            // The presets above are already committed (in-memory, and on disk where the
+            // per-preset write succeeded) — a failure here means the pack record itself
+            // didn't persist. Still return true so the caller refreshes the UI to match
+            // that partially-committed state, but route the failure through the status
+            // line rather than reporting a success that isn't durable.
+            if (!PackRegistry.Save(pack)) {
+                status = string.Format("status.save_failed".i18n(), pack.Name);
+                color = new Color(1f, 0.5f, 0.4f);
+                return true;
+            }
+
+            status = string.Format("status.pack_import_success".i18n(), pack.Name, remapped.Count);
+            color = new Color(0.6f, 0.85f, 0.6f);
+            return true;
         }
 
         void SetStatus(string text, Color color) {

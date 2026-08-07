@@ -116,6 +116,9 @@
   "status.pack_saved_from_list": "Saved {0} rule(s) as pack '{1}'",
   "status.pack_saved_from_list_partial": "Saved {0} rule(s) as pack '{1}' — {2} rule(s) could not be saved as presets",
   "status.pack_save_list_empty": "Nothing to save — this list has no rules",
+  "status.pack_export_copied": "Pack '{0}' copied to clipboard ({1} preset(s))",
+  "status.pack_import_success": "Imported pack '{0}' with {1} preset(s)",
+  "status.pack_export_empty": "Pack '{0}' has no members to export",
 
   "picker.no_abilities": "(no abilities available)",
   "picker.no_matches": "No matches for \"{0}\"",
