@@ -31,6 +31,12 @@ namespace WrathTactics.UI {
         GameObject ruleFilterEmptyLabel;  // sibling of rule scroll, shown when filter hides everything
         PresetPanel currentPresetPanel;    // tracks the active PresetPanel when presets tab is open
 
+        // Result of the last pack action, rendered in the pack row. Mirrors
+        // PresetPanel.lastIOStatus: the row is rebuilt constantly, so the text must
+        // live on the panel, not on the label.
+        string lastPackStatus;
+        Color lastPackStatusColor = Color.gray;
+
         public static TacticsPanel Instance => instance;
 
         // Lets external UI (portrait badges) refresh the open panel after
@@ -234,6 +240,9 @@ namespace WrathTactics.UI {
             if (selectedUnitId != "presets")
                 lastNonPresetUnitId = selectedUnitId;
             selectedUnitId = unitId;
+
+            // Don't carry one character's pack message over to the next tab.
+            lastPackStatus = null;
 
             // Reset the filter on tab switch (fires onValueChanged -> sets currentRuleFilter = "").
             if (ruleFilterInput != null)
@@ -498,6 +507,8 @@ namespace WrathTactics.UI {
                         Strings.Format("global.preempt_hint", enabledGlobals), 24f);
             }
 
+            AddPackRow(rules);
+
             for (int i = 0; i < rules.Count; i++) {
                 var (card, _) = UIHelpers.Create($"Rule_{i}", ruleListContent);
                 var widget = card.AddComponent<RuleEditorWidget>();
@@ -533,6 +544,126 @@ namespace WrathTactics.UI {
             btn.FillParent();
             label = btn.GetComponentInChildren<TextMeshProUGUI>();
             UIHelpers.EnsureAllHoverable(row);
+        }
+
+        // Applied-packs strip: one chip per pack present in this list plus the apply button.
+        // Lives in the rule list like the hint cards — no RuleEditorWidget, so ApplyFilter
+        // ignores it. Chips are per-pack, so a companion can carry any number of packs.
+        void AddPackRow(List<TacticsRule> rules) {
+            var (row, _) = UIHelpers.Create("PackRow", ruleListContent);
+            row.AddComponent<LayoutElement>().preferredHeight = 32f * UIHelpers.FontScale;
+
+            var hlg = row.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 4;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.padding = new RectOffset(4, 4, 2, 2);
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+
+            var (labelObj, _l) = UIHelpers.Create("PackRowLabel", row.transform);
+            var labelLE = labelObj.AddComponent<LayoutElement>();
+            labelLE.preferredWidth = 70;
+            labelLE.flexibleWidth = 0;
+            UIHelpers.AddLabel(labelObj, "pack.row_label".i18n(), 14f,
+                TextAlignmentOptions.MidlineLeft, Color.white);
+
+            foreach (var packId in Engine.PackRegistry.AppliedPackIds(rules)) {
+                var pack = Engine.PackRegistry.Get(packId);
+                if (pack == null) continue;  // pack deleted — rules keep working, no chip
+                var captured = pack;
+                var (chip, _c) = UIHelpers.Create($"PackChip_{pack.Id}", row.transform);
+                var chipLE = chip.AddComponent<LayoutElement>();
+                chipLE.preferredWidth = 130;
+                chipLE.flexibleWidth = 0;
+                UIHelpers.AddBackground(chip, PackPalette.ColorAt(pack.ColorIndex));
+                UIHelpers.AddLabel(chip, pack.Name + "  ×", 13f, TextAlignmentOptions.Midline);
+                chip.AddComponent<Button>().onClick.AddListener(() => RemovePackFromList(captured));
+            }
+
+            var (applyBtn, _a) = UIHelpers.Create("ApplyPackBtn", row.transform);
+            var applyLE = applyBtn.AddComponent<LayoutElement>();
+            applyLE.preferredWidth = 120;
+            applyLE.flexibleWidth = 0;
+            UIHelpers.AddBackground(applyBtn, new Color(0.2f, 0.4f, 0.45f, 1f));
+            UIHelpers.AddLabel(applyBtn, "pack.button.apply".i18n(), 14f, TextAlignmentOptions.Midline);
+            applyBtn.AddComponent<Button>().onClick.AddListener(ShowPackPicker);
+
+            // Result of the last pack action — the character tab has no status line of its
+            // own, and a silent "nothing happened" is indistinguishable from a broken button.
+            if (!string.IsNullOrEmpty(lastPackStatus)) {
+                var (statusObj, _st) = UIHelpers.Create("PackStatus", row.transform);
+                var statusLE = statusObj.AddComponent<LayoutElement>();
+                statusLE.preferredWidth = 240;
+                statusLE.flexibleWidth = 1;
+                UIHelpers.AddLabel(statusObj, lastPackStatus, 12f,
+                    TextAlignmentOptions.MidlineLeft, lastPackStatusColor);
+            }
+
+            UIHelpers.EnsureAllHoverable(row);
+        }
+
+        void SetPackStatus(string text, Color color) {
+            lastPackStatus = text;
+            lastPackStatusColor = color;
+        }
+
+        void ShowPackPicker() {
+            if (selectedUnitId == "presets") return;
+
+            var packs = Engine.PackRegistry.All();
+            if (packs.Count == 0) {
+                SetPackStatus("pack.none_defined".i18n(), new Color(1f, 0.5f, 0.4f));
+                Log.UI.Info("No packs available — create one on the Presets tab first");
+                RefreshRuleList();
+                return;
+            }
+
+            var options = new List<string>();
+            foreach (var p in packs) options.Add($"{p.Name} ({p.PresetIds.Count})");
+
+            PopupSelector.ShowPicker(options, idx => {
+                if (idx < 0 || idx >= packs.Count) return;
+                ApplyPack(packs[idx]);
+            });
+        }
+
+        // Re-applying is a sync: only members missing from THIS pack's rules get appended,
+        // so a user who deleted one rule can restore it without producing duplicates.
+        void ApplyPack(TacticsPack pack) {
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+
+            var plan = Engine.PackRegistry.PlanApply(pack, list,
+                presetId => Engine.PresetRegistry.Get(presetId) != null);
+
+            int alreadyPresent = pack.PresetIds.Count - plan.Count;
+            list.AddRange(plan);
+            ConfigManager.Save();
+            SetPackStatus(
+                plan.Count == 0
+                    ? string.Format("status.pack_nothing_to_add".i18n(), pack.Name)
+                    : string.Format("status.pack_applied".i18n(), pack.Name, plan.Count, alreadyPresent),
+                plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present");
+            RefreshRuleList();
+        }
+
+        // Removes only rules stamped with this pack. Rules the user unlinked (Unlink & Edit
+        // clears PresetId but keeps PackId) are removed too — they are still this pack's slot.
+        void RemovePackFromList(TacticsPack pack) {
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+
+            int removed = list.RemoveAll(r => r != null && r.PackId == pack.Id);
+            ConfigManager.Save();
+            SetPackStatus(string.Format("status.pack_removed".i18n(), removed, pack.Name),
+                new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Removed {removed} rule(s) of pack '{pack.Name}'");
+            RefreshRuleList();
         }
 
         static string HudToggleLabel() =>

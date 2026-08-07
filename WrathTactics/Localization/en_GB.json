@@ -88,6 +88,9 @@
   "pack.members_title": "Members (top to bottom = insertion order)",
   "pack.members_empty": "No presets in this pack yet — add one below.",
   "pack.available_title": "Available presets",
+  "pack.row_label": "Packs:",
+  "pack.button.apply": "+ Apply Pack",
+  "pack.none_defined": "no packs defined",
 
   "button.close": "Close",
   "button.edit": "Edit",
@@ -105,6 +108,9 @@
   "status.import_partial_failure": "Imported {0} preset(s), {1} failed — check mod log.",
   "status.import_with_renames": "Imported {0} preset(s) — {1} renamed due to name conflicts.",
   "status.import_success": "Imported {0} preset(s).",
+  "status.pack_applied": "Applied '{0}': {1} rule(s) added, {2} already present",
+  "status.pack_nothing_to_add": "'{0}' is already fully applied",
+  "status.pack_removed": "Removed {0} rule(s) of '{1}'",
 
   "picker.no_abilities": "(no abilities available)",
   "picker.no_matches": "No matches for \"{0}\"",
