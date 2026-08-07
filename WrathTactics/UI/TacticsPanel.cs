@@ -590,6 +590,14 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(applyBtn, "pack.button.apply".i18n(), 14f, TextAlignmentOptions.Midline);
             applyBtn.AddComponent<Button>().onClick.AddListener(ShowPackPicker);
 
+            var (saveBtn, _s) = UIHelpers.Create("SaveListAsPackBtn", row.transform);
+            var saveLE = saveBtn.AddComponent<LayoutElement>();
+            saveLE.preferredWidth = 150;
+            saveLE.flexibleWidth = 0;
+            UIHelpers.AddBackground(saveBtn, new Color(0.25f, 0.45f, 0.3f, 1f));
+            UIHelpers.AddLabel(saveBtn, "pack.button.save_list".i18n(), 14f, TextAlignmentOptions.Midline);
+            saveBtn.AddComponent<Button>().onClick.AddListener(SaveListAsPack);
+
             // Result of the last pack action — the character tab has no status line of its
             // own, and a silent "nothing happened" is indistinguishable from a broken button.
             if (!string.IsNullOrEmpty(lastPackStatus)) {
@@ -664,6 +672,76 @@ namespace WrathTactics.UI {
             SetPackStatus(string.Format("status.pack_removed".i18n(), removed, pack.Name),
                 new Color(0.6f, 0.85f, 0.6f));
             Log.UI.Info($"Removed {removed} rule(s) of pack '{pack.Name}'");
+            RefreshRuleList();
+        }
+
+        // Turns the whole visible list into a pack: every standalone rule is promoted to a
+        // preset (PromoteRuleToPreset links the original in place), already-linked rules
+        // contribute their existing preset. The rules stay where they are — the pack is a
+        // reusable copy of the list, not a move.
+        void SaveListAsPack() {
+            if (selectedUnitId == "presets") return;
+
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+
+            if (list.Count == 0) {
+                SetPackStatus("status.pack_save_list_empty".i18n(), new Color(1f, 0.5f, 0.4f));
+                Log.UI.Info("Save list as pack: list is empty");
+                RefreshRuleList();
+                return;
+            }
+
+            var pack = new TacticsPack {
+                Name = string.Format("pack.saved_list_name".i18n(),
+                    selectedUnitId == null ? "tab.global".i18n() : GetCharacterName(selectedUnitId)),
+            };
+
+            int promoted = 0;
+            foreach (var rule in list) {
+                if (rule == null) continue;
+                string presetId = rule.PresetId;
+                if (string.IsNullOrEmpty(presetId)) {
+                    var preset = Engine.PresetRegistry.PromoteRuleToPreset(rule);
+                    if (preset == null) {
+                        // Promotion failed on disk; PromoteRuleToPreset left the rule intact.
+                        Log.UI.Warn($"Save list as pack: could not promote rule '{rule.Name}' — skipped");
+                        continue;
+                    }
+                    presetId = preset.Id;
+                    promoted++;
+                }
+                // A list may legitimately hold the same preset twice; the pack keeps one slot
+                // per preset because PlanApply de-duplicates per pack anyway.
+                if (!pack.PresetIds.Contains(presetId)) pack.PresetIds.Add(presetId);
+                // Only claim rules that don't belong to a pack yet. Re-stamping a rule that
+                // came from another pack would silently steal it: its old chip would vanish
+                // and "remove pack X" would no longer find it.
+                if (string.IsNullOrEmpty(rule.PackId)) rule.PackId = pack.Id;
+            }
+
+            if (pack.PresetIds.Count == 0) {
+                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), new Color(1f, 0.5f, 0.4f));
+                Log.UI.Warn("Save list as pack: no rule could be promoted");
+                RefreshRuleList();
+                return;
+            }
+
+            if (!Engine.PackRegistry.Save(pack)) {
+                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), new Color(1f, 0.5f, 0.4f));
+                Log.UI.Error($"Save list as pack: failed to persist pack '{pack.Name}'");
+                // The rules were already promoted and re-linked in memory; persist that much
+                // so the user doesn't lose the promotion along with the pack.
+                ConfigManager.Save();
+                RefreshRuleList();
+                return;
+            }
+            ConfigManager.Save();
+            SetPackStatus(
+                string.Format("status.pack_saved_from_list".i18n(), pack.PresetIds.Count, pack.Name),
+                new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Saved {pack.PresetIds.Count} rule(s) as pack '{pack.Name}' ({promoted} newly promoted)");
             RefreshRuleList();
         }
 

@@ -91,6 +91,8 @@
   "pack.row_label": "Packs:",
   "pack.button.apply": "+ Apply Pack",
   "pack.none_defined": "no packs defined",
+  "pack.button.save_list": "Save List as Pack",
+  "pack.saved_list_name": "{0} Pack",
 
   "button.close": "Close",
   "button.edit": "Edit",
@@ -111,6 +113,8 @@
   "status.pack_applied": "Applied '{0}': {1} rule(s) added, {2} already present",
   "status.pack_nothing_to_add": "'{0}' is already fully applied",
   "status.pack_removed": "Removed {0} rule(s) of '{1}'",
+  "status.pack_saved_from_list": "Saved {0} rule(s) as pack '{1}'",
+  "status.pack_save_list_empty": "Nothing to save — this list has no rules",
 
   "picker.no_abilities": "(no abilities available)",
   "picker.no_matches": "No matches for \"{0}\"",
