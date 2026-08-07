@@ -20,10 +20,8 @@ namespace WrathTactics.UI {
         static string expandedPackId;
 
         public static void Build(Transform parent, Action onChanged, Action<string, Color> setStatus) {
-            var (titleObj, _) = UIHelpers.Create("PackTitle", parent);
-            titleObj.AddComponent<LayoutElement>().preferredHeight = 26;
-            UIHelpers.AddPageLabel(titleObj, "pack.section_title".i18n(), 18f,
-                TextAlignmentOptions.MidlineLeft, Color.white);
+            UIHelpers.AddSurfaceLabel(parent, "PackTitle", "pack.section_title".i18n(), 26f, 18f,
+                Color.white, UIHelpers.PanelHeaderSurface);
 
             UIHelpers.AddHintCard(parent, "pack.hint".i18n(), 40f);
 
@@ -44,10 +42,8 @@ namespace WrathTactics.UI {
 
             var packs = PackRegistry.All();
             if (packs.Count == 0) {
-                var (empty, _e) = UIHelpers.Create("PackEmpty", parent);
-                empty.AddComponent<LayoutElement>().preferredHeight = 26;
-                UIHelpers.AddPageLabel(empty, "pack.empty".i18n(), 14f,
-                    TextAlignmentOptions.MidlineLeft, Color.gray);
+                UIHelpers.AddSurfaceLabel(parent, "PackEmpty", "pack.empty".i18n(), 26f, 14f,
+                    new Color(0.75f, 0.75f, 0.75f));
             }
 
             foreach (var pack in packs) CreatePackRow(parent, pack, onChanged, setStatus);
@@ -185,24 +181,50 @@ namespace WrathTactics.UI {
         static void CreateMemberEditor(Transform parent, TacticsPack pack, Action onChanged,
             Action<string, Color> setStatus) {
 
-            var (title, _t) = UIHelpers.Create($"Members_{pack.Id}", parent);
-            title.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddPageLabel(title, "pack.members_title".i18n(), 13f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
+            var available = new List<TacticsRule>();
+            foreach (var preset in PresetRegistry.All()) {
+                // Duplicates inside one pack would insert the same rule twice — hide members.
+                if (!pack.PresetIds.Contains(preset.Id)) available.Add(preset);
+            }
+
+            // The whole editor sits on ONE dark surface so it reads as an extension of the pack
+            // row above it, instead of loose strips floating on the parchment. This shipped once
+            // as outlined text on bare page art and the maintainer still could not read it —
+            // a surface is what the rest of the panel uses wherever content has to be read.
+            // Height is computed rather than fitted: a ContentSizeFitter inside the host's
+            // VerticalLayoutGroup fights it for control of the rect.
+            const float headerH = 24f, memberH = 30f, availH = 28f, gap = 2f;
+            float boxHeight = 12f
+                + headerH + gap
+                + (pack.PresetIds.Count > 0 ? pack.PresetIds.Count * (memberH + gap) : headerH + gap)
+                + headerH + gap
+                + available.Count * (availH + gap);
+
+            var (box, _bx) = UIHelpers.Create($"MemberBox_{pack.Id}", parent);
+            box.AddComponent<LayoutElement>().preferredHeight = boxHeight;
+            UIHelpers.AddBackground(box, UIHelpers.PanelSurface);
+            var bvlg = box.AddComponent<VerticalLayoutGroup>();
+            bvlg.spacing = gap;
+            bvlg.childForceExpandWidth = true;
+            bvlg.childForceExpandHeight = false;
+            bvlg.childControlWidth = true;
+            bvlg.childControlHeight = true;
+            bvlg.padding = new RectOffset(6, 6, 6, 6);
+
+            UIHelpers.AddSurfaceLabel(box.transform, $"Members_{pack.Id}", "pack.members_title".i18n(),
+                headerH, 13f, new Color(0.85f, 0.85f, 0.85f), UIHelpers.PanelHeaderSurface);
 
             if (pack.PresetIds.Count == 0) {
-                var (none, _no) = UIHelpers.Create($"MembersEmpty_{pack.Id}", parent);
-                none.AddComponent<LayoutElement>().preferredHeight = 24;
-                UIHelpers.AddPageLabel(none, "pack.members_empty".i18n(), 13f,
-                    TextAlignmentOptions.MidlineLeft, Color.gray);
+                UIHelpers.AddSurfaceLabel(box.transform, $"MembersEmpty_{pack.Id}",
+                    "pack.members_empty".i18n(), headerH, 13f, new Color(0.7f, 0.7f, 0.7f));
             }
 
             for (int i = 0; i < pack.PresetIds.Count; i++) {
                 int idx = i;  // capture for the closures
                 var preset = PresetRegistry.Get(pack.PresetIds[i]);
-                var (memberRow, _mr) = UIHelpers.Create($"Member_{pack.Id}_{idx}", parent);
-                memberRow.AddComponent<LayoutElement>().preferredHeight = 30;
-                UIHelpers.AddBackground(memberRow, new Color(0.13f, 0.13f, 0.13f, 1f));
+                var (memberRow, _mr) = UIHelpers.Create($"Member_{pack.Id}_{idx}", box.transform);
+                memberRow.AddComponent<LayoutElement>().preferredHeight = memberH;
+                UIHelpers.AddBackground(memberRow, new Color(0.2f, 0.2f, 0.2f, 1f));
 
                 var mhlg = memberRow.AddComponent<HorizontalLayoutGroup>();
                 mhlg.spacing = 4;
@@ -244,17 +266,16 @@ namespace WrathTactics.UI {
                     });
             }
 
-            var (availTitle, _at) = UIHelpers.Create($"Available_{pack.Id}", parent);
-            availTitle.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddPageLabel(availTitle, "pack.available_title".i18n(), 13f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
+            UIHelpers.AddSurfaceLabel(box.transform, $"Available_{pack.Id}", "pack.available_title".i18n(),
+                headerH, 13f, new Color(0.85f, 0.85f, 0.85f), UIHelpers.PanelHeaderSurface);
 
-            foreach (var preset in PresetRegistry.All()) {
-                // Duplicates inside one pack would insert the same rule twice — hide members.
-                if (pack.PresetIds.Contains(preset.Id)) continue;
+            foreach (var preset in available) {
                 var captured = preset;
-                var (availRow, _ar) = UIHelpers.Create($"Avail_{pack.Id}_{preset.Id}", parent);
-                availRow.AddComponent<LayoutElement>().preferredHeight = 28;
+                var (availRow, _ar) = UIHelpers.Create($"Avail_{pack.Id}_{preset.Id}", box.transform);
+                availRow.AddComponent<LayoutElement>().preferredHeight = availH;
+                // Was the one row in this editor with no surface at all — the "more white text
+                // on a light background" the maintainer hit on opening Members.
+                UIHelpers.AddBackground(availRow, new Color(0.16f, 0.16f, 0.16f, 1f));
 
                 var ahlg = availRow.AddComponent<HorizontalLayoutGroup>();
                 ahlg.spacing = 4;
@@ -269,8 +290,8 @@ namespace WrathTactics.UI {
                 var labelLE = label.AddComponent<LayoutElement>();
                 labelLE.flexibleWidth = 1;
                 labelLE.preferredWidth = 200;
-                UIHelpers.AddPageLabel(label, captured.Name, 13f,
-                    TextAlignmentOptions.MidlineLeft, new Color(0.75f, 0.75f, 0.75f));
+                UIHelpers.AddLabel(label, captured.Name, 13f,
+                    TextAlignmentOptions.MidlineLeft, new Color(0.85f, 0.85f, 0.85f));
 
                 AddMemberButton(availRow.transform, "AvailAdd", "pack.member_add".i18n(),
                     new Color(0.2f, 0.45f, 0.2f), () => {
@@ -334,10 +355,11 @@ namespace WrathTactics.UI {
 
             UIHelpers.AddHintCard(transform, "pack.tab_hint".i18n(), 40f);
 
-            var (statusObj, _st) = UIHelpers.Create("PackTabStatus", transform);
-            statusObj.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddPageLabel(statusObj, lastStatus ?? "", 13f,
-                TextAlignmentOptions.MidlineLeft, lastStatusColor);
+            // Rendered unconditionally, even when empty: some setStatus callers (the New Pack
+            // save-failure path) return without triggering a rebuild, so the strip has to
+            // already exist for the message to land somewhere visible.
+            UIHelpers.AddSurfaceLabel(transform, "PackTabStatus", lastStatus ?? "", 24f, 13f,
+                lastStatusColor);
 
             PackPanel.Build(transform, () => StartCoroutine(DeferredRebuild()),
                 (text, color) => { lastStatus = text; lastStatusColor = color; });

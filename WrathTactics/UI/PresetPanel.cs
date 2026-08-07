@@ -64,10 +64,8 @@ namespace WrathTactics.UI {
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             // Title
-            var (titleObj, _) = UIHelpers.Create("PresetTitle", root.transform);
-            titleObj.AddComponent<LayoutElement>().preferredHeight = 30;
-            UIHelpers.AddPageLabel(titleObj, "tab.presets".i18n(), 20f,
-                TextAlignmentOptions.MidlineLeft, Color.white);
+            UIHelpers.AddSurfaceLabel(root.transform, "PresetTitle", "tab.presets".i18n(), 30f, 20f,
+                Color.white, UIHelpers.PanelHeaderSurface);
 
             // Hint
             UIHelpers.AddHintCard(root.transform, "preset.hint".i18n(), 40f);
@@ -86,11 +84,13 @@ namespace WrathTactics.UI {
             UIHelpers.AddLabel(importBtn, "preset.button.import".i18n(), 15f, TextAlignmentOptions.Midline);
             importBtn.AddComponent<Button>().onClick.AddListener(() => ImportFromClipboard());
 
-            // Status line — shows success/error of the last Export or Import click
-            var (statusObj, _st) = UIHelpers.Create("IOStatus", root.transform);
-            statusObj.AddComponent<LayoutElement>().preferredHeight = 24;
-            var statusLabel = UIHelpers.AddPageLabel(statusObj, lastIOStatus ?? "", 13f,
-                TextAlignmentOptions.MidlineLeft, lastIOStatusColor);
+            // Status line — shows success/error of the last Export or Import click.
+            // Rendered unconditionally, even when empty: SetStatus's save-failure callers
+            // return without a rebuild, so the strip must already exist. The GameObject keeps
+            // the name "IOStatus" and its label child stays "Label" — SetStatus finds it by
+            // that path.
+            UIHelpers.AddSurfaceLabel(root.transform, "IOStatus", lastIOStatus ?? "", 24f, 13f,
+                lastIOStatusColor);
 
             // New preset button
             var (newBtn, _n) = UIHelpers.Create("NewPresetBtn", root.transform);
@@ -118,10 +118,8 @@ namespace WrathTactics.UI {
 
             var presets = PresetRegistry.All();
             if (presets.Count == 0) {
-                var (empty, _e) = UIHelpers.Create("Empty", root.transform);
-                empty.AddComponent<LayoutElement>().preferredHeight = 28;
-                UIHelpers.AddPageLabel(empty, "preset.empty".i18n(), 15f,
-                    TextAlignmentOptions.MidlineLeft, Color.gray);
+                UIHelpers.AddSurfaceLabel(root.transform, "Empty", "preset.empty".i18n(), 28f, 15f,
+                    new Color(0.75f, 0.75f, 0.75f));
                 // Intentionally bail before emptyMatchLabel setup — nothing to filter,
                 // ApplyFilter would dereference a null label. Rebuild on first preset
                 // creation re-enters BuildUI and wires the filter normally.
@@ -150,10 +148,14 @@ namespace WrathTactics.UI {
             });
 
             // Empty-match label — shown by ApplyFilter when the filter hides every entry.
+            // Built inline rather than via AddSurfaceLabel because the GameObject itself is
+            // kept in emptyMatchLabel for SetActive toggling.
             var (emptyObj, _em) = UIHelpers.Create("EmptyMatch", root.transform);
             emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
-            UIHelpers.AddPageLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.6f, 0.6f, 0.6f));
+            UIHelpers.AddBackground(emptyObj, UIHelpers.PanelSurface);
+            UIHelpers.AddLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
+                TextAlignmentOptions.MidlineLeft, new Color(0.75f, 0.75f, 0.75f))
+                .margin = new Vector4(6, 0, 6, 0);
             emptyObj.SetActive(false);
             emptyMatchLabel = emptyObj;
 

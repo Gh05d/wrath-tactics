@@ -112,21 +112,45 @@ namespace WrathTactics.UI {
         }
 
         /// <summary>
-        /// Grey explainer strip for list areas. Word-wraps within a FontScale-scaled
-        /// height budget (Ellipsis beyond). raycastTarget stays ON so mouse-wheel and
-        /// drag over the strip bubble to the enclosing ScrollRect (no Button anywhere
-        /// in hint chains, so it is click-inert). Hints sit directly on the book-page
-        /// art (no card background), so use the title/toggle-label outline pattern —
-        /// plain grey washes out on the light parchment pages.
+        /// Explainer strip for list areas. Word-wraps within a FontScale-scaled height
+        /// budget (Ellipsis beyond). raycastTarget stays ON so mouse-wheel and drag over
+        /// the strip bubble to the enclosing ScrollRect (no Button anywhere in hint
+        /// chains, so it is click-inert).
+        ///
+        /// The card carries its own dark surface. An outline alone was tried and shipped
+        /// once: the maintainer's play-test verdict was still "viel zu schwer zu lesen".
+        /// Light text on the parchment page art needs a surface behind it, not a stroke
+        /// around it — that is the panel's own idiom everywhere content must be read.
         /// </summary>
         public static TextMeshProUGUI AddHintCard(Transform parent, string text, float preferredHeight = 52f) {
             var (obj, _) = Create("Hint", parent);
             obj.AddComponent<LayoutElement>().preferredHeight = preferredHeight * FontScale;
+            AddBackground(obj, PanelSurface);
             var tmp = AddLabel(obj, text, 13f, TextAlignmentOptions.TopLeft, new Color(0.85f, 0.85f, 0.85f));
             tmp.enableWordWrapping = true;
             tmp.raycastTarget = true;
-            tmp.outlineWidth = 0.25f;
-            tmp.outlineColor = new Color32(0, 0, 0, 255);
+            tmp.margin = new Vector4(6, 4, 6, 4);
+            return tmp;
+        }
+
+        /// <summary>Standard dark surface for content laid over the book-page art.</summary>
+        public static readonly Color PanelSurface = new Color(0.13f, 0.13f, 0.13f, 0.96f);
+
+        /// <summary>Slightly lighter surface for a section header inside a PanelSurface box.</summary>
+        public static readonly Color PanelHeaderSurface = new Color(0.2f, 0.2f, 0.22f, 1f);
+
+        /// <summary>
+        /// Full-width strip with its own dark surface plus a label — the readable
+        /// alternative to a bare AddPageLabel for titles, empty-state text and status
+        /// lines that would otherwise sit straight on the parchment.
+        /// </summary>
+        public static TextMeshProUGUI AddSurfaceLabel(Transform parent, string name, string text,
+            float preferredHeight, float fontSize, Color? color = null, Color? surface = null) {
+            var (obj, _) = Create(name, parent);
+            obj.AddComponent<LayoutElement>().preferredHeight = preferredHeight;
+            AddBackground(obj, surface ?? PanelSurface);
+            var tmp = AddLabel(obj, text, fontSize, TextAlignmentOptions.MidlineLeft, color);
+            tmp.margin = new Vector4(6, 0, 6, 0);
             return tmp;
         }
 

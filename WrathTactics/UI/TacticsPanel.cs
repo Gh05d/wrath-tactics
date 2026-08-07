@@ -608,6 +608,9 @@ namespace WrathTactics.UI {
         void AddPackRow(List<TacticsRule> rules) {
             var (row, _) = UIHelpers.Create("PackRow", ruleListContent);
             row.AddComponent<LayoutElement>().preferredHeight = 32f * UIHelpers.FontScale;
+            // The strip carries its own surface: its label and status text sat straight on the
+            // book-page art, and an outline alone was not enough to read them (play-test).
+            UIHelpers.AddBackground(row, UIHelpers.PanelSurface);
 
             var hlg = row.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 4;
@@ -622,7 +625,7 @@ namespace WrathTactics.UI {
             var labelLE = labelObj.AddComponent<LayoutElement>();
             labelLE.preferredWidth = 70;
             labelLE.flexibleWidth = 0;
-            UIHelpers.AddPageLabel(labelObj, "pack.row_label".i18n(), 14f,
+            UIHelpers.AddLabel(labelObj, "pack.row_label".i18n(), 14f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
 
             foreach (var packId in Engine.PackRegistry.AppliedPackIds(rules)) {
@@ -671,7 +674,7 @@ namespace WrathTactics.UI {
                 var statusLE = statusObj.AddComponent<LayoutElement>();
                 statusLE.preferredWidth = 240;
                 statusLE.flexibleWidth = 1;
-                UIHelpers.AddPageLabel(statusObj, lastPackStatus, 12f,
+                UIHelpers.AddLabel(statusObj, lastPackStatus, 12f,
                     TextAlignmentOptions.MidlineLeft, lastPackStatusColor);
             }
 
