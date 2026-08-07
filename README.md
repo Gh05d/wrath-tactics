@@ -55,6 +55,27 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 | 3. Mass heal | AllyCount `>= 3` with HpPercent < 60 | Cast Spell → Mass Cure Light Wounds on Self |
 | 4. Keep Bless up | Self missing buff "Bless" | Cast Spell → Bless on Self |
 
+### Rule Packs
+
+A pack is a named, colour-coded bundle of presets — a reusable "loadout" you can apply to any
+companion or pet.
+
+- **Create one** on the **Presets** tab: hit **+ New Pack**, name it, pick a colour with the
+  swatch, then add existing presets to it — or build it later from a rule list, see below.
+- **Apply a pack** to a companion or pet with **+ Apply Pack**, above their rule list. Any number
+  of packs can be active on the same character at once — each pack's rules are tinted in its
+  colour and shown as a chip above the list.
+- **Save List as Pack** turns whatever rules you already have on a companion's (or the Global)
+  list into a new pack in one click — standalone rules are promoted to presets automatically.
+- Rules inserted by a pack stay linked to their presets: edit the preset on the Presets tab and
+  every character running that pack picks up the change. Re-applying a pack restores members you
+  deleted without duplicating the ones still there.
+- Click a chip's `×` to remove just that pack's rules from a character — every other pack, and
+  any rules you added by hand, are left alone.
+- **Export** (on the Presets tab) copies a self-contained pack — including its presets — to the
+  clipboard; the same tab's **Import** button accepts both a pack bundle and the older
+  preset-array format, so packs can be shared between players.
+
 ## Understanding conditions
 
 A few mechanics that aren't obvious from the UI:

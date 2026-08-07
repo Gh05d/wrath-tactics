@@ -55,6 +55,7 @@ WrathTactics/
     DefaultPresets     # Factory for built-in presets (seeded once via .seeded-defaults)
     BuffBlueprintProvider # Buff blueprint data for condition checks
     PresetRegistry     # Built-in rule presets (heal, buff, attack patterns)
+    PackRegistry       # Rule packs: cache, apply/sync planning, preset-delete cascade
     SplashItemRegistry # Tracks throwable splash weapons (Alchemist's Fire, etc.)
     SplashItemResolver # Resolves which splash item to use based on ThrowSplashMode
     AllyProvider       # Party-and-pet list for ally pickers; resolves pinned ally
@@ -65,9 +66,11 @@ WrathTactics/
     BuffPackScanner    # Full blueprint enumeration → buff metadata (main-thread, persisted)
     AssetLoader        # Loads PNGs as 9-slice Sprites for UI
   Models/              # TacticsRule, TacticsConfig, Enums
-  Persistence/         # ConfigManager (per-save JSON), PresetManager, SafeConditionConverter
+  Persistence/         # ConfigManager (per-save JSON), PresetManager, PackManager,
+                       # SafeConditionConverter
   UI/                  # TacticsPanel, RuleEditorWidget, ConditionRowWidget, PresetPanel,
-                       # BuffPickerOverlay, SpellPickerOverlay, SpellDropdownProvider, UIHelpers
+                       # PackPanel, PackPalette, BuffPickerOverlay, SpellPickerOverlay,
+                       # SpellDropdownProvider, UIHelpers
   Compatibility/       # BubbleBuffsCompat (Buff It 2 The Limit integration)
   Localization/        # Strings + EnumLabels + 5 locale JSONs (en/de/fr/ru/zh)
   Logging/             # Category-based logging (Engine, Game, Persistence, UI)
@@ -117,6 +120,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Widgets MUST invoke `onChanged?.Invoke()`, never `ConfigManager.Save()` directly** — direct save silently discards preset edits (`gotchas-persistence.md`).
 - **Enums are APPEND-ONLY** — preset/config JSON persists numeric indices (`gotchas-persistence.md`).
 - **`PresetId`-only rules have empty bodies by design** — cleanup passes must exempt them (`gotchas-persistence.md`).
+- **Packs live in their own directory (`Packs/`), never `Presets/`** — `PresetManager.LoadAll` globs `Presets/*.json` and would silently parse a pack file as a malformed rule (`gotchas-persistence.md`).
 - **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts (`WrathOfTheUndeadCountBuff` machte Golems zu Untoten); Bug-Klasse traf HasBuff (pre-1.17.4) UND CreatureType (pre-1.23.3). Details `gotchas-conditions.md`.
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
