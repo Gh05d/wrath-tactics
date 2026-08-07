@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Kingmaker;
 using Kingmaker.PubSubSystem;
 using TMPro;
@@ -613,34 +614,12 @@ namespace WrathTactics.UI {
                 var chipLE = chip.AddComponent<LayoutElement>();
                 chipLE.preferredWidth = 130;
                 chipLE.flexibleWidth = 0;
-                var chipHlg = chip.AddComponent<HorizontalLayoutGroup>();
-                chipHlg.spacing = 0;
-                chipHlg.childForceExpandWidth = false;
-                chipHlg.childForceExpandHeight = true;
-                chipHlg.childControlWidth = true;
-                chipHlg.childControlHeight = true;
-                chipHlg.childAlignment = TextAnchor.MiddleLeft;
-
-                // Pack-name area is a plain label — no Button component — so it reads as a
-                // tag, not a click target. Only the trailing × sub-button removes anything.
-                var (chipLabel, _cl) = UIHelpers.Create("PackChipLabel", chip.transform);
-                var chipLabelLE = chipLabel.AddComponent<LayoutElement>();
-                chipLabelLE.flexibleWidth = 1;
-                chipLabelLE.preferredWidth = 104;
-                UIHelpers.AddBackground(chipLabel, PackPalette.ColorAt(pack.ColorIndex));
-                UIHelpers.AddLabel(chipLabel, pack.Name, 13f, TextAlignmentOptions.Midline);
-
-                // Small, darker sub-button — the only part of the chip that triggers the
-                // RemoveAll + immediate save. Language-neutral glyph stays hardcoded.
-                var (chipRemove, _cr) = UIHelpers.Create("PackChipRemove", chip.transform);
-                var chipRemoveLE = chipRemove.AddComponent<LayoutElement>();
-                chipRemoveLE.preferredWidth = 26;
-                chipRemoveLE.minWidth = 26;   // destructive control — must not shrink toward 0
-                                               // on an overflowing HorizontalLayoutGroup (10+ chips)
-                chipRemoveLE.flexibleWidth = 0;
-                UIHelpers.AddBackground(chipRemove, new Color(0.5f, 0.15f, 0.15f, 1f));
-                UIHelpers.AddLabel(chipRemove, "×", 14f, TextAlignmentOptions.Midline);
-                chipRemove.AddComponent<Button>().onClick.AddListener(() => RemovePackFromList(captured));
+                UIHelpers.AddBackground(chip, PackPalette.ColorAt(pack.ColorIndex));
+                UIHelpers.AddLabel(chip, pack.Name + "  ▾", 13f, TextAlignmentOptions.Midline);
+                // One click opens a menu with both actions. The menu IS the confirmation:
+                // the previous design deleted every rule of the pack on a single click of a
+                // control that read as a label (play-test finding).
+                chip.AddComponent<Button>().onClick.AddListener(() => ShowPackChipMenu(captured));
             }
 
             var (applyBtn, _a) = UIHelpers.Create("ApplyPackBtn", row.transform);
@@ -735,6 +714,61 @@ namespace WrathTactics.UI {
                     plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
             }
             Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present");
+            RefreshRuleList();
+        }
+
+        // Both chip actions live behind one click. Order matters: the non-destructive
+        // action is first, so a reflexive "click the top entry" cannot delete rules.
+        void ShowPackChipMenu(TacticsPack pack) {
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+            int owned = list.Count(r => r != null && r.PackId == pack.Id);
+
+            // Task 1 switched dedup to PresetId alone, so a preset listed by two packs now
+            // exists as ONE rule carrying only the first-applied pack's PackId — the second
+            // pack has no chip of its own. Deleting here can silently remove that rule out
+            // from under the other pack. Surface it in the menu text instead of a separate
+            // confirmation step: the menu is already the confirmation.
+            var otherPackPresetIds = new HashSet<string>(
+                Engine.PackRegistry.All()
+                    .Where(p => p.Id != pack.Id)
+                    .SelectMany(p => p.PresetIds ?? new List<string>()));
+            int shared = list.Count(r => r != null && r.PackId == pack.Id
+                && !string.IsNullOrEmpty(r.PresetId) && otherPackPresetIds.Contains(r.PresetId));
+
+            var options = new List<string> {
+                "pack.chip.menu_detach".i18n(),
+                shared > 0
+                    ? string.Format("pack.chip.menu_delete_shared".i18n(), owned, shared)
+                    : string.Format("pack.chip.menu_delete".i18n(), owned),
+            };
+
+            PopupSelector.ShowPicker(options, idx => {
+                if (idx == 0) UnstampPackFromList(pack);
+                else if (idx == 1) RemovePackFromList(pack);
+            });
+        }
+
+        // Clears the pack marking and leaves every rule in place, in order. This is what
+        // "the pack is simply gone" means: the rules were built by the player and are not
+        // the pack's property. They become unowned, so a later Save List as Pack can claim
+        // them again.
+        void UnstampPackFromList(TacticsPack pack) {
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+
+            int detached = 0;
+            foreach (var rule in list) {
+                if (rule == null || rule.PackId != pack.Id) continue;
+                rule.PackId = null;
+                detached++;
+            }
+            ConfigManager.Save();
+            SetPackStatus(string.Format("status.pack_detached".i18n(), pack.Name, detached),
+                new Color(0.6f, 0.85f, 0.6f));
+            Log.UI.Info($"Detached pack '{pack.Name}' from {detached} rule(s)");
             RefreshRuleList();
         }
 

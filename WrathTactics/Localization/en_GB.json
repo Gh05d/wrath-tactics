@@ -93,6 +93,9 @@
   "pack.none_defined": "no packs defined",
   "pack.button.save_list": "Save List as Pack",
   "pack.saved_list_name": "{0} Pack",
+  "pack.chip.menu_detach": "Remove pack marking (keep rules)",
+  "pack.chip.menu_delete": "Delete this pack's {0} rule(s)",
+  "pack.chip.menu_delete_shared": "Delete this pack's {0} rule(s) — {1} also used by other packs",
 
   "button.close": "Close",
   "button.edit": "Edit",
@@ -115,6 +118,7 @@
   "status.pack_no_usable_members": "Nothing to apply — '{0}' has no usable members left",
   "status.pack_save_list_filtered": "Clear the filter first — Save List as Pack works on the whole list, not just what's shown",
   "status.pack_removed": "Removed {0} rule(s) of '{1}'",
+  "status.pack_detached": "'{0}' unlinked from {1} rule(s) — the rules stayed",
   "status.pack_saved_from_list": "Saved {0} rule(s) as pack '{1}'",
   "status.pack_saved_from_list_partial": "Saved {0} rule(s) as pack '{1}' — {2} rule(s) could not be saved as presets",
   "status.pack_save_list_empty": "Nothing to save — this list has no rules",
