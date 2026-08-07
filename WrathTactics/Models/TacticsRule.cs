@@ -13,6 +13,13 @@ namespace WrathTactics.Models {
         [JsonProperty] public TargetDef Target { get; set; } = new();
         /// <summary>Optional link to a preset; when set, rule body (conditions/action/target) is resolved from the preset at runtime.</summary>
         [JsonProperty] public string PresetId { get; set; }
+        /// <summary>
+        /// Origin marker set when the rule was inserted by applying a pack. Purely
+        /// organisational: it drives the header tint and the per-pack chip actions.
+        /// A rule list may mix rules from several packs and hand-built rules (PackId null).
+        /// A dangling PackId (pack deleted) is harmless — the rule keeps working, untinted.
+        /// </summary>
+        [JsonProperty] public string PackId { get; set; }
     }
 
     public class ConditionGroup {

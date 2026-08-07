@@ -33,6 +33,7 @@ namespace WrathTactics {
             UI.ThemeProvider.Init();
 
             Engine.PresetRegistry.Reload();
+            Engine.PackRegistry.Reload();
 
             UI.TacticsPanel.Install();
 

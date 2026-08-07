@@ -112,6 +112,9 @@ namespace WrathTactics.Engine {
             bool ok = PresetManager.Delete(presetId);
             GetPresets().Remove(presetId);
 
+            // Packs hold preset ids; a deleted preset must not linger as an unresolvable member.
+            PackRegistry.RemovePresetFromPacks(presetId);
+
             int removed = 0;
             if (config != null) {
                 removed += config.GlobalRules.RemoveAll(r => r.PresetId == presetId);
