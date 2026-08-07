@@ -5,6 +5,7 @@
   "panel.title": "Wrath Tactics",
   "tab.global": "Global",
   "tab.presets": "Presets",
+  "tab.packs": "Packs",
   "toggle.global_rules": "Global Rules",
   "toggle.tactics.enabled": "Tactics enabled for {0}",
   "toggle.tactics.disabled": "Tactics disabled for {0}",
@@ -76,6 +77,7 @@
 
   "pack.section_title": "Packs",
   "pack.hint": "A pack bundles presets under one name and colour. Apply as many packs as you like to a companion — every rule stays individually editable.",
+  "pack.tab_hint": "Packs bundle presets under one name and colour. Apply as many as you like to a companion — the rules stay individually editable, and removing a pack's marking leaves them in place.",
   "pack.empty": "No packs yet.",
   "pack.button.new": "+ New Pack",
   "pack.button.members": "Members",

@@ -19,8 +19,8 @@ namespace WrathTactics.UI {
         GameObject hudButton;
         bool isVisible;
         float panelBuiltAtFontScale; // tracks the FontScale used when panelRoot was last built
-        string selectedUnitId; // null = Global, "presets" = Presets
-        string lastNonPresetUnitId; // last selected tab that wasn't "presets"
+        string selectedUnitId; // null = Global, "presets" = Presets, "packs" = Packs
+        string lastNonPresetUnitId; // last selected character/global tab (skips both "presets" and "packs")
         Transform ruleListContent; // parent for rule cards
         TextMeshProUGUI toggleLabel;
         Transform tabBarTransform; // reference to rebuild tabs
@@ -44,6 +44,11 @@ namespace WrathTactics.UI {
         // live on the panel, not on the label.
         string lastPackStatus;
         Color lastPackStatusColor = Color.gray;
+
+        // Both sentinel tabs show a panel instead of a character's rule list. Anything that
+        // asks "is this a rule list?" must exclude both, or actions like AddNewRule fire
+        // against a null character id.
+        bool IsPanelTab => selectedUnitId == "presets" || selectedUnitId == "packs";
 
         public static TacticsPanel Instance => instance;
 
@@ -219,6 +224,9 @@ namespace WrathTactics.UI {
 
             // Presets tab
             AddTab(tabBarTransform.gameObject, "tab.presets".i18n(), "presets", () => SelectTab("presets"));
+
+            // Packs tab
+            AddTab(tabBarTransform.gameObject, "tab.packs".i18n(), "packs", () => SelectTab("packs"));
         }
 
         static readonly Color TabNormal = new Color(0.25f, 0.2f, 0.15f, 1f);
@@ -245,7 +253,7 @@ namespace WrathTactics.UI {
         }
 
         void SelectTab(string unitId) {
-            if (selectedUnitId != "presets")
+            if (!IsPanelTab)
                 lastNonPresetUnitId = selectedUnitId;
             selectedUnitId = unitId;
 
@@ -260,6 +268,8 @@ namespace WrathTactics.UI {
             // rebuild, defeating the reason it's static).
             if (unitId == "presets")
                 PresetPanel.ClearIOStatus();
+            else if (unitId == "packs")
+                PackPanelHost.ClearStatus();
 
             // Reset the filter on tab switch (fires onValueChanged -> sets currentRuleFilter = "").
             if (ruleFilterInput != null)
@@ -381,7 +391,7 @@ namespace WrathTactics.UI {
         void ApplyFilter() {
             if (ruleListContent == null) return;
 
-            if (selectedUnitId == "presets") {
+            if (IsPanelTab) {
                 // Hide the char/global empty label — it's not ours on this tab.
                 if (ruleFilterEmptyLabel != null) ruleFilterEmptyLabel.SetActive(false);
                 // Unity's "==" operator returns true for destroyed MonoBehaviours, so
@@ -512,6 +522,15 @@ namespace WrathTactics.UI {
                 var presetPanel = presetObj.AddComponent<PresetPanel>();
                 presetPanel.Init(lastNonPresetUnitId, ruleListContent, () => RefreshRuleList());
                 currentPresetPanel = presetPanel;
+                UpdateToggleLabel();
+                ApplyFilter();
+                return;
+            }
+
+            if (selectedUnitId == "packs") {
+                var (packObj, _) = UIHelpers.Create("PackPanelRoot", ruleListContent);
+                var panel = packObj.AddComponent<PackPanelHost>();
+                panel.Init(() => RefreshRuleList());
                 UpdateToggleLabel();
                 ApplyFilter();
                 return;
@@ -665,7 +684,7 @@ namespace WrathTactics.UI {
         }
 
         void ShowPackPicker() {
-            if (selectedUnitId == "presets") return;
+            if (IsPanelTab) return;
 
             var packs = Engine.PackRegistry.All();
             if (packs.Count == 0) {
@@ -793,7 +812,7 @@ namespace WrathTactics.UI {
         // place), already-linked rules contribute their existing preset. The rules stay
         // where they are — the pack is a reusable copy of the list, not a move.
         void SaveListAsPack() {
-            if (selectedUnitId == "presets") return;
+            if (IsPanelTab) return;
 
             // Mirrors the interactable=false guard on the button itself (see AddPackRow) —
             // kept here too so any invocation path that bypasses that guard still can't
@@ -887,6 +906,9 @@ namespace WrathTactics.UI {
             } else if (selectedUnitId == "presets") {
                 toggleLabel.text = "tab.presets".i18n();
                 toggleLabel.color = Color.white;
+            } else if (selectedUnitId == "packs") {
+                toggleLabel.text = "tab.packs".i18n();
+                toggleLabel.color = Color.white;
             } else {
                 var config = ConfigManager.Current;
                 bool enabled = config.IsEnabled(selectedUnitId);
@@ -900,7 +922,7 @@ namespace WrathTactics.UI {
         }
 
         void ToggleTactics() {
-            if (selectedUnitId == null || selectedUnitId == "presets") return;
+            if (selectedUnitId == null || IsPanelTab) return;
             var config = ConfigManager.Current;
             bool current = config.IsEnabled(selectedUnitId);
             config.TacticsEnabled[selectedUnitId] = !current;
@@ -909,7 +931,7 @@ namespace WrathTactics.UI {
         }
 
         void AddNewRule() {
-            if (selectedUnitId == "presets") return;
+            if (IsPanelTab) return;
             var config = ConfigManager.Current;
             var rules = selectedUnitId == null
                 ? config.GlobalRules
@@ -929,7 +951,7 @@ namespace WrathTactics.UI {
         }
 
         void AddFromPreset() {
-            if (selectedUnitId == "presets") return;
+            if (IsPanelTab) return;
 
             var presets = WrathTactics.Engine.PresetRegistry.All();
             if (presets.Count == 0) {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -294,6 +295,65 @@ namespace WrathTactics.UI {
             if (!PackRegistry.Save(pack))
                 setStatus(string.Format("status.save_failed".i18n(), pack.Name), new Color(1f, 0.5f, 0.4f));
             onChanged();
+        }
+    }
+
+    /// <summary>
+    /// Owns the Packs tab: root layout, status line, and the deferred rebuild that keeps
+    /// a rename's onEndEdit callback off the stack while its input field is destroyed.
+    /// </summary>
+    public class PackPanelHost : MonoBehaviour {
+        static string lastStatus;
+        static Color lastStatusColor = Color.gray;
+        Action onChanged;
+
+        /// <summary>
+        /// Clears the static status line. Being static, it survives PackPanelHost's own
+        /// deferred rebuild by design (see DeferredRebuild) — but that means it also survives
+        /// a tab switch and even a savegame load unless cleared here, on tab ENTRY specifically
+        /// (mirrors PresetPanel.ClearIOStatus, called from TacticsPanel.SelectTab).
+        /// </summary>
+        public static void ClearStatus() {
+            lastStatus = null;
+            lastStatusColor = Color.gray;
+        }
+
+        public void Init(Action onChanged) {
+            this.onChanged = onChanged;
+            BuildUI();
+        }
+
+        void BuildUI() {
+            var vlg = gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 6;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.padding = new RectOffset(6, 6, 6, 6);
+            var csf = gameObject.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            UIHelpers.AddHintCard(transform, "pack.tab_hint".i18n(), 40f);
+
+            var (statusObj, _st) = UIHelpers.Create("PackTabStatus", transform);
+            statusObj.AddComponent<LayoutElement>().preferredHeight = 24;
+            UIHelpers.AddPageLabel(statusObj, lastStatus ?? "", 13f,
+                TextAlignmentOptions.MidlineLeft, lastStatusColor);
+
+            PackPanel.Build(transform, () => StartCoroutine(DeferredRebuild()),
+                (text, color) => { lastStatus = text; lastStatusColor = color; });
+        }
+
+        IEnumerator DeferredRebuild() {
+            yield return null;
+            for (int i = transform.childCount - 1; i >= 0; i--)
+                Destroy(transform.GetChild(i).gameObject);
+            var vlg = GetComponent<VerticalLayoutGroup>();
+            if (vlg != null) DestroyImmediate(vlg);
+            var csf = GetComponent<ContentSizeFitter>();
+            if (csf != null) DestroyImmediate(csf);
+            BuildUI();
         }
     }
 }
