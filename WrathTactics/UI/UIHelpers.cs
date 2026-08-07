@@ -97,6 +97,21 @@ namespace WrathTactics.UI {
         }
 
         /// <summary>
+        /// Label for text drawn directly on the book-page art, which is light enough that
+        /// white text washes out. Adds the black outline the panel already used ad hoc in
+        /// TacticsPanel (CreateRuleFilterEmptyLabel, UpdateToggleLabel). Use AddLabel instead
+        /// whenever the label sits on its own dark background — the outline is pure cost there.
+        /// Mirrors AddLabel's signature exactly.
+        /// </summary>
+        public static TextMeshProUGUI AddPageLabel(GameObject parent, string text, float fontSize = 20f,
+            TextAlignmentOptions alignment = TextAlignmentOptions.MidlineLeft, Color? color = null) {
+            var label = AddLabel(parent, text, fontSize, alignment, color);
+            label.outlineWidth = 0.25f;
+            label.outlineColor = new Color32(0, 0, 0, 255);
+            return label;
+        }
+
+        /// <summary>
         /// Grey explainer strip for list areas. Word-wraps within a FontScale-scaled
         /// height budget (Ellipsis beyond). raycastTarget stays ON so mouse-wheel and
         /// drag over the strip bubble to the enclosing ScrollRect (no Button anywhere

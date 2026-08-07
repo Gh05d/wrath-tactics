@@ -21,7 +21,7 @@ namespace WrathTactics.UI {
         public static void Build(Transform parent, Action onChanged, Action<string, Color> setStatus) {
             var (titleObj, _) = UIHelpers.Create("PackTitle", parent);
             titleObj.AddComponent<LayoutElement>().preferredHeight = 26;
-            UIHelpers.AddLabel(titleObj, "pack.section_title".i18n(), 18f,
+            UIHelpers.AddPageLabel(titleObj, "pack.section_title".i18n(), 18f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
 
             UIHelpers.AddHintCard(parent, "pack.hint".i18n(), 40f);
@@ -45,7 +45,7 @@ namespace WrathTactics.UI {
             if (packs.Count == 0) {
                 var (empty, _e) = UIHelpers.Create("PackEmpty", parent);
                 empty.AddComponent<LayoutElement>().preferredHeight = 26;
-                UIHelpers.AddLabel(empty, "pack.empty".i18n(), 14f,
+                UIHelpers.AddPageLabel(empty, "pack.empty".i18n(), 14f,
                     TextAlignmentOptions.MidlineLeft, Color.gray);
             }
 
@@ -186,13 +186,13 @@ namespace WrathTactics.UI {
 
             var (title, _t) = UIHelpers.Create($"Members_{pack.Id}", parent);
             title.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddLabel(title, "pack.members_title".i18n(), 13f,
+            UIHelpers.AddPageLabel(title, "pack.members_title".i18n(), 13f,
                 TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
 
             if (pack.PresetIds.Count == 0) {
                 var (none, _no) = UIHelpers.Create($"MembersEmpty_{pack.Id}", parent);
                 none.AddComponent<LayoutElement>().preferredHeight = 24;
-                UIHelpers.AddLabel(none, "pack.members_empty".i18n(), 13f,
+                UIHelpers.AddPageLabel(none, "pack.members_empty".i18n(), 13f,
                     TextAlignmentOptions.MidlineLeft, Color.gray);
             }
 
@@ -245,7 +245,7 @@ namespace WrathTactics.UI {
 
             var (availTitle, _at) = UIHelpers.Create($"Available_{pack.Id}", parent);
             availTitle.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddLabel(availTitle, "pack.available_title".i18n(), 13f,
+            UIHelpers.AddPageLabel(availTitle, "pack.available_title".i18n(), 13f,
                 TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
 
             foreach (var preset in PresetRegistry.All()) {
@@ -268,7 +268,7 @@ namespace WrathTactics.UI {
                 var labelLE = label.AddComponent<LayoutElement>();
                 labelLE.flexibleWidth = 1;
                 labelLE.preferredWidth = 200;
-                UIHelpers.AddLabel(label, captured.Name, 13f,
+                UIHelpers.AddPageLabel(label, captured.Name, 13f,
                     TextAlignmentOptions.MidlineLeft, new Color(0.75f, 0.75f, 0.75f));
 
                 AddMemberButton(availRow.transform, "AvailAdd", "pack.member_add".i18n(),

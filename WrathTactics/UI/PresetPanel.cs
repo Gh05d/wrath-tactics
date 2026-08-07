@@ -66,7 +66,7 @@ namespace WrathTactics.UI {
             // Title
             var (titleObj, _) = UIHelpers.Create("PresetTitle", root.transform);
             titleObj.AddComponent<LayoutElement>().preferredHeight = 30;
-            UIHelpers.AddLabel(titleObj, "tab.presets".i18n(), 20f,
+            UIHelpers.AddPageLabel(titleObj, "tab.presets".i18n(), 20f,
                 TextAlignmentOptions.MidlineLeft, Color.white);
 
             // Hint
@@ -89,7 +89,7 @@ namespace WrathTactics.UI {
             // Status line — shows success/error of the last Export or Import click
             var (statusObj, _st) = UIHelpers.Create("IOStatus", root.transform);
             statusObj.AddComponent<LayoutElement>().preferredHeight = 24;
-            var statusLabel = UIHelpers.AddLabel(statusObj, lastIOStatus ?? "", 13f,
+            var statusLabel = UIHelpers.AddPageLabel(statusObj, lastIOStatus ?? "", 13f,
                 TextAlignmentOptions.MidlineLeft, lastIOStatusColor);
 
             // New preset button
@@ -126,7 +126,7 @@ namespace WrathTactics.UI {
             if (presets.Count == 0) {
                 var (empty, _e) = UIHelpers.Create("Empty", root.transform);
                 empty.AddComponent<LayoutElement>().preferredHeight = 28;
-                UIHelpers.AddLabel(empty, "preset.empty".i18n(), 15f,
+                UIHelpers.AddPageLabel(empty, "preset.empty".i18n(), 15f,
                     TextAlignmentOptions.MidlineLeft, Color.gray);
                 // Intentionally bail before emptyMatchLabel setup — nothing to filter,
                 // ApplyFilter would dereference a null label. Rebuild on first preset
@@ -158,7 +158,7 @@ namespace WrathTactics.UI {
             // Empty-match label — shown by ApplyFilter when the filter hides every entry.
             var (emptyObj, _em) = UIHelpers.Create("EmptyMatch", root.transform);
             emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
-            UIHelpers.AddLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
+            UIHelpers.AddPageLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
                 TextAlignmentOptions.MidlineLeft, new Color(0.6f, 0.6f, 0.6f));
             emptyObj.SetActive(false);
             emptyMatchLabel = emptyObj;
