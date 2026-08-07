@@ -112,6 +112,8 @@
   "status.import_success": "已导入 {0} 个预设。",
   "status.pack_applied": "已应用 '{0}': 新增 {1} 条规则, {2} 条已存在",
   "status.pack_nothing_to_add": "'{0}' 已完全应用",
+  "status.pack_no_usable_members": "没有可应用的内容 — '{0}' 已没有可用的预设",
+  "status.pack_save_list_filtered": "请先清除筛选 — 将列表保存为规则包会作用于整个列表, 而不仅是筛选后显示的部分",
   "status.pack_removed": "已移除 '{1}' 的 {0} 条规则",
   "status.pack_saved_from_list": "已将 {0} 条规则保存为规则包 '{1}'",
   "status.pack_saved_from_list_partial": "已将 {0} 条规则保存为规则包 '{1}', {2} 条规则未能保存为预设",

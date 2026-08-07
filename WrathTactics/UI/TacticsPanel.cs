@@ -577,9 +577,32 @@ namespace WrathTactics.UI {
                 var chipLE = chip.AddComponent<LayoutElement>();
                 chipLE.preferredWidth = 130;
                 chipLE.flexibleWidth = 0;
-                UIHelpers.AddBackground(chip, PackPalette.ColorAt(pack.ColorIndex));
-                UIHelpers.AddLabel(chip, pack.Name + "  ×", 13f, TextAlignmentOptions.Midline);
-                chip.AddComponent<Button>().onClick.AddListener(() => RemovePackFromList(captured));
+                var chipHlg = chip.AddComponent<HorizontalLayoutGroup>();
+                chipHlg.spacing = 0;
+                chipHlg.childForceExpandWidth = false;
+                chipHlg.childForceExpandHeight = true;
+                chipHlg.childControlWidth = true;
+                chipHlg.childControlHeight = true;
+                chipHlg.childAlignment = TextAnchor.MiddleLeft;
+
+                // Pack-name area is a plain label — no Button component — so it reads as a
+                // tag, not a click target. Only the trailing × sub-button removes anything.
+                var (chipLabel, _cl) = UIHelpers.Create("PackChipLabel", chip.transform);
+                var chipLabelLE = chipLabel.AddComponent<LayoutElement>();
+                chipLabelLE.flexibleWidth = 1;
+                chipLabelLE.preferredWidth = 104;
+                UIHelpers.AddBackground(chipLabel, PackPalette.ColorAt(pack.ColorIndex));
+                UIHelpers.AddLabel(chipLabel, pack.Name, 13f, TextAlignmentOptions.Midline);
+
+                // Small, darker sub-button — the only part of the chip that triggers the
+                // RemoveAll + immediate save. Language-neutral glyph stays hardcoded.
+                var (chipRemove, _cr) = UIHelpers.Create("PackChipRemove", chip.transform);
+                var chipRemoveLE = chipRemove.AddComponent<LayoutElement>();
+                chipRemoveLE.preferredWidth = 26;
+                chipRemoveLE.flexibleWidth = 0;
+                UIHelpers.AddBackground(chipRemove, new Color(0.5f, 0.15f, 0.15f, 1f));
+                UIHelpers.AddLabel(chipRemove, "×", 14f, TextAlignmentOptions.Midline);
+                chipRemove.AddComponent<Button>().onClick.AddListener(() => RemovePackFromList(captured));
             }
 
             var (applyBtn, _a) = UIHelpers.Create("ApplyPackBtn", row.transform);
@@ -594,9 +617,16 @@ namespace WrathTactics.UI {
             var saveLE = saveBtn.AddComponent<LayoutElement>();
             saveLE.preferredWidth = 150;
             saveLE.flexibleWidth = 0;
-            UIHelpers.AddBackground(saveBtn, new Color(0.25f, 0.45f, 0.3f, 1f));
+            // SaveListAsPack always claims the WHOLE list (see its own comment) — while a
+            // filter is active that would silently promote/stamp rules the user can't even
+            // see right now, so the button goes dim and non-interactable instead of firing.
+            bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
+            UIHelpers.AddBackground(saveBtn,
+                filterActive ? new Color(0.22f, 0.22f, 0.22f, 0.6f) : new Color(0.25f, 0.45f, 0.3f, 1f));
             UIHelpers.AddLabel(saveBtn, "pack.button.save_list".i18n(), 14f, TextAlignmentOptions.Midline);
-            saveBtn.AddComponent<Button>().onClick.AddListener(SaveListAsPack);
+            var saveBtnComp = saveBtn.AddComponent<Button>();
+            saveBtnComp.interactable = !filterActive;
+            saveBtnComp.onClick.AddListener(SaveListAsPack);
 
             // Result of the last pack action — the character tab has no status line of its
             // own, and a silent "nothing happened" is indistinguishable from a broken button.
@@ -651,11 +681,21 @@ namespace WrathTactics.UI {
             int alreadyPresent = Engine.PackRegistry.CountAlreadyApplied(pack, list);
             list.AddRange(plan);
             ConfigManager.Save();
-            SetPackStatus(
-                plan.Count == 0
-                    ? string.Format("status.pack_nothing_to_add".i18n(), pack.Name)
-                    : string.Format("status.pack_applied".i18n(), pack.Name, plan.Count, alreadyPresent),
-                plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
+
+            if (plan.Count == 0 && alreadyPresent == 0) {
+                // Nothing was added AND nothing was already there — every member preset is
+                // unresolvable (e.g. deleted while the mod wasn't running; TacticsPack's own
+                // doc comment anticipates this). Distinct from "already fully applied" below,
+                // which would otherwise report this broken pack as healthy.
+                SetPackStatus(string.Format("status.pack_no_usable_members".i18n(), pack.Name),
+                    new Color(1f, 0.8f, 0.4f));
+            } else {
+                SetPackStatus(
+                    plan.Count == 0
+                        ? string.Format("status.pack_nothing_to_add".i18n(), pack.Name)
+                        : string.Format("status.pack_applied".i18n(), pack.Name, plan.Count, alreadyPresent),
+                    plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
+            }
             Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present");
             RefreshRuleList();
         }
@@ -675,12 +715,22 @@ namespace WrathTactics.UI {
             RefreshRuleList();
         }
 
-        // Turns the whole visible list into a pack: every standalone rule is promoted to a
-        // preset (PromoteRuleToPreset links the original in place), already-linked rules
-        // contribute their existing preset. The rules stay where they are — the pack is a
-        // reusable copy of the list, not a move.
+        // Turns the ENTIRE list into a pack, regardless of the rule filter — it reads
+        // list/GetOrCreateCharacterRules directly, not the filtered cards on screen. Every
+        // standalone rule is promoted to a preset (PromoteRuleToPreset links the original in
+        // place), already-linked rules contribute their existing preset. The rules stay
+        // where they are — the pack is a reusable copy of the list, not a move.
         void SaveListAsPack() {
             if (selectedUnitId == "presets") return;
+
+            // Mirrors the interactable=false guard on the button itself (see AddPackRow) —
+            // kept here too so any invocation path that bypasses that guard still can't
+            // silently promote/stamp rules the user can't currently see.
+            if (!string.IsNullOrWhiteSpace(currentRuleFilter)) {
+                SetPackStatus("status.pack_save_list_filtered".i18n(), new Color(1f, 0.8f, 0.4f));
+                RefreshRuleList();
+                return;
+            }
 
             var list = selectedUnitId == null
                 ? ConfigManager.Current.GlobalRules

@@ -15,8 +15,12 @@ namespace WrathTactics.UI {
     public class PresetPanel : MonoBehaviour {
         Action onPresetsChanged;
         readonly HashSet<string> expandedIds = new HashSet<string>();
-        string lastIOStatus;
-        Color lastIOStatusColor = Color.gray;
+        // Static, like PackPanel.expandedPackId: the import path invokes onPresetsChanged ->
+        // TacticsPanel.RefreshRuleList, which destroys this PresetPanel and builds a fresh
+        // one before the status is ever read back. An instance field loses the message on
+        // every import; only used within this class (verified no other reader).
+        static string lastIOStatus;
+        static Color lastIOStatusColor = Color.gray;
 
         // Filter state — driven from TacticsPanel via ApplyFilter(string).
         string currentFilter = "";

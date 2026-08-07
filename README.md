@@ -65,13 +65,20 @@ companion or pet.
 - **Apply a pack** to a companion or pet with **+ Apply Pack**, above their rule list. Any number
   of packs can be active on the same character at once — each pack's rules are tinted in its
   colour and shown as a chip above the list.
-- **Save List as Pack** turns whatever rules you already have on a companion's (or the Global)
-  list into a new pack in one click — standalone rules are promoted to presets automatically.
+- **Save List as Pack** claims every rule in a companion's (or the Global) list that doesn't
+  already belong to another pack, and bundles them into a new pack in one click — standalone
+  rules are promoted to presets automatically. Those rules now belong to the new pack: removing
+  it later removes them too, hand-built or not. It operates on the whole list regardless of any
+  active filter — the button is disabled while a filter is active, to make that unambiguous.
 - Rules inserted by a pack stay linked to their presets: edit the preset on the Presets tab and
   every character running that pack picks up the change. Re-applying a pack restores members you
   deleted without duplicating the ones still there.
-- Click a chip's `×` to remove just that pack's rules from a character — every other pack, and
-  any rules you added by hand, are left alone.
+- Click a chip's `×` to remove just that pack's rules from a character — every other pack is
+  left alone. This is a mass-delete of everything currently stamped with that pack (including
+  any hand-built rules "Save List as Pack" absorbed into it), with no undo — the rule order
+  that made up your setup is not restored by re-applying, only the members are.
+- Deleting a pack's definition (on the Presets tab) does not touch already-applied rules —
+  they stay on every character exactly as they are; only the chip and its colour go away.
 - **Export** (on the Presets tab) copies a self-contained pack — including its presets — to the
   clipboard; the same tab's **Import** button accepts both a pack bundle and the older
   preset-array format, so packs can be shared between players.

@@ -160,6 +160,10 @@ namespace WrathTactics.Engine {
             var preset = Newtonsoft.Json.JsonConvert.DeserializeObject<TacticsRule>(json);
             preset.Id = System.Guid.NewGuid().ToString();
             preset.PresetId = null;
+            // A preset is never pack-owned — it's a pack's payload, not one of its members.
+            // Carrying the source rule's PackId (e.g. an unlinked-and-edited pack rule) would
+            // be invisible in the UI but ship inside exported bundles and feed CloneRule.
+            preset.PackId = null;
             // Atomic: if the save fails we leave the source rule untouched rather than
             // mutating it into a linked state pointing at a non-existent preset.
             if (!Save(preset)) {

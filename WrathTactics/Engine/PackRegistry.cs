@@ -62,7 +62,13 @@ namespace WrathTactics.Engine {
         /// </summary>
         public static void RemovePresetFromPacks(string presetId) {
             var changed = StripPreset(GetPacks().Values.ToList(), presetId);
-            foreach (var pack in changed) PackManager.Save(pack);
+            foreach (var pack in changed) {
+                // No UI path surfaces this call's failures — a bad write here leaves the
+                // in-memory pack shorter than the file on disk, so the stripped member
+                // silently reappears on next load. The log is the only trace available.
+                if (!PackManager.Save(pack))
+                    Log.Persistence.Warn($"Failed to persist pack '{pack.Name}' (id={pack.Id}) after stripping preset id={presetId} — the member may reappear on next load");
+            }
             if (changed.Count > 0)
                 Log.Persistence.Info($"Stripped preset id={presetId} from {changed.Count} pack(s)");
         }

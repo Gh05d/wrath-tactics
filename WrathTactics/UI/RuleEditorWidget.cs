@@ -279,6 +279,7 @@ namespace WrathTactics.UI {
             copy.Id = System.Guid.NewGuid().ToString();
             copy.Name = source.Name + "clone.suffix".i18n();
             copy.PresetId = null;  // standalone copy; never inherit the link
+            copy.PackId = null;    // standalone copy; never inherit pack ownership either
             ruleList.Insert(index + 1, copy);
             PersistEdit();
             onChanged?.Invoke();

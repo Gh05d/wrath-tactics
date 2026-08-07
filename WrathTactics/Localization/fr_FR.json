@@ -112,6 +112,8 @@
   "status.import_success": "{0} préréglage(s) importé(s).",
   "status.pack_applied": "'{0}' appliqué : {1} règle(s) ajoutée(s), {2} déjà présente(s)",
   "status.pack_nothing_to_add": "'{0}' est déjà entièrement appliqué",
+  "status.pack_no_usable_members": "Rien à appliquer — '{0}' n'a plus de préréglages utilisables",
+  "status.pack_save_list_filtered": "Effacez d'abord le filtre — Enregistrer la liste comme pack agit sur la liste entière, pas seulement sur les lignes filtrées",
   "status.pack_removed": "{0} règle(s) de '{1}' supprimée(s)",
   "status.pack_saved_from_list": "{0} règle(s) enregistrée(s) comme pack '{1}'",
   "status.pack_saved_from_list_partial": "{0} règle(s) enregistrée(s) comme pack '{1}' — {2} règle(s) n'ont pas pu être enregistrées comme préréglages",
