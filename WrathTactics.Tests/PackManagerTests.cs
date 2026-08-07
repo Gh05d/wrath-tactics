@@ -64,10 +64,25 @@ namespace WrathTactics.Tests {
         }
 
         [Fact]
-        public void Load_repairs_missing_id_and_null_member_list() {
+        public void Load_of_missing_keys_retains_property_initializers() {
             var dir = TempDir();
             try {
                 File.WriteAllText(Path.Combine(dir, "legacy.json"), "{\"Name\":\"Legacy\"}");
+                var loaded = PackManager.LoadAllFrom(dir);
+                Assert.Single(loaded);
+                Assert.False(string.IsNullOrEmpty(loaded[0].Id));
+                Assert.NotNull(loaded[0].PresetIds);
+                Assert.Empty(loaded[0].PresetIds);
+            } finally {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void Load_repairs_explicit_null_id_and_null_member_list() {
+            var dir = TempDir();
+            try {
+                File.WriteAllText(Path.Combine(dir, "legacy.json"), "{\"Name\":\"Legacy\",\"Id\":null,\"PresetIds\":null}");
                 var loaded = PackManager.LoadAllFrom(dir);
                 Assert.Single(loaded);
                 Assert.False(string.IsNullOrEmpty(loaded[0].Id));

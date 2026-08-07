@@ -34,9 +34,7 @@ namespace WrathTactics.Persistence {
                     if (string.IsNullOrEmpty(pack.Id)) pack.Id = Guid.NewGuid().ToString();
                     if (pack.PresetIds == null) pack.PresetIds = new List<string>();
                     result.Add(pack);
-                } catch (JsonException ex) {
-                    Log.Persistence.Warn($"Skipping unreadable pack file {path}: {ex.Message}");
-                } catch (IOException ex) {
+                } catch (Exception ex) when (ex is JsonException || ex is IOException || ex is UnauthorizedAccessException) {
                     Log.Persistence.Warn($"Skipping unreadable pack file {path}: {ex.Message}");
                 }
             }
