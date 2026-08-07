@@ -22,6 +22,19 @@ namespace WrathTactics.UI {
         static string lastIOStatus;
         static Color lastIOStatusColor = Color.gray;
 
+        /// <summary>
+        /// Clears the static IO status. Being static, it now outlives not just the
+        /// import-triggered rebuild (the point of making it static) but the tab switch and
+        /// even a savegame load — without this, a stale "Imported 5 preset(s)." resurfaces
+        /// out of context the next time the Presets tab is opened. Call this on tab ENTRY
+        /// (TacticsPanel.SelectTab), never from Init/BuildUI — those also run on the very
+        /// rebuild this status must survive.
+        /// </summary>
+        public static void ClearIOStatus() {
+            lastIOStatus = null;
+            lastIOStatusColor = Color.gray;
+        }
+
         // Filter state — driven from TacticsPanel via ApplyFilter(string).
         string currentFilter = "";
         readonly List<(GameObject entry, string name)> entries = new List<(GameObject, string)>();
@@ -275,6 +288,8 @@ namespace WrathTactics.UI {
                 if (preset == null) continue;
                 preset.Id = Guid.NewGuid().ToString();
                 preset.PresetId = null;
+                preset.PackId = null;  // same leak class as the bundle import path below — a
+                                        // preset is never pack-owned (see PromoteRuleToPreset)
                 string baseName = string.IsNullOrEmpty(preset.Name) ? "preset.imported_default_name".i18n() : preset.Name;
                 string finalName = baseName;
                 bool wasRenamed = false;

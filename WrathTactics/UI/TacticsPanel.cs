@@ -31,6 +31,13 @@ namespace WrathTactics.UI {
         GameObject ruleFilterEmptyLabel;  // sibling of rule scroll, shown when filter hides everything
         PresetPanel currentPresetPanel;    // tracks the active PresetPanel when presets tab is open
 
+        // "Save List as Pack" button — held so ApplyFilter can keep its dim/interactable
+        // state in sync with the live filter instead of only reflecting the filter value
+        // from the last full RefreshRuleList (see AddPackRow / UpdateSaveListAsPackButton).
+        // Null on the Presets tab, where the pack row doesn't exist.
+        Button saveListAsPackButton;
+        Image saveListAsPackBackground;
+
         // Result of the last pack action, rendered in the pack row. Mirrors
         // PresetPanel.lastIOStatus: the row is rebuilt constantly, so the text must
         // live on the panel, not on the label.
@@ -244,6 +251,15 @@ namespace WrathTactics.UI {
             // Don't carry one character's pack message over to the next tab.
             lastPackStatus = null;
 
+            // Don't carry a stale import/export result into a later, unrelated visit to the
+            // Presets tab — PresetPanel.lastIOStatus is static so it survives the
+            // import-triggered rebuild (by design), but that means it also survives a tab
+            // switch and a savegame load unless cleared here, on tab ENTRY specifically
+            // (clearing from PresetPanel.Init/BuildUI would also wipe it on that very
+            // rebuild, defeating the reason it's static).
+            if (unitId == "presets")
+                PresetPanel.ClearIOStatus();
+
             // Reset the filter on tab switch (fires onValueChanged -> sets currentRuleFilter = "").
             if (ruleFilterInput != null)
                 ruleFilterInput.text = "";
@@ -332,6 +348,20 @@ namespace WrathTactics.UI {
             ruleFilterClearButton.interactable = hasFilter;
         }
 
+        // Keeps "Save List as Pack" dim/non-interactable in lockstep with the live filter.
+        // Built once in AddPackRow and re-applied from ApplyFilter on every keystroke/clear —
+        // without this, the button's look only updated on a full RefreshRuleList, so clearing
+        // the filter left it disabled with no way to tell why (see review finding A).
+        void UpdateSaveListAsPackButton() {
+            if (saveListAsPackButton == null) return;
+            bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
+            saveListAsPackButton.interactable = !filterActive;
+            if (saveListAsPackBackground != null)
+                saveListAsPackBackground.color = filterActive
+                    ? new Color(0.22f, 0.22f, 0.22f, 0.6f)
+                    : new Color(0.25f, 0.45f, 0.3f, 1f);
+        }
+
         void CreateRuleFilterEmptyLabel(Transform parent) {
             var (obj, rect) = UIHelpers.Create("RuleFilterEmpty", parent);
             // Same anchor as the rule scroll so the label overlays its center
@@ -376,6 +406,7 @@ namespace WrathTactics.UI {
             bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
             if (ruleFilterEmptyLabel != null)
                 ruleFilterEmptyLabel.SetActive(filterActive && total > 0 && visible == 0);
+            UpdateSaveListAsPackButton();
         }
 
         void CreateRuleList(Transform parent) {
@@ -469,6 +500,11 @@ namespace WrathTactics.UI {
                 Destroy(child.gameObject);
             }
             currentPresetPanel = null;
+            // The row that owns these (AddPackRow) doesn't exist on the Presets tab, and even
+            // on other tabs it's about to be destroyed above — drop the references now so a
+            // same-frame ApplyFilter can't act on an about-to-be-destroyed button.
+            saveListAsPackButton = null;
+            saveListAsPackBackground = null;
 
             if (selectedUnitId == "presets") {
                 var (presetObj, _) = UIHelpers.Create("PresetPanel", ruleListContent);
@@ -599,6 +635,8 @@ namespace WrathTactics.UI {
                 var (chipRemove, _cr) = UIHelpers.Create("PackChipRemove", chip.transform);
                 var chipRemoveLE = chipRemove.AddComponent<LayoutElement>();
                 chipRemoveLE.preferredWidth = 26;
+                chipRemoveLE.minWidth = 26;   // destructive control — must not shrink toward 0
+                                               // on an overflowing HorizontalLayoutGroup (10+ chips)
                 chipRemoveLE.flexibleWidth = 0;
                 UIHelpers.AddBackground(chipRemove, new Color(0.5f, 0.15f, 0.15f, 1f));
                 UIHelpers.AddLabel(chipRemove, "×", 14f, TextAlignmentOptions.Midline);
@@ -620,13 +658,13 @@ namespace WrathTactics.UI {
             // SaveListAsPack always claims the WHOLE list (see its own comment) — while a
             // filter is active that would silently promote/stamp rules the user can't even
             // see right now, so the button goes dim and non-interactable instead of firing.
-            bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
-            UIHelpers.AddBackground(saveBtn,
-                filterActive ? new Color(0.22f, 0.22f, 0.22f, 0.6f) : new Color(0.25f, 0.45f, 0.3f, 1f));
+            // Background/Button are held on the panel so ApplyFilter can keep this state in
+            // sync on every keystroke, not just on a full RefreshRuleList (review finding A).
+            saveListAsPackBackground = UIHelpers.AddBackground(saveBtn, new Color(0.25f, 0.45f, 0.3f, 1f));
             UIHelpers.AddLabel(saveBtn, "pack.button.save_list".i18n(), 14f, TextAlignmentOptions.Midline);
-            var saveBtnComp = saveBtn.AddComponent<Button>();
-            saveBtnComp.interactable = !filterActive;
-            saveBtnComp.onClick.AddListener(SaveListAsPack);
+            saveListAsPackButton = saveBtn.AddComponent<Button>();
+            saveListAsPackButton.onClick.AddListener(SaveListAsPack);
+            UpdateSaveListAsPackButton();
 
             // Result of the last pack action — the character tab has no status line of its
             // own, and a silent "nothing happened" is indistinguishable from a broken button.
