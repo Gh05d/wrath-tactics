@@ -108,6 +108,28 @@ namespace WrathTactics.Engine {
             return plan;
         }
 
+        /// <summary>
+        /// How many of the pack's members are already present as rules of THIS pack in
+        /// <paramref name="rules"/>. Same membership test PlanApply uses to skip them, so the
+        /// two numbers add up — a member skipped for any other reason (unresolvable preset,
+        /// empty or duplicate id) is deliberately NOT counted here.
+        /// </summary>
+        public static int CountAlreadyApplied(TacticsPack pack, List<TacticsRule> rules) {
+            if (pack?.PresetIds == null || rules == null) return 0;
+            var fromThisPack = new HashSet<string>(
+                rules.Where(r => r != null && r.PackId == pack.Id && !string.IsNullOrEmpty(r.PresetId))
+                     .Select(r => r.PresetId));
+            int count = 0;
+            var counted = new HashSet<string>();
+            foreach (var presetId in pack.PresetIds) {
+                if (string.IsNullOrEmpty(presetId)) continue;
+                if (!fromThisPack.Contains(presetId)) continue;
+                if (!counted.Add(presetId)) continue;   // a duplicated member id is one slot, not two
+                count++;
+            }
+            return count;
+        }
+
         /// <summary>Distinct pack ids present in a rule list, in first-appearance order.</summary>
         public static List<string> AppliedPackIds(List<TacticsRule> rules) {
             var result = new List<string>();

@@ -639,7 +639,8 @@ namespace WrathTactics.UI {
             var plan = Engine.PackRegistry.PlanApply(pack, list,
                 presetId => Engine.PresetRegistry.Get(presetId) != null);
 
-            int alreadyPresent = pack.PresetIds.Count - plan.Count;
+            // Computed BEFORE AddRange — otherwise the freshly appended rules count themselves.
+            int alreadyPresent = Engine.PackRegistry.CountAlreadyApplied(pack, list);
             list.AddRange(plan);
             ConfigManager.Save();
             SetPackStatus(

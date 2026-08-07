@@ -113,5 +113,50 @@ namespace WrathTactics.Tests {
             Assert.Empty(PackRegistry.StripPreset(packs, "nope"));
             Assert.Empty(PackRegistry.StripPreset(null, "p1"));
         }
+
+        [Fact]
+        public void CountAlreadyApplied_returns_zero_when_nothing_applied_yet() {
+            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1", "p2"), new List<TacticsRule>());
+            Assert.Equal(0, count);
+        }
+
+        [Fact]
+        public void CountAlreadyApplied_counts_only_members_present_from_this_pack() {
+            var existing = new List<TacticsRule> { Linked("p1", "A") };
+            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1", "p2"), existing);
+            Assert.Equal(1, count);
+        }
+
+        [Fact]
+        public void CountAlreadyApplied_does_not_count_a_member_whose_preset_is_gone() {
+            // "ghost" is a pack member whose preset was deleted outside the game — PlanApply
+            // skips it for THAT reason, not because it's already present, and no rule for it
+            // ever exists. The old `pack.PresetIds.Count - plan.Count` formula would have
+            // reported 2 here (misattributing the unresolvable member as "already present");
+            // the correct count is 1 — only the genuinely-applied "p1".
+            var existing = new List<TacticsRule> { Linked("p1", "A") };
+            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1", "ghost"), existing);
+            Assert.Equal(1, count);
+        }
+
+        [Fact]
+        public void CountAlreadyApplied_does_not_count_a_rule_from_a_different_pack() {
+            var existing = new List<TacticsRule> { Linked("p1", "B") };
+            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1"), existing);
+            Assert.Equal(0, count);
+        }
+
+        [Fact]
+        public void CountAlreadyApplied_counts_a_duplicate_member_id_once() {
+            var existing = new List<TacticsRule> { Linked("p1", "A") };
+            var count = PackRegistry.CountAlreadyApplied(Pack("A", "p1", "p1"), existing);
+            Assert.Equal(1, count);
+        }
+
+        [Fact]
+        public void CountAlreadyApplied_tolerates_null_pack_and_null_rule_list() {
+            Assert.Equal(0, PackRegistry.CountAlreadyApplied(null, new List<TacticsRule>()));
+            Assert.Equal(0, PackRegistry.CountAlreadyApplied(Pack("A", "p1"), null));
+        }
     }
 }
