@@ -98,6 +98,13 @@
   "pack.chip.menu_detach": "Remove pack marking (keep rules)",
   "pack.chip.menu_delete": "Delete this pack's {0} rule(s)",
   "pack.chip.menu_delete_shared": "Delete this pack's {0} rule(s) — {1} also used by other packs",
+  "pack.save_dialog.title": "Save rules as a pack",
+  "pack.save_dialog.name_label": "Pack name",
+  "pack.save_dialog.rules_label": "Rules to include",
+  "pack.save_dialog.confirm": "Save Pack",
+  "pack.save_dialog.cancel": "Cancel",
+  "pack.save_dialog.none_selected": "Select at least one rule",
+  "pack.save_dialog.linked_suffix": " (preset)",
 
   "button.close": "Close",
   "button.edit": "Edit",

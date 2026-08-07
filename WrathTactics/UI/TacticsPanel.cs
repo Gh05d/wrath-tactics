@@ -807,9 +807,8 @@ namespace WrathTactics.UI {
         }
 
         // Turns the ENTIRE list into a pack, regardless of the rule filter — it reads
-        // list/GetOrCreateCharacterRules directly, not the filtered cards on screen. Every
-        // standalone rule is promoted to a preset (PromoteRuleToPreset links the original in
-        // place), already-linked rules contribute their existing preset. The rules stay
+        // list/GetOrCreateCharacterRules directly, not the filtered cards on screen. The
+        // dialog decides WHICH of those rules are actually promoted/bundled; the rules stay
         // where they are — the pack is a reusable copy of the list, not a move.
         void SaveListAsPack() {
             if (IsPanelTab) return;
@@ -834,14 +833,42 @@ namespace WrathTactics.UI {
                 return;
             }
 
-            var pack = new TacticsPack {
-                Name = string.Format("pack.saved_list_name".i18n(),
+            SaveAsPackOverlay.Open(
+                string.Format("pack.saved_list_name".i18n(),
                     selectedUnitId == null ? "tab.global".i18n() : GetCharacterName(selectedUnitId)),
+                new List<TacticsRule>(list),
+                DescribeRuleForDialog,
+                (name, chosen) => CommitListAsPack(name, chosen));
+            return;
+        }
+
+        // Linked rules show their preset's name; standalone rules their own. Index prefix
+        // matches the rule cards, so the dialog and the list read the same way.
+        string DescribeRuleForDialog(TacticsRule rule) {
+            var list = selectedUnitId == null
+                ? ConfigManager.Current.GlobalRules
+                : GetOrCreateCharacterRules(selectedUnitId);
+            int idx = list.IndexOf(rule);
+            string name = EffectiveDisplayName(rule);
+            if (!string.IsNullOrEmpty(rule.PresetId))
+                name += "pack.save_dialog.linked_suffix".i18n();
+            return idx >= 0 ? $"{idx + 1}. {name}" : name;
+        }
+
+        // Promotion body for "Save List as Pack", run once the dialog is confirmed. Every
+        // standalone rule in `chosen` is promoted to a preset (PromoteRuleToPreset links the
+        // original in place), already-linked rules contribute their existing preset.
+        void CommitListAsPack(string name, List<TacticsRule> chosen) {
+            var pack = new TacticsPack {
+                Name = !string.IsNullOrWhiteSpace(name)
+                    ? name
+                    : string.Format("pack.saved_list_name".i18n(),
+                        selectedUnitId == null ? "tab.global".i18n() : GetCharacterName(selectedUnitId)),
             };
 
             int promoted = 0;
             int skipped = 0;
-            foreach (var rule in list) {
+            foreach (var rule in chosen) {
                 if (rule == null) continue;
                 string presetId = rule.PresetId;
                 if (string.IsNullOrEmpty(presetId)) {
