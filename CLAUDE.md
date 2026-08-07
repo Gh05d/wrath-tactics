@@ -69,8 +69,8 @@ WrathTactics/
   Persistence/         # ConfigManager (per-save JSON), PresetManager, PackManager,
                        # SafeConditionConverter
   UI/                  # TacticsPanel, RuleEditorWidget, ConditionRowWidget, PresetPanel,
-                       # PackPanel, PackPalette, BuffPickerOverlay, SpellPickerOverlay,
-                       # SpellDropdownProvider, UIHelpers
+                       # PackPanel, PackPalette, SaveAsPackOverlay, BuffPickerOverlay,
+                       # SpellPickerOverlay, SpellDropdownProvider, UIHelpers
   Compatibility/       # BubbleBuffsCompat (Buff It 2 The Limit integration)
   Localization/        # Strings + EnumLabels + 5 locale JSONs (en/de/fr/ru/zh)
   Logging/             # Category-based logging (Engine, Game, Persistence, UI)

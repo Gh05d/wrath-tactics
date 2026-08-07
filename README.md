@@ -43,6 +43,7 @@ You set the rules once, the mod handles the rest while you focus on positioning 
    - **Global** — rules that apply to every party member
    - **\<Character name\>** — rules specific to one companion
    - **Presets** — save/load rule collections (savegame-independent)
+   - **Packs** — bundle presets into reusable, colour-coded loadouts you can apply to any companion (see [Rule Packs](#rule-packs) below)
 3. Click **+ New Rule**, configure conditions and action, arrange priority with the ↑/↓ buttons
 4. Start combat — the mod evaluates rules every ~3 seconds (configurable). Rules only run **in combat** unless you explicitly opt them in for out-of-combat use — see [Out-of-combat rules](#out-of-combat-rules)
 
@@ -58,29 +59,41 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 ### Rule Packs
 
 A pack is a named, colour-coded bundle of presets — a reusable "loadout" you can apply to any
-companion or pet.
+companion or pet. Packs live on their own **Packs** tab, after Presets.
 
-- **Create one** on the **Presets** tab: hit **+ New Pack**, name it, pick a colour with the
+- **Create one** on the **Packs** tab: hit **+ New Pack**, name it, pick a colour with the
   swatch, then add existing presets to it — or build it later from a rule list, see below.
 - **Apply a pack** to a companion or pet with **+ Apply Pack**, above their rule list. Any number
   of packs can be active on the same character at once — each pack's rules are tinted in its
   colour and shown as a chip above the list.
-- **Save List as Pack** claims every rule in a companion's (or the Global) list that doesn't
-  already belong to another pack, and bundles them into a new pack in one click — standalone
-  rules are promoted to presets automatically. Those rules now belong to the new pack: removing
-  it later removes them too, hand-built or not. It operates on the whole list regardless of any
-  active filter — the button is disabled while a filter is active, to make that unambiguous.
+- **Save List as Pack** opens a dialog: a name field (pre-filled, editable) and a checkbox next
+  to every rule currently on that companion's (or the Global) list, all checked by default and
+  scrollable if the list is long. Uncheck anything you don't want in the pack, then confirm —
+  only the checked rules are bundled, in their current list order, and any standalone ones among
+  them are promoted to presets automatically. Cancel closes the dialog without changing anything;
+  confirming with nothing checked shows a hint instead of saving. The button only works on the
+  whole list, not a filtered view — it's disabled while a filter is active, to make that
+  unambiguous.
 - Rules inserted by a pack stay linked to their presets: edit the preset on the Presets tab and
   every character running that pack picks up the change. Re-applying a pack restores members you
   deleted without duplicating the ones still there.
-- Click a chip's `×` to remove just that pack's rules from a character — every other pack is
-  left alone. This is a mass-delete of everything currently stamped with that pack (including
-  any hand-built rules "Save List as Pack" absorbed into it), with no undo — the rule order
-  that made up your setup is not restored by re-applying, only the members are.
-- Deleting a pack's definition (on the Presets tab) does not touch already-applied rules —
-  they stay on every character exactly as they are; only the chip and its colour go away.
-- **Export** (on the Presets tab) copies a self-contained pack — including its presets — to the
-  clipboard; the same tab's **Import** button accepts both a pack bundle and the older
+- **A preset never enters the same rule list twice, no matter which pack asks for it.** If two
+  packs both include the same preset, applying both only ever produces one rule for it — the
+  second pack simply shows no chip for that rule, since it's already covered. This matters when
+  you delete: that shared rule "belongs" to whichever pack added it first, so deleting *that*
+  pack's rules removes it too, even though another pack still lists it as a member. If you only
+  want a pack's colour tag gone without risking any rules, use "remove pack marking" (below)
+  instead of deleting.
+- **Click a chip to open a menu** with two choices: *"Remove pack marking"* leaves every rule
+  exactly where it is, in order — only the colour and the chip disappear, and those rules become
+  unowned (a later "Save List as Pack" can claim them again). *"Delete this pack's rules"*
+  removes exactly the rules currently stamped with that pack, with no undo — the rule order that
+  made up your setup is not restored by re-applying, only the members are. If any of those rules
+  are also relied on by another pack, the menu tells you so before you commit.
+- Deleting a pack's definition (on the Packs tab) does not touch already-applied rules — they
+  stay on every character exactly as they are; only the chip and its colour go away.
+- **Export** (on the Packs tab) copies a self-contained pack — including its presets — to the
+  clipboard; the **Import** button on the Presets tab accepts both a pack bundle and the older
   preset-array format, so packs can be shared between players.
 
 ## Understanding conditions
