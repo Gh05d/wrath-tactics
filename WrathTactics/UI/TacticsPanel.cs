@@ -530,7 +530,7 @@ namespace WrathTactics.UI {
             if (selectedUnitId == "packs") {
                 var (packObj, _) = UIHelpers.Create("PackPanelRoot", ruleListContent);
                 var panel = packObj.AddComponent<PackPanelHost>();
-                panel.Init(() => RefreshRuleList());
+                panel.Init();
                 UpdateToggleLabel();
                 ApplyFilter();
                 return;

@@ -10,8 +10,8 @@ using WrathTactics.Models;
 
 namespace WrathTactics.UI {
     /// <summary>
-    /// The Packs section rendered at the top of the Presets tab. Stateless apart from which
-    /// pack is expanded — the host (PresetPanel) owns the rebuild, so every mutation ends in
+    /// The Packs section rendered on its own Packs tab. Stateless apart from which pack is
+    /// expanded — the host (PackPanelHost) owns the rebuild, so every mutation ends in
     /// onChanged() rather than touching the hierarchy directly.
     /// </summary>
     public static class PackPanel {
@@ -305,7 +305,6 @@ namespace WrathTactics.UI {
     public class PackPanelHost : MonoBehaviour {
         static string lastStatus;
         static Color lastStatusColor = Color.gray;
-        Action onChanged;
 
         /// <summary>
         /// Clears the static status line. Being static, it survives PackPanelHost's own
@@ -318,8 +317,7 @@ namespace WrathTactics.UI {
             lastStatusColor = Color.gray;
         }
 
-        public void Init(Action onChanged) {
-            this.onChanged = onChanged;
+        public void Init() {
             BuildUI();
         }
 
