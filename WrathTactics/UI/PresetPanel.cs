@@ -328,6 +328,7 @@ namespace WrathTactics.UI {
 
             // oldId -> newId, so the pack's member list can be remapped after import.
             var idMap = new Dictionary<string, string>();
+            int failed = 0;
             foreach (var preset in bundle.Presets) {
                 if (preset == null || string.IsNullOrEmpty(preset.Id)) continue;
                 var oldId = preset.Id;
@@ -335,10 +336,15 @@ namespace WrathTactics.UI {
                 preset.PresetId = null;
                 preset.PackId = null;
                 if (PresetRegistry.Save(preset)) idMap[oldId] = preset.Id;
+                else failed++;
             }
 
             var pack = bundle.Pack;
             pack.Id = Guid.NewGuid().ToString();
+            // Newtonsoft overwrites the field initializer when the JSON explicitly carries
+            // "PresetIds": null (hand-edited or truncated bundle) — repair it before the
+            // remap loop dereferences it, same as PackManager.LoadAllFrom does on disk load.
+            if (pack.PresetIds == null) pack.PresetIds = new List<string>();
             var remapped = new List<string>();
             foreach (var oldId in pack.PresetIds) {
                 if (oldId != null && idMap.TryGetValue(oldId, out var newId)) remapped.Add(newId);
@@ -355,8 +361,16 @@ namespace WrathTactics.UI {
                 return true;
             }
 
-            status = string.Format("status.pack_import_success".i18n(), pack.Name, remapped.Count);
-            color = new Color(0.6f, 0.85f, 0.6f);
+            // A failed per-preset save (above) never entered idMap, so it silently fell out
+            // of remapped too — surface it rather than reporting an all-green import that
+            // undercounts what actually landed on disk.
+            if (failed > 0) {
+                status = string.Format("status.import_partial_failure".i18n(), remapped.Count, failed);
+                color = new Color(1f, 0.5f, 0.4f);
+            } else {
+                status = string.Format("status.pack_import_success".i18n(), pack.Name, remapped.Count);
+                color = new Color(0.6f, 0.85f, 0.6f);
+            }
             return true;
         }
 
