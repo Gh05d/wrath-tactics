@@ -90,11 +90,14 @@ namespace WrathTactics.Engine {
             if (pack?.PresetIds == null) return plan;
 
             // Preset-based dedup: one rule per preset per list, whatever pack asks for it.
-            // The old key was PackId+PresetId, which let two packs sharing a member each
-            // insert their own copy — and since every "Save List as Pack" mints a fresh pack
-            // id over the same presets, re-saving and re-applying spammed the list. Rules
-            // are no longer owned exclusively by a pack (the chip detaches instead of
-            // deleting), so there is nothing left for per-pack ownership to protect.
+            // The old key was PackId+PresetId, which let two packs sharing a member each insert
+            // their own copy — and since every "Save List as Pack" mints a fresh pack id over the
+            // same presets, re-saving and re-applying spammed the list.
+            // Trade-off, deliberately accepted: a preset shared by two packs now exists as ONE
+            // rule, carrying the PackId of whichever pack got there first. The second pack shows
+            // no chip, and "delete this pack's rules" on the first pack removes a rule the second
+            // one also lists. "Remove pack marking" (detach) is the non-destructive alternative,
+            // which is why the chip offers both.
             var alreadyLinked = new HashSet<string>(
                 (existing ?? new List<TacticsRule>())
                     .Where(r => r != null && !string.IsNullOrEmpty(r.PresetId))
@@ -131,6 +134,8 @@ namespace WrathTactics.Engine {
             if (pack?.PresetIds == null || rules == null) return 0;
             // Same membership rule as PlanApply — if these two disagree, added + already-present
             // no longer sums to the pack's member count and the status message misreports again.
+            // A preset counted here may actually be owned by a different pack (see PlanApply's
+            // trade-off comment) — "already applied" does not mean "already applied by THIS pack".
             var alreadyLinked = new HashSet<string>(
                 rules.Where(r => r != null && !string.IsNullOrEmpty(r.PresetId))
                      .Select(r => r.PresetId));
