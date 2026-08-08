@@ -23,7 +23,9 @@ namespace WrathTactics.UI {
             UIHelpers.AddSurfaceLabel(parent, "PackTitle", "pack.section_title".i18n(), 26f, 18f,
                 Color.white, UIHelpers.PanelHeaderSurface);
 
-            UIHelpers.AddHintCard(parent, "pack.hint".i18n(), 40f);
+            // No hint card here: the only caller is PackPanelHost.BuildUI, which already drew
+            // pack.tab_hint immediately above — the pre-tab-move pack.hint stacked a second,
+            // near-identical paragraph under it. Key dropped from the locales with it.
 
             var (newBtn, _n) = UIHelpers.Create("NewPackBtn", parent);
             newBtn.AddComponent<LayoutElement>().preferredHeight = 34;

@@ -76,8 +76,7 @@
   "preset.button.open_folder": "Presets-Ordner öffnen",
 
   "pack.section_title": "Pakete",
-  "pack.hint": "Ein Paket bündelt Presets unter einem Namen und einer Farbe. Du kannst einem Begleiter beliebig viele Pakete zuweisen — jede Regel bleibt einzeln bearbeitbar.",
-  "pack.tab_hint": "Pakete bündeln Presets unter einem Namen und einer Farbe. Wende einem Begleiter beliebig viele Pakete an — die Regeln bleiben einzeln bearbeitbar, und beim Entfernen der Paket-Markierung bleiben sie erhalten.",
+  "pack.tab_hint": "Pakete bündeln Presets unter einem Namen und einer Farbe. Weise einem Begleiter beliebig viele zu — die Regeln bleiben mit ihren Presets verknüpft; 'Verknüpfung lösen & bearbeiten' macht eine Regel eigenständig.",
   "pack.empty": "Noch keine Pakete.",
   "pack.button.new": "+ Neues Paket",
   "pack.button.members": "Regeln",

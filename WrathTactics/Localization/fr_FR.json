@@ -76,8 +76,7 @@
   "preset.button.open_folder": "Ouvrir le dossier des préréglages",
 
   "pack.section_title": "Packs",
-  "pack.hint": "Un pack regroupe des préréglages sous un nom et une couleur. Appliquez autant de packs que vous voulez à un compagnon — chaque règle reste modifiable individuellement.",
-  "pack.tab_hint": "Les packs regroupent des préréglages sous un nom et une couleur. Appliquez-en autant que vous voulez à un compagnon — les règles restent modifiables individuellement, et retirer le marquage d'un pack les laisse en place.",
+  "pack.tab_hint": "Les packs regroupent des préréglages sous un nom et une couleur. Appliquez-en autant que vous voulez à un compagnon — les règles restent liées à leurs préréglages ; 'Délier & modifier' rend une règle indépendante.",
   "pack.empty": "Aucun pack pour l'instant.",
   "pack.button.new": "+ Nouveau pack",
   "pack.button.members": "Règles",

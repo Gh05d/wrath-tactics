@@ -76,8 +76,7 @@
   "preset.button.open_folder": "Open Presets Folder",
 
   "pack.section_title": "Packs",
-  "pack.hint": "A pack bundles presets under one name and colour. Apply as many packs as you like to a companion — every rule stays individually editable.",
-  "pack.tab_hint": "Packs bundle presets under one name and colour. Apply as many as you like to a companion — the rules stay individually editable, and removing a pack's marking leaves them in place.",
+  "pack.tab_hint": "Packs bundle presets under one name and colour. Apply as many as you like to a companion — the rules stay linked to their presets; 'Unlink & Edit' on a rule makes it standalone.",
   "pack.empty": "No packs yet.",
   "pack.button.new": "+ New Pack",
   "pack.button.members": "Rules",
