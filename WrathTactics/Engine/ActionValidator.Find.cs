@@ -3,6 +3,7 @@ using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
+using WrathTactics.Logging;
 
 namespace WrathTactics.Engine {
     public static partial class ActionValidator {
@@ -13,12 +14,75 @@ namespace WrathTactics.Engine {
         /// <summary>
         /// Returns ability and whether it's synthetic (variant/not in owner's fact list).
         /// Synthetic abilities must use Rulebook.Trigger — CreateCastCommand silently rejects them.
+        ///
+        /// Multi-spellbook units (Magus + Wizard, standalone mythic books) hold a separate copy
+        /// of the same spell per book. The scan prefers the first copy that is castable RIGHT NOW
+        /// (HasCastableSlot) across all spellbooks that hold the spell at the key's level; only
+        /// when none is castable does it fall back to the first match, so callers still get a
+        /// non-null ability for logging and wand/scroll fallthrough. First-book-wins starved
+        /// later books' slots (v1.27.1 bug). Known limits/side effects:
+        ///  - Level pinning: a book holding the spell at a DIFFERENT level than the key's @L
+        ///    segment is never scanned (pre-existing; widen the level window if a report hits it).
+        ///  - The returned copy tracks live slot state, so DC/CL-derived metrics
+        ///    (SpellDCMinusSave via PickMetrics) deliberately follow the copy that would cast.
         /// </summary>
         public static AbilityData FindAbilityEx(UnitEntityData owner, string abilityKey, out bool isSynthetic) {
             isSynthetic = false;
             if (string.IsNullOrEmpty(abilityKey)) return null;
 
             var parsed = UI.SpellDropdownProvider.ParseKey(abilityKey);
+
+            AbilityData fallback = null;
+            bool fallbackSynthetic = false;
+
+            // Resolves the parsed key's variant/conversion segment against a matched book spell.
+            // Null = the key doesn't resolve on this copy (e.g. conversion not offered here).
+            AbilityData Resolve(AbilityData spell, out bool synthetic) {
+                synthetic = false;
+                if (string.IsNullOrEmpty(parsed.VariantGuid)) return spell;
+
+                // Metamagic-prepared spells with AbilityVariants (e.g. Quickened Summon Monster II
+                // → 1 wolf / 1d3 dogs) need variant resolution on the custom-spells path too.
+                // MakeVariantData clones the parent's MetamagicData (IL-verified), so the variant
+                // carries the metamagic into the cast pipeline.
+                var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
+                if (variant != null) {
+                    synthetic = true;
+                    return MakeVariantData(spell, variant);
+                }
+                var conv = FindConversion(spell, parsed.VariantGuid, parsed.ActionType);
+                if (conv == null) return null;
+                synthetic = true;
+                return conv;
+            }
+
+            // Non-null = return this candidate now (castable from its book); otherwise the
+            // first resolved copy is remembered as the nothing-castable fallback.
+            AbilityData Consider(AbilityData spell, out bool synthetic) {
+                synthetic = false;
+                // Slot state of the BOOK copy. Every candidate — plain, variant, conversion —
+                // slot-probes via ConvertedFrom back to this very copy (see HasCastableSlot),
+                // so a dry book can skip Resolve entirely once a fallback exists: no
+                // MakeVariantData allocations, no engine GetConversions (fresh TempList plus
+                // third-party postfixes like TTT's) on the per-tick path.
+                bool bookHasSlots = spell.Spellbook.GetAvailableForCastSpellCount(spell) != 0;
+                if (!bookHasSlots && fallback != null) return null;
+
+                var candidate = Resolve(spell, out synthetic);
+                if (candidate == null) return null;
+                if (HasCastableSlot(candidate)) return candidate;
+                if (bookHasSlots) {
+                    // Slots are there but the engine gates the cast (forbidden book, silence, …).
+                    // Without this trace the caller's dry-path log would misattribute the block
+                    // to spent slots.
+                    Log.Engine.Trace($"FindAbilityEx: {owner.CharacterName} {candidate.Name} has slots in {spell.Spellbook.Blueprint?.name} but is engine-unavailable ({candidate.GetUnavailableReason()})");
+                }
+                if (fallback == null) {
+                    fallback = candidate;
+                    fallbackSynthetic = synthetic;
+                }
+                return null;
+            }
 
             foreach (var book in owner.Spellbooks) {
                 int minLvl = parsed.Level >= 0 ? parsed.Level : 0;
@@ -28,18 +92,8 @@ namespace WrathTactics.Engine {
                         if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
                         if (parsed.MetamagicMask != 0) continue; // metamagic → custom spells path only
 
-                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
-                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
-                            if (variant != null) {
-                                isSynthetic = true;
-                                return MakeVariantData(spell, variant);
-                            }
-                            var conv = FindConversion(spell, parsed.VariantGuid, parsed.ActionType);
-                            if (conv == null) continue;
-                            isSynthetic = true;
-                            return conv;
-                        }
-                        return spell;
+                        var hit = Consider(spell, out bool synthetic);
+                        if (hit != null) { isSynthetic = synthetic; return hit; }
                     }
                     foreach (var spell in book.GetCustomSpells(level)) {
                         if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
@@ -47,22 +101,8 @@ namespace WrathTactics.Engine {
                             ? (int)spell.MetamagicData.MetamagicMask : 0;
                         if (spellMask != parsed.MetamagicMask) continue;
 
-                        // Metamagic-prepared spells with AbilityVariants (e.g. Quickened Summon Monster II
-                        // → 1 wolf / 1d3 dogs) need variant resolution on the custom-spells path too.
-                        // MakeVariantData clones the parent's MetamagicData (IL-verified), so the variant
-                        // carries the metamagic into the cast pipeline.
-                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
-                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
-                            if (variant != null) {
-                                isSynthetic = true;
-                                return MakeVariantData(spell, variant);
-                            }
-                            var conv = FindConversion(spell, parsed.VariantGuid, parsed.ActionType);
-                            if (conv == null) continue;
-                            isSynthetic = true;
-                            return conv;
-                        }
-                        return spell;
+                        var hit = Consider(spell, out bool synthetic);
+                        if (hit != null) { isSynthetic = synthetic; return hit; }
                     }
                     // Special spells — Cleric Domain / Shaman Spirit / Sorcerer Bloodline /
                     // Witch Patron lists. Stored in Spellbook.m_SpecialSpells, not m_KnownSpells.
@@ -70,20 +110,15 @@ namespace WrathTactics.Engine {
                         if (spell.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
                         if (parsed.MetamagicMask != 0) continue;
 
-                        if (!string.IsNullOrEmpty(parsed.VariantGuid)) {
-                            var variant = FindVariantBlueprint(spell.Blueprint, parsed.VariantGuid);
-                            if (variant != null) {
-                                isSynthetic = true;
-                                return MakeVariantData(spell, variant);
-                            }
-                            var conv = FindConversion(spell, parsed.VariantGuid, parsed.ActionType);
-                            if (conv == null) continue;
-                            isSynthetic = true;
-                            return conv;
-                        }
-                        return spell;
+                        var hit = Consider(spell, out bool synthetic);
+                        if (hit != null) { isSynthetic = synthetic; return hit; }
                     }
                 }
+            }
+
+            if (fallback != null) {
+                isSynthetic = fallbackSynthetic;
+                return fallback;
             }
 
             // Non-spellbook abilities (class abilities: key is variant-guid-as-primary for legacy compatibility)
@@ -128,6 +163,22 @@ namespace WrathTactics.Engine {
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Shared "castable right now from its spellbook" gate — the ONLY slot/availability
+        /// check for spellbook copies. FindAbilityEx's preference scan and FindCastSpellSource's
+        /// final gate must never disagree (a drift silently re-opens the wand/scroll fallthrough
+        /// this gate exists to prevent), so both call this. Caller guarantees Spellbook != null.
+        ///
+        /// Slot probe goes through ConvertedFrom: Spellbook::GetAvailableForCastSpellCount
+        /// compares blueprint refs strictly (IL_0056-0061), and variant/conversion AbilityData
+        /// carries the variant blueprint while the prepared slot is keyed on the parent.
+        /// != 0 (not > 0): cantrips return the -1 sentinel.
+        /// </summary>
+        internal static bool HasCastableSlot(AbilityData ability) {
+            var forSlots = ability.ConvertedFrom ?? ability;
+            return ability.Spellbook.GetAvailableForCastSpellCount(forSlots) != 0 && ability.IsAvailable;
         }
 
         // Constructs a variant AbilityData while preserving the parent's spellbook level.
