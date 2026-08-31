@@ -21,6 +21,7 @@ namespace WrathTactics.UI {
             nameof(RangeBracket.Cone),
             nameof(RangeBracket.Short),
             nameof(RangeBracket.Medium),
+            nameof(RangeBracket.Far),
             nameof(RangeBracket.Long)
         };
 
@@ -430,6 +431,7 @@ namespace WrathTactics.UI {
                 RangeBrackets.EffectiveLabel(RangeBracket.Cone, op),
                 RangeBrackets.EffectiveLabel(RangeBracket.Short, op),
                 RangeBrackets.EffectiveLabel(RangeBracket.Medium, op),
+                RangeBrackets.EffectiveLabel(RangeBracket.Far, op),
                 RangeBrackets.EffectiveLabel(RangeBracket.Long, op),
             };
         }

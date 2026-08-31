@@ -172,7 +172,10 @@ namespace WrathTactics.Models {
         AllyMostAllyNeighbors,  // ally with the most other living allies within ~5 m (area buffs)
     }
 
-    public enum RangeBracket { Melee, Cone, Short, Medium, Long }
+    // Far sits between Medium and Long by distance but is appended last:
+    // members are append-only, and the UI orders brackets via its own name
+    // list (ConditionRowWidget.RangeBracketNames), not by enum index.
+    public enum RangeBracket { Melee, Cone, Short, Medium, Long, Far }
 
     public static class RangeBrackets {
         public static float MaxMeters(RangeBracket b) {
@@ -181,6 +184,7 @@ namespace WrathTactics.Models {
                 case RangeBracket.Cone:   return 5f;
                 case RangeBracket.Short:  return 10f;
                 case RangeBracket.Medium: return 20f;
+                case RangeBracket.Far:    return 30f;
                 case RangeBracket.Long:   return 40f;
                 default:                  return float.PositiveInfinity;
             }
@@ -196,6 +200,10 @@ namespace WrathTactics.Models {
                 case RangeBracket.Cone:   return MaxMeters(RangeBracket.Melee);
                 case RangeBracket.Short:  return MaxMeters(RangeBracket.Cone);
                 case RangeBracket.Medium: return MaxMeters(RangeBracket.Short);
+                // Far (20–30 m) deliberately overlaps Long (20–40 m): rules
+                // persist bracket names, so re-basing Long's lower edge onto
+                // Far would silently narrow every existing Long rule.
+                case RangeBracket.Far:    return MaxMeters(RangeBracket.Medium);
                 case RangeBracket.Long:   return MaxMeters(RangeBracket.Medium);
                 default:                  return 0f;
             }

@@ -275,6 +275,7 @@
   "enum.range.Cone": "Cône (≤5 m)",
   "enum.range.Short": "Courte (≤10 m)",
   "enum.range.Medium": "Moyenne (≤20 m)",
+  "enum.range.Far": "Éloignée (≤30 m)",
   "enum.range.Long": "Longue (≤40 m)",
 
   "enum.creature_type.Aberration": "Aberration",

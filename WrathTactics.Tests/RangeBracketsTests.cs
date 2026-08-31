@@ -8,6 +8,7 @@ namespace WrathTactics.Tests {
         [InlineData(RangeBracket.Cone,    5f)]
         [InlineData(RangeBracket.Short,   10f)]
         [InlineData(RangeBracket.Medium,  20f)]
+        [InlineData(RangeBracket.Far,     30f)]
         [InlineData(RangeBracket.Long,    40f)]
         public void MaxMeters_returns_expected(RangeBracket bracket, float expected) {
             Assert.Equal(expected, RangeBrackets.MaxMeters(bracket));
@@ -29,6 +30,15 @@ namespace WrathTactics.Tests {
         // Melee: lo=0 — "<" yields the visibly-never-true "≤ 0 m".
         [InlineData(RangeBracket.Melee, ConditionOperator.LessThan,       "≤ 0 m")]
         [InlineData(RangeBracket.Melee, ConditionOperator.Equal,          "0–2 m")]
+        // Far: lo=20, hi=30 — the "<= 30 m" band requested on Nexus.
+        [InlineData(RangeBracket.Far,   ConditionOperator.LessOrEqual,    "≤ 30 m")]
+        [InlineData(RangeBracket.Far,   ConditionOperator.LessThan,       "≤ 20 m")]
+        [InlineData(RangeBracket.Far,   ConditionOperator.GreaterThan,    "> 30 m")]
+        [InlineData(RangeBracket.Far,   ConditionOperator.Equal,          "20–30 m")]
+        // Long keeps its pre-Far interval: existing saved Long rules must
+        // not silently narrow to 30–40 m (Far overlaps Long by design).
+        [InlineData(RangeBracket.Long,  ConditionOperator.Equal,          "20–40 m")]
+        [InlineData(RangeBracket.Long,  ConditionOperator.LessThan,       "≤ 20 m")]
         public void EffectiveHint_maps_operator_to_evaluator_interval(
             RangeBracket b, ConditionOperator op, string expected) {
             Assert.Equal(expected, RangeBrackets.EffectiveHint(b, op));

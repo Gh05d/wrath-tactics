@@ -275,6 +275,7 @@
   "enum.range.Cone": "Kegel (≤5 m)",
   "enum.range.Short": "Kurz (≤10 m)",
   "enum.range.Medium": "Mittel (≤20 m)",
+  "enum.range.Far": "Fern (≤30 m)",
   "enum.range.Long": "Lang (≤40 m)",
 
   "enum.creature_type.Aberration": "Aberration",

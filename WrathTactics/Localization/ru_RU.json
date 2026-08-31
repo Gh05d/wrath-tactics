@@ -275,6 +275,7 @@
   "enum.range.Cone": "Конус (≤5 м)",
   "enum.range.Short": "Короткий (≤10 м)",
   "enum.range.Medium": "Средний (≤20 м)",
+  "enum.range.Far": "Дальний (≤30 м)",
   "enum.range.Long": "Длинный (≤40 м)",
 
   "enum.creature_type.Aberration": "Аберрация",

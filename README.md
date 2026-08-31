@@ -155,7 +155,7 @@ A **positive** margin means you hit easily — it's how many points of slack you
 
 ### Range brackets
 
-**WithinRange** uses brackets, not raw meters: Melee (≤2 m), Cone (≤5 m), Short (≤10 m), Medium (≤20 m), Long (≤40 m). Use **`<= Short`** for "within 10 m or closer" — `= Short` means *only* the 5–10 m band and excludes anything nearer.
+**WithinRange** uses brackets, not raw meters: Melee (≤2 m), Cone (≤5 m), Short (≤10 m), Medium (≤20 m), Far (≤30 m), Long (≤40 m). Use **`<= Short`** for "within 10 m or closer" — `= Short` means *only* the 5–10 m band and excludes anything nearer. Note: Far (20–30 m) overlaps Long (20–40 m) — Long kept its original band so rules created before Far existed behave unchanged.
 
 ## BubbleBuffs compatibility
 

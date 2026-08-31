@@ -15,7 +15,8 @@ Operative rules for `Engine/ConditionEvaluator*` (buckets, latches, encodings) a
 ## Value Encodings
 
 - **HasClass value encoding**: `Condition.Value` is `group:<spellcaster|arcane|divine|martial>` or `class:<InternalName>` (blueprint `name` minus `Class` suffix). Never store localized display name. ([deep-dive](../docs/wrath-api-deep-dive.md#hasclass-encoding))
-- **WithinRange value encoding**: `Condition.Value` = bare `RangeBracket` enum name (`Melee`/`Cone`/`Short`/`Medium`/`Long`); thresholds in `RangeBrackets.MaxMeters` (2/5/10/20/40 m). Operators: `= X` strict bracket; `<= X` cumulative. Use `<= Short` for "within 10 m", not `= Short`. ([deep-dive](../docs/wrath-api-deep-dive.md#withinrange-encoding))
+- **WithinRange value encoding**: `Condition.Value` = bare `RangeBracket` enum name (`Melee`/`Cone`/`Short`/`Medium`/`Far`/`Long`); thresholds in `RangeBrackets.MaxMeters` (2/5/10/20/30/40 m). Operators: `= X` strict bracket; `<= X` cumulative. Use `<= Short` for "within 10 m", not `= Short`. ([deep-dive](../docs/wrath-api-deep-dive.md#withinrange-encoding))
+- **`Far` (20–30 m) overlaps `Long` (20–40 m) by design**: `LowerMeters(Long)` stays anchored on Medium — re-basing it onto Far would silently narrow every pre-existing saved `Long` rule (`= Long` 20–40 → 30–40). Far is also appended LAST in the enum (append-only) while the UI dropdown sorts it between Medium and Long via `ConditionRowWidget.RangeBracketNames`.
 
 ## Computed-Delta Conditions
 

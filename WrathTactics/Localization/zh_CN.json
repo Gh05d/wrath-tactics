@@ -275,6 +275,7 @@
   "enum.range.Cone": "锥形 (≤5 米)",
   "enum.range.Short": "短 (≤10 米)",
   "enum.range.Medium": "中 (≤20 米)",
+  "enum.range.Far": "远 (≤30 米)",
   "enum.range.Long": "长 (≤40 米)",
 
   "enum.creature_type.Aberration": "异怪",
