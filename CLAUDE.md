@@ -23,6 +23,7 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 ```
 
 - **Flaky mono runner — loop until green before believing failures**: the first run after a build often crashes the mono host (mass-failures with run-to-run varying counts = flake signature, not regression; can flake several times in a row). `for i in 1 2 3; do ~/.dotnet/dotnet test --no-build WrathTactics.Tests/WrathTactics.Tests.csproj -p:SolutionDir=$(pwd)/; done` — trust the first all-green run; only trust failures that reproduce.
+- **Game-DLLs im Test-Output ≠ Compile-Referenz**: `CopyGameDllsToTestOutput` reicht fürs Typ-Laden zur Laufzeit, aber ein Test, der einen Kingmaker-Typ *benennt* (`UnitCommand.CommandType`), scheitert an `CS0246: Kingmaker could not be found`. Die csproj importiert deshalb `GamePath.props` und referenziert `Assembly-CSharp.dll` (nicht-publicized, nur Public-Surface).
 - Game DLLs are copied to test output by an `AfterTargets="Build"` target (without it: `TypeLoadException`). `InternalsVisibleTo` in `WrathTactics/Properties/AssemblyInfo.cs` — promote private statics to `internal static` to test them. No CI by design (game DLLs unreachable from GitHub runners).
 
 ## Deploy
