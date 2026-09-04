@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(SolutionDir)GamePath.props" Condition="Exists('$(SolutionDir)GamePath.props')" />
+
   <PropertyGroup>
     <TargetFramework>net481</TargetFramework>
     <IsPackable>false</IsPackable>
@@ -21,6 +23,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WrathTactics\WrathTactics.csproj" />
+  </ItemGroup>
+
+  <!--
+    Compile-time reference to the game assembly. The CopyGameDllsToTestOutput target
+    below only puts DLLs in the OUTPUT folder, which is enough for type loading at
+    runtime but not for compiling against Kingmaker types. Tests that name a game type
+    directly (ActionSlotsTests uses UnitCommand.CommandType) need this reference.
+    Non-publicized on purpose: only the public surface is used here, and publicizing
+    merely widens visibility, so the runtime overlay stays binary-compatible.
+  -->
+  <ItemGroup>
+    <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\Assembly-CSharp.dll" Private="false" />
   </ItemGroup>
 
   <!--

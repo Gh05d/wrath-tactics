@@ -20,6 +20,21 @@ Recipes for diagnosing user reports and deck-side behavior. General bug-report p
 - **"Rule never fires out of combat" (e.g. auto-clear a persistent debuff like Death's Door while exploring)**: rules are IN-COMBAT-ONLY unless the rule contains a `Combat: IsInCombat = No` condition — the out-of-combat opt-in gate (`TacticsEvaluator.cs:146`, `RuleEnabledOutOfCombat`). Adding it to the SAME group is an AND (fires only OOC); for both states use two OR-groups (`IsInCombat = No` / `IsInCombat = Yes`). Note Death's Door is `UnitCondition.DeathDoor` (=5) — a persistent affliction applied by `UnitLifeController` on a deadly injury (when the difficulty's Death's Door setting is on), removed by **rest** (`RestController`) or Greater Restoration (`ContextActionRemoveDeathDoor`); it persists out of combat, so `HasCondition = Death's Door` detects it correctly — the OOC gate is the usual reason such a rule "never fires".
 - **"Spell X missing from picker" triage**: ask which spellbook list it lives in — `GetKnownSpells` / `GetCustomSpells` / `GetSpecialSpells` are three different code paths; bugs usually affect one. ([deep-dive](../docs/wrath-api-deep-dive.md#variant-component-handling))
 
+### "Rule didn't fire" — slot-economy causes (v1.29.0+)
+
+A unit can now spend one command per action slot per tick. Two of the skip lines are legitimate and must not be chased as bugs:
+
+```
+<Name> Rule 2 "Attack" (Character): slot Standard already used this tick
+<Name> Rule 4 "Judgment" (Character): slot Swift busy (UnitUseAbility in flight)
+```
+
+- **`slot X already used this tick`** — an earlier rule already spent that slot. The rule fires on a later tick. Working as intended; if the user wants the *other* rule instead, they need to reorder.
+- **`slot X busy (UnitUseAbility in flight)`** — a non-Standard rule's own previous command is still running. Move/swift commands are near-instantaneous, so a persistent occurrence means something else holds that slot.
+- **`gated by active rule (limit N)`** — the classic priority gate; since v1.29.0 it only ever appears on Standard-slot rules. If it shows up on a rule the user believes is a move or swift action, the ability's `RuntimeActionType` disagrees with them (Quicken, mythic flags) or the classification fell back to Standard because the `AbilityData` did not resolve.
+
+The `EXECUTED` line now carries the slot: `EXECUTED [Move] -> Ember`. `[no-slot]` means `ToggleActivatable`, which claims no slot at all.
+
 ## Silent Freezes
 
 - **Panel rendered but unresponsive, no log output** ⇒ suspect `StackOverflowException` (uncatchable, kills Unity main thread silently). Diagnose via code search for self-recursion, not via logs — see [`gotchas-persistence.md`](gotchas-persistence.md) (`PersistEdit` precedent).

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.UnitLogic.Commands;
+using Kingmaker.UnitLogic.Commands.Base;
 using WrathTactics.Compatibility;
 using WrathTactics.Logging;
 using WrathTactics.Models;
@@ -127,15 +129,29 @@ namespace WrathTactics.Engine {
 
             Log.Engine.Trace($"  Evaluating {unit.CharacterName} (hp={unit.HPLeft}/{unit.Stats.HitPoints.ModifiedValue}, id={unit.UniqueId}, inCombat={inCombat})");
 
-            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate))
+            // Per-tick action-slot budget, indexed by (int)UnitCommand.CommandType
+            // (Free = 0, Standard = 1, Swift = 2, Move = 3). Shared across the global and
+            // character lists so a standard-action rule in the global list still blocks a
+            // standard-action rule in the character list within the same tick.
+            var slotUsed = new bool[4];
+
+            // Toggle rules issue no command, so the slot budget cannot bound them. Bound them
+            // per activatable instead — see the togglesUsed check in TryExecuteRules.
+            var togglesUsed = new HashSet<string>();
+
+            // TryExecuteRules now returns "stop evaluating this unit", not "something fired".
+            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate, slotUsed, togglesUsed))
                 return;
-            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate);
+            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate, slotUsed, togglesUsed);
         }
 
+        // Returns true when evaluation of this unit must stop for the whole tick
+        // (DoNothing only). A successful execution no longer ends the pass — the loop
+        // continues so the unit can spend its remaining action slots.
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
-            RuleListSource source, float gameTimeSec, bool inCombat, int priorityLimit) {
-            int upper = System.Math.Min(rules.Count, priorityLimit);
-            for (int i = 0; i < upper; i++) {
+            RuleListSource source, float gameTimeSec, bool inCombat, int priorityLimit,
+            bool[] slotUsed, HashSet<string> togglesUsed) {
+            for (int i = 0; i < rules.Count; i++) {
                 var entry = rules[i];
                 if (!entry.Enabled) continue;
 
@@ -167,24 +183,89 @@ namespace WrathTactics.Engine {
 
                 var target = TargetResolver.Resolve(rule.Target, unit);
 
-                if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
+                // The slot is only known once the AbilityData is resolved, so validation
+                // must run before the gate and budget checks.
+                if (!ActionValidator.CanExecute(rule.Action, unit, target, out var abilitySlot)) {
                     Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    continue;
+                }
+
+                var slot = ActionSlots.Classify(rule.Action.Type, abilitySlot);
+
+                // Priority gate: only Standard-slot rules participate in DAO-style
+                // preemption, because ActiveRuleTracker only ever records those.
+                // Move/swift/free rules are exempt — that is the whole feature.
+                if (ActionSlots.IsGated(slot) && i >= priorityLimit) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): gated by active rule (limit {priorityLimit})");
+                    continue;
+                }
+
+                // Per-tick budget: one command per slot. Without it two swift rules in the
+                // same tick would destroy each other via InterruptAndRemoveCommand(Swift).
+                if (slot.HasValue && slotUsed[(int)slot.Value]) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): slot {slot.Value} already used this tick");
+                    continue;
+                }
+
+                // Toggle rules claim no slot, so the budget above cannot bound them, and an
+                // "X on" / "X off" pair on the SAME activatable can both match in one tick
+                // (e.g. a mixed enemy group satisfying "any enemy is a demon" and "any enemy
+                // is not"). Before per-slot evaluation the upper rule won because the tick
+                // ended on it; without this guard the lower rule would silently overwrite it.
+                // Keyed per ability, so unrelated toggles still fire in the same tick.
+                if (rule.Action.Type == ActionType.ToggleActivatable
+                    && !string.IsNullOrEmpty(rule.Action.AbilityId)
+                    && togglesUsed.Contains(rule.Action.AbilityId)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): activatable already toggled this tick");
+                    continue;
+                }
+
+                // Cross-tick self-interrupt guard. Non-Standard rules leave no tracker entry,
+                // so without this they would re-fire next tick and cut off their own
+                // still-running command.
+                if (slot.HasValue && !ActionSlots.IsGated(slot) && IsSlotBusyWithAbility(unit, slot.Value)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): slot {slot.Value} busy (UnitUseAbility in flight)");
                     continue;
                 }
 
                 if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
-                    if (issuedCmd != null) {
+                    if (slot.HasValue) slotUsed[(int)slot.Value] = true;
+                    if (rule.Action.Type == ActionType.ToggleActivatable
+                        && !string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                        togglesUsed.Add(rule.Action.AbilityId);
+                    }
+                    // Only gated (Standard) rules go into the tracker, so its contents keep
+                    // exactly their present meaning and ActiveRuleTracker stays untouched.
+                    if (issuedCmd != null && ActionSlots.IsGated(slot)) {
                         ActiveRuleTracker.Record(unit, source, entry.Id, issuedCmd);
                     }
-                    // Toggles / DoNothing / ThrowSplash succeed without queueing a UnitCommand:
-                    // they don't replace any prior tracker entry — a still-animating cast keeps
-                    // its gate. This is deliberate; see plan §Task 5 step 3.
-                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED -> {FormatTarget(target)}");
-                    return true;
+                    Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED [{SlotLabel(slot)}] -> {FormatTarget(target)}");
+
+                    // DoNothing is the only hard stop: it means "this unit does nothing else
+                    // this tick", which is exactly the pre-change semantics.
+                    if (rule.Action.Type == ActionType.DoNothing) return true;
                 }
             }
             return false;
+        }
+
+        // True when the given slot holds an unfinished ability command. Deliberately
+        // restricted to UnitUseAbility: the Move slot is near-permanently occupied by
+        // engine-issued UnitMoveTo (approach, formation), so a bare occupancy check would
+        // mean a move-action ability never fires while the unit walks — the same over-block
+        // regression already documented for PlayerCommandGuard. Source-agnostic on purpose:
+        // it also skips when the ability command in that slot came from the player.
+        static bool IsSlotBusyWithAbility(UnitEntityData unit, UnitCommand.CommandType slot) {
+            var slots = unit.Commands?.Raw;
+            if (slots == null) return false;
+            int idx = (int)slot;
+            if (idx < 0 || idx >= slots.Length) return false;
+            return slots[idx] is UnitUseAbility cmd && !cmd.IsFinished;
+        }
+
+        static string SlotLabel(UnitCommand.CommandType? slot) {
+            return slot.HasValue ? slot.Value.ToString() : "no-slot";
         }
 
         public static float GetCombatRoundsElapsed(float gameTimeSec) {

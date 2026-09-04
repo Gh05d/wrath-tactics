@@ -137,7 +137,7 @@ Each of these was considered and cut deliberately:
 
 - A higher-priority move/swift rule cannot interrupt a lower-priority move/swift rule's in-flight command; it waits for the slot instead (guard in §4). Move and swift commands are near-instantaneous, so the window is milliseconds wide. Standard-action preemption — where it actually matters, e.g. an emergency heal cutting off an attack — is unchanged.
 - `ThrowSplash` claims the standard slot in the tick budget but records no tracker entry, so it constrains only rules in the same tick, not across ticks. Same as today.
-- Free-slot rules other than `SwitchWeaponSet` (i.e. toggles) claim nothing and are therefore unbounded per tick. Their conditions govern them.
+- Toggle rules claim no slot and are bounded per *activatable* instead of per slot (one toggle per ability per tick). Two rules driving **different** activatables still both fire in one tick; only a same-ability on/off pair is collapsed to the upper rule. Found by the v1.29.0 smoke test: an "Ammo X on" / "Ammo X off" pair both matched on a mixed enemy group and the lower rule silently won, inverting a shipped config.
 
 ## Sites Checklist
 
