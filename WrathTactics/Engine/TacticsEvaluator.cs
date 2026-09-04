@@ -135,10 +135,14 @@ namespace WrathTactics.Engine {
             // standard-action rule in the character list within the same tick.
             var slotUsed = new bool[4];
 
+            // Toggle rules issue no command, so the slot budget cannot bound them. Bound them
+            // per activatable instead — see the togglesUsed check in TryExecuteRules.
+            var togglesUsed = new HashSet<string>();
+
             // TryExecuteRules now returns "stop evaluating this unit", not "something fired".
-            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate, slotUsed))
+            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate, slotUsed, togglesUsed))
                 return;
-            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate, slotUsed);
+            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate, slotUsed, togglesUsed);
         }
 
         // Returns true when evaluation of this unit must stop for the whole tick
@@ -146,7 +150,7 @@ namespace WrathTactics.Engine {
         // continues so the unit can spend its remaining action slots.
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
             RuleListSource source, float gameTimeSec, bool inCombat, int priorityLimit,
-            bool[] slotUsed) {
+            bool[] slotUsed, HashSet<string> togglesUsed) {
             for (int i = 0; i < rules.Count; i++) {
                 var entry = rules[i];
                 if (!entry.Enabled) continue;
@@ -203,6 +207,19 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
+                // Toggle rules claim no slot, so the budget above cannot bound them, and an
+                // "X on" / "X off" pair on the SAME activatable can both match in one tick
+                // (e.g. a mixed enemy group satisfying "any enemy is a demon" and "any enemy
+                // is not"). Before per-slot evaluation the upper rule won because the tick
+                // ended on it; without this guard the lower rule would silently overwrite it.
+                // Keyed per ability, so unrelated toggles still fire in the same tick.
+                if (rule.Action.Type == ActionType.ToggleActivatable
+                    && !string.IsNullOrEmpty(rule.Action.AbilityId)
+                    && togglesUsed.Contains(rule.Action.AbilityId)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): activatable already toggled this tick");
+                    continue;
+                }
+
                 // Cross-tick self-interrupt guard. Non-Standard rules leave no tracker entry,
                 // so without this they would re-fire next tick and cut off their own
                 // still-running command.
@@ -214,6 +231,10 @@ namespace WrathTactics.Engine {
                 if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
                     if (slot.HasValue) slotUsed[(int)slot.Value] = true;
+                    if (rule.Action.Type == ActionType.ToggleActivatable
+                        && !string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                        togglesUsed.Add(rule.Action.AbilityId);
+                    }
                     // Only gated (Standard) rules go into the tracker, so its contents keep
                     // exactly their present meaning and ActiveRuleTracker stays untouched.
                     if (issuedCmd != null && ActionSlots.IsGated(slot)) {
