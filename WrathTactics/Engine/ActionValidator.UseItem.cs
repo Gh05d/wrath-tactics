@@ -7,29 +7,35 @@ using WrathTactics.Logging;
 
 namespace WrathTactics.Engine {
     public static partial class ActionValidator {
-        static bool CanUseItemAtPoint(string abilityGuid, UnitEntityData owner) {
-            var ability = FindUseItemSource(owner, abilityGuid, out _);
-            if (ability == null) return false;
-            if (!ability.CanTargetPoint) return false;
-            if (ability.SourceItem != null && ability.SourceItem.Charges <= 0) return false;
-            if (!ability.IsAvailable) {
-                Log.Engine.Trace($"CanUseItemAtPoint: {owner.CharacterName} {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+        // `ability` is assigned only on the success path, so a caller can never read a
+        // validator-rejected object.
+        static bool CanUseItemAtPoint(string abilityGuid, UnitEntityData owner, out AbilityData ability) {
+            ability = null;
+            var found = FindUseItemSource(owner, abilityGuid, out _);
+            if (found == null) return false;
+            if (!found.CanTargetPoint) return false;
+            if (found.SourceItem != null && found.SourceItem.Charges <= 0) return false;
+            if (!found.IsAvailable) {
+                Log.Engine.Trace($"CanUseItemAtPoint: {owner.CharacterName} {found.Name} engine-unavailable ({found.GetUnavailableReason()})");
                 return false;
             }
+            ability = found;
             return true;
         }
 
-        static bool CanUseItem(string abilityGuid, UnitEntityData owner, UnitEntityData target) {
-            var ability = FindUseItemSource(owner, abilityGuid, out var inventorySource);
-            if (ability == null) return false;
-            if (ability.SourceItem != null && ability.SourceItem.Charges <= 0) return false;
+        static bool CanUseItem(string abilityGuid, UnitEntityData owner, UnitEntityData target, out AbilityData ability) {
+            ability = null;
+            var found = FindUseItemSource(owner, abilityGuid, out _);
+            if (found == null) return false;
+            if (found.SourceItem != null && found.SourceItem.Charges <= 0) return false;
             // Inventory-source items rely on stack Count > 0, which FindUseItemSource already enforces.
-            if (!ability.IsAvailable) {
-                Log.Engine.Trace($"CanUseItem: {owner.CharacterName} {ability.Name} engine-unavailable ({ability.GetUnavailableReason()})");
+            if (!found.IsAvailable) {
+                Log.Engine.Trace($"CanUseItem: {owner.CharacterName} {found.Name} engine-unavailable ({found.GetUnavailableReason()})");
                 return false;
             }
-            if (target != null && !ability.CanTarget(new TargetWrapper(target)))
+            if (target != null && !found.CanTarget(new TargetWrapper(target)))
                 return false;
+            ability = found;
             return true;
         }
 

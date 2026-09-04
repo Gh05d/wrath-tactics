@@ -167,7 +167,7 @@ namespace WrathTactics.Engine {
 
                 var target = TargetResolver.Resolve(rule.Target, unit);
 
-                if (!ActionValidator.CanExecute(rule.Action, unit, target)) {
+                if (!ActionValidator.CanExecute(rule.Action, unit, target, out _)) {
                     Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
                     continue;
                 }
