@@ -32,16 +32,74 @@ namespace WrathTactics.Engine {
             set.Add(cmd);
         }
 
+        /// <summary>True iff <paramref name="cmd"/> is a command this mod issued for <paramref name="unit"/>.</summary>
+        public static bool IsOurs(UnitEntityData unit, UnitCommand cmd) {
+            if (unit == null || cmd == null) return false;
+            return issuedByUnit.TryGetValue(unit.UniqueId, out var set) && set.Contains(cmd);
+        }
+
         public static bool HasForeignActiveCommand(UnitEntityData unit) {
             if (unit?.Commands == null) return false;
 
             issuedByUnit.TryGetValue(unit.UniqueId, out var ours);
-            ours?.RemoveWhere(c => c == null || c.IsFinished);
+            // Purge finished commands — and say how they ended. UnitCommand.Result is the
+            // only place the engine records whether a command we issued actually acted
+            // (Success) or got cut down (Interrupt / Fail). Without this line the v1.29.0
+            // animation-collision regression was invisible in our own log: EXECUTED lines
+            // looked healthy while the casts never landed.
+            ours?.RemoveWhere(c => {
+                if (c == null) return true;
+                string what = c is UnitUseAbility ua ? (ua.Ability?.Name ?? c.GetType().Name) : c.GetType().Name;
+                if (!c.IsFinished) {
+                    // A command we issued can also disappear WITHOUT finishing: RunVerified
+                    // accepts commands the engine parked in Commands.Queue, and any later
+                    // Run() on the unit (player click, engine auto-attack, our own next
+                    // rule) clears that queue. Such a command never starts and never
+                    // finishes — drop it, or the entry lingers for the whole combat.
+                    if (!c.IsStarted && !unit.Commands.ContainsOrQueued(c)) {
+                        Log.Engine.Info($"{unit.CharacterName}: own {what} [{c.Type}] vanished before starting (slot/queue cleared)");
+                        return true;
+                    }
+                    return false;
+                }
+                if (c.Result == UnitCommand.ResultType.Success) {
+                    Log.Engine.Debug($"{unit.CharacterName}: own {what} [{c.Type}] ended: Success");
+                } else {
+                    Log.Engine.Info($"{unit.CharacterName}: own {what} [{c.Type}] ended: {c.Result}");
+                }
+                return true;
+            });
 
             var std = unit.Commands.Standard;
-            if (std == null || std.IsFinished) return false;
-            if (!(std is UnitUseAbility useAbility)) return false;
-            if (ours != null && ours.Contains(std)) return false;
+            if (IsForeignCast(unit, std, ours)) {
+                Log.Engine.Trace($"  Foreign cast detected on {unit.CharacterName}: {((UnitUseAbility)std).Ability?.Blueprint?.name ?? std.GetType().Name}");
+                return true;
+            }
+            // A player click that arrives while the unit is busy (running cast, or an
+            // auto-attack on the same target) does not land in a slot — UnitCommands.Run
+            // parks it in Commands.Queue (TryAddToQueueInsteadOfRunImmediately) and the
+            // engine runs it once the slot frees. Every Run() without doNotClearQueue
+            // wipes that queue first, so if we issued anything now the player's order
+            // would silently vanish. Stand down until the queue has drained.
+            var queue = unit.Commands.Queue;
+            if (queue != null && queue.Count > 0) {
+                foreach (var queued in queue) {
+                    if (IsForeignCast(unit, queued, ours)) {
+                        Log.Engine.Trace($"  Foreign queued cast detected on {unit.CharacterName}: {((UnitUseAbility)queued).Ability?.Blueprint?.name ?? queued.GetType().Name}");
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Standard-slot / queued UnitUseAbility that is neither ours nor the unit's
+        // AutoUseAbility (see the comment block below for why that one is exempt).
+        static bool IsForeignCast(UnitEntityData unit, UnitCommand cmd, HashSet<UnitCommand> ours) {
+            if (cmd == null || cmd.IsFinished) return false;
+            if (cmd.Type != UnitCommand.CommandType.Standard) return false;
+            if (!(cmd is UnitUseAbility useAbility)) return false;
+            if (ours != null && ours.Contains(cmd)) return false;
 
             // Right-click "default action" (UnitBrain.AutoUseAbility) goes through the
             // same Commands.Run pipeline as a manual click — same UnitUseAbility class,
@@ -57,7 +115,6 @@ namespace WrathTactics.Engine {
                 return false;
             }
 
-            Log.Engine.Trace($"  Foreign cast detected on {unit.CharacterName}: {slotBp?.name ?? std.GetType().Name}");
             return true;
         }
 

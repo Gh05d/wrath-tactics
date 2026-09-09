@@ -13,6 +13,7 @@ namespace WrathTactics {
         public static UnityModManager.ModEntry ModEntry;
         public static string ModPath;
         static SaveLoadWatcher saveLoadWatcher;
+        static Engine.CommandDiagnostics commandDiagnostics;
 
         static bool Load(UnityModManager.ModEntry modEntry) {
             ModEntry = modEntry;
@@ -38,6 +39,7 @@ namespace WrathTactics {
             UI.TacticsPanel.Install();
 
             EventBus.Subscribe(saveLoadWatcher = new SaveLoadWatcher());
+            EventBus.Subscribe(commandDiagnostics = new Engine.CommandDiagnostics());
 
             Logging.Log.Engine.Info("Wrath Tactics loaded.");
             modEntry.Logger.Log("Wrath Tactics loaded.");

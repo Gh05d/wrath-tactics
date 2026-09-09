@@ -50,8 +50,9 @@ namespace WrathTactics.Engine {
         /// is discarded (never started, never finished) when UnitCommands.Run
         /// silently drops it: CanRunCommand veto (unit unconscious, or
         /// CantUseStandardActions for Standard commands) or TryMergeInto folding
-        /// it into a still-running PreviousCommand. Without the discard check the
-        /// gate wedges until combat end — IsFinished alone never goes true.
+        /// it into a still-running PreviousCommand, or a later Run() clearing the
+        /// queue it was parked in. Without the discard check the gate wedges
+        /// until combat end — IsFinished alone never goes true.
         /// </summary>
         public static Entry? GetActive(UnitEntityData unit) {
             if (unit == null) return null;
@@ -69,16 +70,15 @@ namespace WrathTactics.Engine {
             return isFinished || (!isStarted && !occupiesSlot);
         }
 
-        // Raw returns m_Commands (the per-type slot array). Run() places a command
-        // into its slot synchronously; a started command leaves the slot only by
-        // finishing. So "not started AND in no slot" reliably means "discarded".
+        // Run() either places a command into its slot synchronously or parks it in
+        // Commands.Queue (busy unit; the engine runs it when the slot frees). A started
+        // command leaves the slot only by finishing; a queued one leaves the queue by
+        // being run or by the next Run() clearing the queue. So "not started AND in
+        // neither slot nor queue" reliably means "discarded" — ContainsOrQueued is the
+        // engine's own helper for exactly that question.
         static bool OccupiesSlot(UnitEntityData unit, UnitCommand cmd) {
-            var slots = unit.Commands?.Raw;
-            if (slots == null) return false;
-            for (int i = 0; i < slots.Length; i++) {
-                if (ReferenceEquals(slots[i], cmd)) return true;
-            }
-            return false;
+            var commands = unit.Commands;
+            return commands != null && commands.ContainsOrQueued(cmd);
         }
 
         public static void Clear(UnitEntityData unit) {

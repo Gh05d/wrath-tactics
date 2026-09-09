@@ -113,6 +113,7 @@ namespace WrathTactics.Engine {
             // preempt. Lower-priority matches wait until the current command finishes.
             int globalGate = int.MaxValue;
             int charGate = int.MaxValue;
+            RefundVanishedCommands(unit);
             var active = ActiveRuleTracker.GetActive(unit);
             if (active.HasValue) {
                 var res = ActiveRuleTracker.Resolve(
@@ -228,8 +229,22 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
+                // Cross-slot animation guard (v1.29.1). Two animated commands (UnitUseAbility /
+                // UnitAttack) must never run at the same time on one unit — the second one's
+                // animation releases the first's, and the engine interrupts a command whose
+                // animation "is done but not acted". The engine only serialises Standard-
+                // behind-running-Move; every other overlap is ours to prevent. Applies to
+                // Standard rules too: a Standard cast issued over a pending Move ability
+                // would be cut down the moment that Move's cooldown expires.
+                if (slot.HasValue && ActionSlots.IssuesAnimatedCommand(rule.Action.Type)
+                    && HasCrossSlotConflict(unit, slot.Value, out var conflictReason)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): unit busy — {conflictReason}");
+                    continue;
+                }
+
                 if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
+                    if (issuedCmd != null) RememberIssued(unit, issuedCmd, cooldownKey, $"Rule {i} \"{rule.Name}\" ({source})");
                     if (slot.HasValue) slotUsed[(int)slot.Value] = true;
                     if (rule.Action.Type == ActionType.ToggleActivatable
                         && !string.IsNullOrEmpty(rule.Action.AbilityId)) {
@@ -264,6 +279,104 @@ namespace WrathTactics.Engine {
             return slots[idx] is UnitUseAbility cmd && !cmd.IsFinished;
         }
 
+        // Scans every OTHER slot for an unfinished UnitUseAbility / UnitAttack and asks
+        // ActionSlots.CheckConflict whether issuing into `issuing` may overlap it. Engine
+        // inputs: HasCooldownForCommand(issuing) says whether our command would start this
+        // frame; Cooldown.StandardAction is how long a pending Standard is still held back.
+        // Same-slot occupants are skipped on purpose — Run replaces them (that IS priority
+        // preemption for Standard) and IsSlotBusyWithAbility covers the non-Standard case.
+        // Commands we issued that have not started yet, with the cooldown they stamped. A
+        // command the engine parked in Commands.Queue can be wiped by ANY later Run() on
+        // the unit (party AI re-issuing its default action, a player click) before it ever
+        // starts — RunVerified had no way to know. When that happens the rule cooldown was
+        // burnt for nothing; refund it so the rule retries on the next tick instead of
+        // sitting out a round (deck 2026-09-09: Evil Eye queued behind a casting Ray of
+        // Frost vanished 7×, landed 1×).
+        struct IssuedCommand {
+            public UnitEntityData Unit;
+            public UnitCommand Command;
+            public (string, string) CooldownKey;
+            public string Label;
+        }
+        static readonly List<IssuedCommand> issued = new List<IssuedCommand>();
+
+        static void RememberIssued(UnitEntityData unit, UnitCommand cmd, (string, string) cooldownKey, string label) {
+            issued.Add(new IssuedCommand { Unit = unit, Command = cmd, CooldownKey = cooldownKey, Label = label });
+        }
+
+        static void RefundVanishedCommands(UnitEntityData unit) {
+            for (int i = issued.Count - 1; i >= 0; i--) {
+                var e = issued[i];
+                if (!ReferenceEquals(e.Unit, unit)) continue;
+                var cmd = e.Command;
+                if (cmd.IsStarted || cmd.IsFinished) {
+                    issued.RemoveAt(i);
+                    continue;
+                }
+                var commands = unit.Commands;
+                if (commands != null && commands.ContainsOrQueued(cmd)) continue;
+                issued.RemoveAt(i);
+                if (cooldowns.Remove(e.CooldownKey))
+                    Log.Engine.Info($"{unit.CharacterName} {e.Label}: command vanished before starting — cooldown refunded");
+            }
+        }
+
+        static bool HasCrossSlotConflict(UnitEntityData unit, UnitCommand.CommandType issuing, out string reason) {
+            reason = null;
+            // Our own command parked in Commands.Queue: the engine will run it when the slot
+            // frees, but ANY Run() we do now clears that queue first (m_Queue.Clear() in
+            // UnitCommands.Run) — including a Move rule "overlapping" it. Wait.
+            var queue = unit.Commands?.Queue;
+            if (queue != null && queue.Count > 0) {
+                foreach (var queued in queue) {
+                    if (queued == null || !PlayerCommandGuard.IsOurs(unit, queued)) continue;
+                    string queuedWhat = queued is UnitUseAbility qa ? (qa.Ability?.Name ?? "ability") : "attack";
+                    reason = $"own {queuedWhat} queued in {queued.Type} (any new command would clear the queue)";
+                    return true;
+                }
+            }
+            var slots = unit.Commands?.Raw;
+            if (slots == null) return false;
+
+            var combat = unit.CombatState;
+            bool issuingOnCooldown = combat != null && combat.HasCooldownForCommand(issuing);
+            float standardRemaining = combat?.Cooldown?.StandardAction ?? 0f;
+
+            for (int i = 0; i < slots.Length; i++) {
+                if (i == (int)issuing) continue;
+                var cmd = slots[i];
+                if (cmd == null || cmd.IsFinished) continue;
+                if (!(cmd is UnitUseAbility) && !(cmd is UnitAttack)) continue;
+
+                var occupied = (UnitCommand.CommandType)i;
+                bool approaching = !cmd.IsStarted && !cmd.IsUnitCloseEnough();
+                bool own = PlayerCommandGuard.IsOurs(unit, cmd);
+                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, issuingOnCooldown, standardRemaining);
+                string what = (own ? "own " : "foreign ") + (cmd is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack");
+                switch (verdict) {
+                    case SlotConflict.Running:
+                        reason = $"{what} running in {occupied}";
+                        return true;
+                    case SlotConflict.Approaching:
+                        reason = $"{what} in {occupied} still approaching its target";
+                        return true;
+                    case SlotConflict.PairedOwn:
+                        reason = $"{what} {(cmd.IsStarted ? "running" : "pending")} in {occupied} — a {issuing} command would cancel it (paired slot)";
+                        return true;
+                    case SlotConflict.Pending:
+                        reason = $"{what} pending in {occupied} (Standard cooldown {standardRemaining:F1}s, {issuing} on cooldown={issuingOnCooldown})";
+                        return true;
+                    default:
+                        if (issuing == UnitCommand.CommandType.Move && occupied == UnitCommand.CommandType.Standard)
+                            Log.Engine.Trace($"  {unit.CharacterName}: Move will cancel {what} in Standard (engine command, re-issued by the party AI)");
+                        else
+                            Log.Engine.Trace($"  {unit.CharacterName}: {issuing} may overlap pending {what} in {occupied} — engine holds Standard for {standardRemaining:F1}s");
+                        break;
+                }
+            }
+            return false;
+        }
+
         static string SlotLabel(UnitCommand.CommandType? slot) {
             return slot.HasValue ? slot.Value.ToString() : "no-slot";
         }
@@ -280,6 +393,7 @@ namespace WrathTactics.Engine {
             forceNextTick = false;
             tickCounter = 0;
             cooldowns.Clear();
+            issued.Clear();
             ActiveRuleTracker.Reset();
         }
 

@@ -79,8 +79,36 @@ namespace WrathTactics.Engine {
                     }
                 }
             }
-            Log.Engine.Warn($"Commands.Run discarded {command.GetType().Name} for {owner.CharacterName} (engine veto) — treating as not executed");
+            // Queue case: UnitCommands.Run → TryAddToQueueInsteadOfRunImmediately parks the
+            // command in Commands.Queue when the unit holds an uninterruptible running
+            // command (a cast in progress) or is already running a command on the same
+            // target we are close enough to reach (auto-attack on our cast target). The
+            // engine flags the occupant InterruptAsSoonAsPossible and runs ours from the
+            // queue once slot and paired slot are free — exactly what a player click does
+            // in the same situation. Treat it as issued: track it, gate on it. Both
+            // trackers drop it again if a later Run() clears the queue (ContainsOrQueued).
+            var queue = owner.Commands.Queue;
+            if (queue != null && queue.Contains(command)) {
+                PlayerCommandGuard.Track(owner, command);
+                Log.Engine.Debug($"Commands.Run queued {DescribeCommand(command)} for {owner.CharacterName} behind {DescribeBlocker(slots)} — engine runs it when the slot frees");
+                return command;
+            }
+            Log.Engine.Warn($"Commands.Run discarded {DescribeCommand(command)} for {owner.CharacterName} (engine veto) — treating as not executed");
             return null;
+        }
+
+        static string DescribeCommand(UnitCommand cmd) {
+            if (cmd is UnitUseAbility ua) return ua.Ability?.Name ?? "UnitUseAbility";
+            return cmd.GetType().Name;
+        }
+
+        static string DescribeBlocker(UnitCommand[] slots) {
+            for (int i = 0; i < slots.Length; i++) {
+                var cmd = slots[i];
+                if (cmd != null && cmd.IsStarted && !cmd.IsFinished)
+                    return $"{DescribeCommand(cmd)} [{cmd.Type}]{(cmd.IsInterruptible ? "" : " (uninterruptible)")}";
+            }
+            return "a busy unit";
         }
 
         static bool ExecuteCastSpell(ActionDef action, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {

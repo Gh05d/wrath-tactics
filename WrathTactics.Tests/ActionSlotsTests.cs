@@ -68,5 +68,114 @@ namespace WrathTactics.Tests {
             Assert.False(ActionSlots.IsGated(UnitCommand.CommandType.Move));
             Assert.False(ActionSlots.IsGated(null));
         }
+
+        // --- IssuesAnimatedCommand -------------------------------------------------------
+
+        [Theory]
+        [InlineData(ActionType.CastSpell, true)]
+        [InlineData(ActionType.CastAbility, true)]
+        [InlineData(ActionType.UseItem, true)]
+        [InlineData(ActionType.Heal, true)]
+        [InlineData(ActionType.AttackTarget, true)]
+        [InlineData(ActionType.ThrowSplash, false)]   // Rulebook.Trigger, no command
+        [InlineData(ActionType.SwitchWeaponSet, false)]
+        [InlineData(ActionType.ToggleActivatable, false)]
+        [InlineData(ActionType.DoNothing, false)]
+        public void animated_command_types(ActionType type, bool expected) {
+            Assert.Equal(expected, ActionSlots.IssuesAnimatedCommand(type));
+        }
+
+        // --- CheckConflict ---------------------------------------------------------------
+
+        const UnitCommand.CommandType Std = UnitCommand.CommandType.Standard;
+        const UnitCommand.CommandType Swf = UnitCommand.CommandType.Swift;
+        const UnitCommand.CommandType Mov = UnitCommand.CommandType.Move;
+        const UnitCommand.CommandType Fre = UnitCommand.CommandType.Free;
+
+        [Theory]
+        [InlineData(Swf, Std)]
+        [InlineData(Std, Mov)]
+        [InlineData(Std, Swf)]
+        [InlineData(Mov, Swf)]
+        [InlineData(Swf, Mov)]
+        [InlineData(Fre, Std)]
+        public void a_started_occupant_always_conflicts(UnitCommand.CommandType issuing, UnitCommand.CommandType occupied) {
+            // Even with a generous Standard cooldown and a free issuing slot.
+            Assert.Equal(SlotConflict.Running,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: true, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
+        }
+
+        [Theory]
+        [InlineData(false, 0f)]
+        [InlineData(false, 5f)]   // the 1.29.1-rc "safe overlap" — Run(Move) deletes the pending cast regardless
+        [InlineData(true, 5f)]
+        public void move_never_issues_over_an_own_standard_command(bool started, float cooldown) {
+            Assert.Equal(SlotConflict.PairedOwn,
+                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: cooldown));
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void move_may_cancel_an_engine_issued_standard_command(bool started, bool approaching) {
+            // Auto-attack / default action in Standard: Run(Move) removes it, the party AI
+            // re-issues its own command afterwards — same as the player clicking the ability.
+            Assert.Equal(SlotConflict.None,
+                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: approaching, occupantOwn: false,
+                    issuingSlotOnCooldown: true, standardCooldownRemaining: 0f));
+        }
+
+        [Fact]
+        public void swift_needs_the_standard_cooldown_to_outlast_its_animation() {
+            Assert.Equal(SlotConflict.None,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 3f));
+            Assert.Equal(SlotConflict.Pending,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 1f));
+            Assert.Equal(SlotConflict.Pending,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: true, standardCooldownRemaining: 5f));
+        }
+
+        [Theory]
+        [InlineData(Std, Mov)]   // pending Move ignores a running Standard → would cut our cast
+        [InlineData(Std, Swf)]
+        [InlineData(Mov, Swf)]
+        [InlineData(Swf, Mov)]
+        [InlineData(Fre, Std)]
+        [InlineData(Fre, Mov)]
+        public void other_pending_combinations_always_wait(UnitCommand.CommandType issuing, UnitCommand.CommandType occupied) {
+            Assert.Equal(SlotConflict.Pending,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
+        }
+
+        [Theory]
+        [InlineData(Swf)]
+        [InlineData(Fre)]
+        public void a_pending_standard_that_is_still_approaching_its_target_conflicts(UnitCommand.CommandType issuing) {
+            // UnitCommands.Run interrupts every unstarted command that is not yet close
+            // enough to its target when a Move (or a far-targeted Swift) is issued. The
+            // cooldown is irrelevant: the approach, not the cooldown, is what holds it.
+            Assert.Equal(SlotConflict.Approaching,
+                ActionSlots.CheckConflict(issuing, Std, occupantStarted: false, occupantApproaching: true, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
+        }
+
+        [Fact]
+        public void started_wins_over_approaching() {
+            Assert.Equal(SlotConflict.Running,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: true, occupantApproaching: true, occupantOwn: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
+        }
+
+        [Fact]
+        public void swift_margin_covers_a_quick_cast_animation() {
+            Assert.True(ActionSlots.SwiftOverlapMinStandardCooldown >= 2f);
+        }
     }
 }
