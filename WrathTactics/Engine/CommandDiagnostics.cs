@@ -84,6 +84,7 @@ namespace WrathTactics.Engine {
             var trace = new StackTrace(2, false);
             var sb = new StringBuilder();
             int taken = 0;
+            string previous = null;
             for (int i = 0; i < trace.FrameCount && taken < maxFrames; i++) {
                 var method = trace.GetFrame(i)?.GetMethod();
                 var type = method?.DeclaringType;
@@ -91,8 +92,14 @@ namespace WrathTactics.Engine {
                 string ns = type.Namespace ?? "";
                 if (!ns.StartsWith("Kingmaker") && !ns.StartsWith("WrathTactics") && !ns.StartsWith("TurnBased")) continue;
                 if (type == typeof(InterruptPatch)) continue;
+                string frame = type.Name + "." + method.Name;
+                // Collapse overload chains (InterruptAndRemoveCommand x3, Run x2) so the
+                // budget reaches the actual issuer — ClickGroundHandler, AiBrainController,
+                // CommandExecutor — instead of stopping inside UnitCommands.
+                if (frame == previous) continue;
+                previous = frame;
                 if (sb.Length > 0) sb.Append(" <- ");
-                sb.Append(type.Name).Append('.').Append(method.Name);
+                sb.Append(frame);
                 taken++;
             }
             return sb.Length > 0 ? sb.ToString() : "(no engine frames)";
