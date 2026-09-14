@@ -285,13 +285,12 @@ namespace WrathTactics.Engine {
         // frame; Cooldown.StandardAction is how long a pending Standard is still held back.
         // Same-slot occupants are skipped on purpose — Run replaces them (that IS priority
         // preemption for Standard) and IsSlotBusyWithAbility covers the non-Standard case.
-        // Commands we issued that have not started yet, with the cooldown they stamped. A
-        // command the engine parked in Commands.Queue can be wiped by ANY later Run() on
-        // the unit (party AI re-issuing its default action, a player click) before it ever
-        // starts — RunVerified had no way to know. When that happens the rule cooldown was
-        // burnt for nothing; refund it so the rule retries on the next tick instead of
-        // sitting out a round (deck 2026-09-09: Evil Eye queued behind a casting Ray of
-        // Frost vanished 7×, landed 1×).
+        // Commands we issued, with the cooldown they stamped, until their outcome is known.
+        // The engine charges the action at the act point, not at issue: a command that
+        // ends without acting (cancelled by a player move order, pre-empted by a higher
+        // rule, wiped from Commands.Queue by a later Run()) cost the unit nothing, and a
+        // burnt rule cooldown would make the unit sit out a round for it (Nexus 1.29.1
+        // follow-up: Protective Luck cancelled by a move click, "on cooldown 1.5s / 6s").
         struct IssuedCommand {
             public UnitEntityData Unit;
             public UnitCommand Command;
@@ -299,8 +298,10 @@ namespace WrathTactics.Engine {
             public string Label;
         }
         static readonly List<IssuedCommand> issued = new List<IssuedCommand>();
+        const int MaxTrackedIssued = 256;
 
         static void RememberIssued(UnitEntityData unit, UnitCommand cmd, (string, string) cooldownKey, string label) {
+            if (issued.Count >= MaxTrackedIssued) issued.RemoveAt(0);
             issued.Add(new IssuedCommand { Unit = unit, Command = cmd, CooldownKey = cooldownKey, Label = label });
         }
 
@@ -309,15 +310,23 @@ namespace WrathTactics.Engine {
                 var e = issued[i];
                 if (!ReferenceEquals(e.Unit, unit)) continue;
                 var cmd = e.Command;
-                if (cmd.IsStarted || cmd.IsFinished) {
-                    issued.RemoveAt(i);
-                    continue;
+                bool resident = unit.Commands != null && unit.Commands.ContainsOrQueued(cmd);
+                switch (IssuedCommandPolicy.Classify(cmd.IsStarted, cmd.IsFinished, cmd.IsActed, resident)) {
+                    case IssuedCommandOutcome.Keep:
+                        continue;
+                    case IssuedCommandOutcome.Spent:
+                        issued.RemoveAt(i);
+                        continue;
+                    case IssuedCommandOutcome.Refund:
+                        issued.RemoveAt(i);
+                        if (cooldowns.Remove(e.CooldownKey)) {
+                            string why = cmd.IsFinished
+                                ? $"ended {cmd.Result} without acting"
+                                : "vanished before starting";
+                            Log.Engine.Info($"{unit.CharacterName} {e.Label}: command {why} — cooldown refunded");
+                        }
+                        continue;
                 }
-                var commands = unit.Commands;
-                if (commands != null && commands.ContainsOrQueued(cmd)) continue;
-                issued.RemoveAt(i);
-                if (cooldowns.Remove(e.CooldownKey))
-                    Log.Engine.Info($"{unit.CharacterName} {e.Label}: command vanished before starting — cooldown refunded");
             }
         }
 
