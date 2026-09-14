@@ -34,6 +34,8 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 
 Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias. **Dev-only** — Debug build for smoke-testing; release builds come from `/release`'s Release-config build.
 
+Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — ohne `-el` (UTF-16) findet `strings` in .NET-DLLs nichts.
+
 ## Architecture
 
 ```
@@ -123,6 +125,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **`PresetId`-only rules have empty bodies by design** — cleanup passes must exempt them (`gotchas-persistence.md`).
 - **Packs live in their own directory (`Packs/`), never `Presets/`** — `PresetManager.LoadAll` globs `Presets/*.json` and would silently parse a pack file as a malformed rule (`gotchas-persistence.md`).
 - **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts (`WrathOfTheUndeadCountBuff` machte Golems zu Untoten); Bug-Klasse traf HasBuff (pre-1.17.4) UND CreatureType (pre-1.23.3). Details `gotchas-conditions.md`.
+- **Move und Standard sind gepaarte Slots**: `UnitCommands.Run` eines Move-Kommandos löscht das Standard-Kommando (pending oder laufend) und umgekehrt; nur Swift/Free sind unabhängig. Eine Move-Regel darf nie über einem eigenen Cast feuern (`ActionSlots.CheckConflict`, `gotchas-engine.md`).
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).
@@ -142,6 +145,7 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 
 - **Mod session logs**: `<game>/Mods/WrathTactics/Logs/wrath-tactics-*.log` (separate from `Player.log`). Latest: `ssh deck-direct "ls -t '<game>/Mods/WrathTactics/Logs/' | head -1"`.
 - Triage recipes ("rule didn't fire", preemption, deploy verification): `claude-context/triage.md`.
+- **„Wer hat mein Kommando unterbrochen?"**: `grep 'interrupted (started='` im Mod-Log — `CommandDiagnostics` loggt Aufrufer-Frames und die drei `TickCommand`-Interrupt-Eingaben. `EXECUTED` belegt nur die Ausgabe, `ended: Success` den Effekt (`triage.md`).
 
 ## Code Style
 
