@@ -11,6 +11,11 @@ using WrathTactics.Models;
 
 namespace WrathTactics.UI {
     public partial class RuleEditorWidget {
+        static readonly RangeBracket[] MoveWithinBrackets = {
+            RangeBracket.Melee, RangeBracket.Cone, RangeBracket.Short,
+            RangeBracket.Medium, RangeBracket.Far, RangeBracket.Long
+        };
+
         void SetupActionRow(Transform parent) {
             var (row, rowRect) = UIHelpers.Create("ActionRow", parent);
             row.AddComponent<LayoutElement>().preferredHeight = 28;
@@ -119,6 +124,21 @@ namespace WrathTactics.UI {
                 return;
             }
 
+            // MoveToTarget: bracket dropdown ("stop within ..."), same display order as the
+            // range conditions (Far sits between Medium and Long by distance).
+            if (rule.Action.Type == ActionType.MoveToTarget) {
+                var brackets = MoveWithinBrackets;
+                var bracketLabels = new List<string>(brackets.Length);
+                foreach (var b in brackets) bracketLabels.Add(EnumLabels.For(b));
+                int selectedIdx = System.Array.IndexOf(brackets, rule.Action.MoveWithin);
+                if (selectedIdx < 0) selectedIdx = 0;
+                PopupSelector.Create(row, "MoveWithin", 0.39f, 0.7f, bracketLabels, selectedIdx, idx => {
+                    rule.Action.MoveWithin = brackets[idx];
+                    PersistEdit();
+                });
+                return;
+            }
+
             // ToggleActivatable: mode dropdown (On/Off) + ability picker side by side
             if (rule.Action.Type == ActionType.ToggleActivatable) {
                 var toggleModeNames = EnumLabels.NamesFor<ToggleMode>();
@@ -177,7 +197,8 @@ namespace WrathTactics.UI {
             bool showSelector = rule.Action.Type != ActionType.AttackTarget &&
                                 rule.Action.Type != ActionType.DoNothing &&
                                 rule.Action.Type != ActionType.ThrowSplash &&
-                                rule.Action.Type != ActionType.SwitchWeaponSet;
+                                rule.Action.Type != ActionType.SwitchWeaponSet &&
+                                rule.Action.Type != ActionType.MoveToTarget;
             if (spellPickerButton != null)
                 spellPickerButton.SetActive(showSelector);
         }
@@ -355,7 +376,7 @@ namespace WrathTactics.UI {
             if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
                 || actionType == ActionType.ToggleActivatable
                 || actionType == ActionType.CastSpell || actionType == ActionType.CastAbility
-                || actionType == ActionType.SwitchWeaponSet) {
+                || actionType == ActionType.SwitchWeaponSet || actionType == ActionType.MoveToTarget) {
                 RebuildBody();
                 return;
             }
@@ -365,7 +386,8 @@ namespace WrathTactics.UI {
             bool showSpell = actionType != ActionType.AttackTarget &&
                              actionType != ActionType.DoNothing &&
                              actionType != ActionType.ThrowSplash &&
-                             actionType != ActionType.SwitchWeaponSet;
+                             actionType != ActionType.SwitchWeaponSet &&
+                             actionType != ActionType.MoveToTarget;
             spellPickerButton.SetActive(showSpell);
 
             if (!showSpell) return;
@@ -387,7 +409,7 @@ namespace WrathTactics.UI {
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
             if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing
                 || actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
-                || actionType == ActionType.SwitchWeaponSet)
+                || actionType == ActionType.SwitchWeaponSet || actionType == ActionType.MoveToTarget)
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);

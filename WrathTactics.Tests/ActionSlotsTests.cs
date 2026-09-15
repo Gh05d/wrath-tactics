@@ -173,6 +173,26 @@ namespace WrathTactics.Tests {
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 
+        [Fact]
+        public void move_to_target_is_a_move_slot_command_that_needs_the_cross_slot_check() {
+            Assert.Equal(UnitCommand.CommandType.Move, ActionSlots.Classify(ActionType.MoveToTarget, null));
+            Assert.Equal(UnitCommand.CommandType.Move, ActionSlots.Classify(ActionType.MoveToTarget, UnitCommand.CommandType.Standard));
+            Assert.True(ActionSlots.NeedsCrossSlotCheck(ActionType.MoveToTarget));
+            Assert.False(ActionSlots.IssuesAnimatedCommand(ActionType.MoveToTarget));
+            Assert.False(ActionSlots.IsGated(ActionSlots.Classify(ActionType.MoveToTarget, null)));
+        }
+
+        [Theory]
+        [InlineData(2.5f, RangeBracket.Melee, true)]
+        [InlineData(2.0f, RangeBracket.Melee, false)]
+        [InlineData(10.1f, RangeBracket.Short, true)]
+        [InlineData(19.9f, RangeBracket.Medium, false)]
+        [InlineData(35f, RangeBracket.Far, true)]
+        [InlineData(35f, RangeBracket.Long, false)]
+        public void beyond_bracket_means_the_walk_still_has_ground_to_cover(float distance, RangeBracket bracket, bool expected) {
+            Assert.Equal(expected, RangeBrackets.Beyond(distance, bracket));
+        }
+
         // --- ActionSpent (engine action budget) ---------------------------------------
 
         [Theory]

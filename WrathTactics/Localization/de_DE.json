@@ -227,6 +227,7 @@
   "enum.action.DoNothing": "Nichts tun",
   "enum.action.ThrowSplash": "Spritzwaffe werfen",
   "enum.action.SwitchWeaponSet": "Waffenset wechseln",
+  "enum.action.MoveToTarget": "Zum Ziel bewegen",
   "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Selbst",

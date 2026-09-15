@@ -34,6 +34,8 @@ namespace WrathTactics.Engine {
                         return ExecuteThrowSplash(action, owner, target.Unit);
                     case ActionType.SwitchWeaponSet:
                         return ExecuteSwitchWeaponSet(action.WeaponSetIndex, owner, out issuedCommand);
+                    case ActionType.MoveToTarget:
+                        return ExecuteMoveToTarget(action.MoveWithin, owner, target, out issuedCommand);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -384,6 +386,20 @@ namespace WrathTactics.Engine {
             issuedCommand = RunVerified(owner, command);
             if (issuedCommand == null) return false;
             Log.Engine.Info($"SwitchWeaponSet: {owner.CharacterName} -> set {targetIndex}");
+            return true;
+        }
+
+        static bool ExecuteMoveToTarget(RangeBracket within, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
+            if (!ActionValidator.TryGetMoveDestination(owner, target, out var destination, out float distance)) return false;
+            // approachRadius = the bracket's outer edge: the engine stops the walk once the
+            // unit is inside it, distanceXZ so slopes do not keep it walking. Re-evaluated
+            // every tick, so a moving target is followed until the bracket holds.
+            var command = new UnitMoveTo(destination, RangeBrackets.MaxMeters(within), true);
+            issuedCommand = RunVerified(owner, command);
+            if (issuedCommand == null) return false;
+            string where = target.Unit != null ? target.Unit.CharacterName : $"point({destination.x:F1},{destination.z:F1})";
+            Log.Engine.Info($"MoveToTarget: {owner.CharacterName} -> {where}, {distance:F1} m, stop within {within}");
             return true;
         }
 

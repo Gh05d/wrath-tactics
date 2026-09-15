@@ -38,6 +38,8 @@ namespace WrathTactics.Engine {
                         abilitySlot = itemAbility.RuntimeActionType;
                         return true;
                     }
+                    case ActionType.MoveToTarget:
+                        return CanMoveToTarget(owner, target, action.MoveWithin);
                     default:
                         return false;
                 }
@@ -75,6 +77,8 @@ namespace WrathTactics.Engine {
                     return unit != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.SwitchWeaponSet:
                     return CanSwitchWeaponSet(owner, action.WeaponSetIndex);
+                case ActionType.MoveToTarget:
+                    return CanMoveToTarget(owner, target, action.MoveWithin);
                 case ActionType.DoNothing:
                     return true;
                 default:

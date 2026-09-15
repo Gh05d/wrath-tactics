@@ -246,7 +246,7 @@ namespace WrathTactics.Engine {
                 // behind-running-Move; every other overlap is ours to prevent. Applies to
                 // Standard rules too: a Standard cast issued over a pending Move ability
                 // would be cut down the moment that Move's cooldown expires.
-                if (slot.HasValue && ActionSlots.IssuesAnimatedCommand(rule.Action.Type)
+                if (slot.HasValue && ActionSlots.NeedsCrossSlotCheck(rule.Action.Type)
                     && HasCrossSlotConflict(unit, slot.Value, out var conflictReason)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): unit busy — {conflictReason}");
                     continue;
@@ -345,7 +345,10 @@ namespace WrathTactics.Engine {
                 if (!ReferenceEquals(e.Unit, unit)) continue;
                 var cmd = e.Command;
                 bool resident = unit.Commands != null && unit.Commands.ContainsOrQueued(cmd);
-                switch (IssuedCommandPolicy.Classify(cmd.IsStarted, cmd.IsFinished, cmd.IsActed, resident)) {
+                // UnitMoveTo never reports IsActed; a walk that finished with Success did
+                // its job, so a Success result counts as acted for every command class.
+                bool acted = cmd.IsActed || (cmd.IsFinished && cmd.Result == UnitCommand.ResultType.Success);
+                switch (IssuedCommandPolicy.Classify(cmd.IsStarted, cmd.IsFinished, acted, resident)) {
                     case IssuedCommandOutcome.Keep:
                         continue;
                     case IssuedCommandOutcome.Spent:

@@ -39,6 +39,11 @@ namespace WrathTactics.Engine {
                 case ActionType.SwitchWeaponSet:
                     return UnitCommand.CommandType.Free;
 
+                // UnitMoveTo lives in the Move slot. Not animated, but Run(Move) removes the
+                // paired Standard command, so it goes through the cross-slot check.
+                case ActionType.MoveToTarget:
+                    return UnitCommand.CommandType.Move;
+
                 // Sets ActivatableAbility.IsOn — issues no command, so it claims nothing and
                 // is exempt from both the gate and the budget. A toggle rule stops matching
                 // once its activatable reaches the requested state, so this does not spam.
@@ -79,6 +84,15 @@ namespace WrathTactics.Engine {
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// Rule types whose command must pass HasCrossSlotConflict: every animated command,
+        /// plus MoveToTarget — UnitMoveTo plays no animation, but issuing it removes an own
+        /// pending or running Standard command through the paired-slot rule.
+        /// </summary>
+        internal static bool NeedsCrossSlotCheck(ActionType type) {
+            return IssuesAnimatedCommand(type) || type == ActionType.MoveToTarget;
         }
 
         /// <summary>
