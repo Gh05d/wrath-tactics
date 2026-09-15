@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
+using Kingmaker.Controllers.Combat;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic.Commands.Base;
@@ -208,6 +209,15 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
+                // Engine action budget (v1.30): skip while the slot's action is spent for
+                // this round and would not free before the next tick. Standard commands used
+                // to be issued regardless and buffer in their slot — which, through the
+                // paired-slot rule, starved every Move rule below a cooldown-0 Standard rule.
+                if (slot.HasValue && IsActionSpent(unit, slot.Value, out var spentReason)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): {spentReason}");
+                    continue;
+                }
+
                 // Toggle rules claim no slot, so the budget above cannot bound them, and an
                 // "X on" / "X off" pair on the SAME activatable can both match in one tick
                 // (e.g. a mixed enemy group satisfying "any enemy is a demon" and "any enemy
@@ -263,6 +273,30 @@ namespace WrathTactics.Engine {
                 }
             }
             return false;
+        }
+
+        // Engine action budget: HasCooldownForCommand(slot) is the engine's verdict, the
+        // Cooldown float only feeds the buffering tolerance (ActionSlots.ActionSpent).
+        static bool IsActionSpent(UnitEntityData unit, UnitCommand.CommandType slot, out string reason) {
+            reason = null;
+            var combat = unit.CombatState;
+            if (combat == null) return false;
+            float remaining = RemainingActionCooldown(combat, slot);
+            float tick = ConfigManager.Current?.TickIntervalSeconds ?? 3f;
+            if (!ActionSlots.ActionSpent(combat.HasCooldownForCommand(slot), remaining, tick)) return false;
+            reason = $"{slot} action spent ({remaining:F1}s left)";
+            return true;
+        }
+
+        static float RemainingActionCooldown(UnitCombatState combat, UnitCommand.CommandType slot) {
+            var cd = combat.Cooldown;
+            if (cd == null) return 0f;
+            switch (slot) {
+                case UnitCommand.CommandType.Standard: return cd.StandardAction;
+                case UnitCommand.CommandType.Move: return cd.MoveAction;
+                case UnitCommand.CommandType.Swift: return cd.SwiftAction;
+                default: return 0f;
+            }
         }
 
         // True when the given slot holds an unfinished ability command. Deliberately

@@ -173,6 +173,30 @@ namespace WrathTactics.Tests {
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 
+        // --- ActionSpent (engine action budget) ---------------------------------------
+
+        [Theory]
+        [InlineData(4.0f, 3.0f)]   // spent, and the next tick comes before it frees
+        [InlineData(3.1f, 3.0f)]
+        public void an_action_still_cooling_past_the_next_tick_is_spent(float remaining, float tick) {
+            Assert.True(ActionSlots.ActionSpent(slotOnCooldown: true, remainingSeconds: remaining, tickIntervalSeconds: tick));
+        }
+
+        [Theory]
+        [InlineData(2.0f, 3.0f)]   // frees before the next tick: buffer it so it starts on time
+        [InlineData(3.0f, 3.0f)]   // boundary counts as "starts before the next tick"
+        [InlineData(0.0f, 3.0f)]
+        public void an_action_that_frees_before_the_next_tick_may_be_buffered(float remaining, float tick) {
+            Assert.False(ActionSlots.ActionSpent(slotOnCooldown: true, remainingSeconds: remaining, tickIntervalSeconds: tick));
+        }
+
+        [Fact]
+        public void a_slot_not_on_cooldown_is_never_spent_whatever_the_number_says() {
+            // HasCooldownForCommand is the engine's verdict; the float is only used for the
+            // buffering tolerance.
+            Assert.False(ActionSlots.ActionSpent(slotOnCooldown: false, remainingSeconds: 9f, tickIntervalSeconds: 3f));
+        }
+
         [Fact]
         public void swift_margin_covers_a_quick_cast_animation() {
             Assert.True(ActionSlots.SwiftOverlapMinStandardCooldown >= 2f);

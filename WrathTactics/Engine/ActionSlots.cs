@@ -82,6 +82,24 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// Engine action budget (v1.30). The engine books every acted command into
+        /// UnitCombatState.Cooldown — a standard action sets StandardAction = 6 s and
+        /// MoveAction = 3 s, a move action MoveAction += 3 s, a swift action SwiftAction = 6 s
+        /// (IL: UnitEntityData.SpendAction, RTWP branch) — and HasCooldownForCommand(type) is
+        /// its verdict on "is this action still available this round". A rule whose slot is
+        /// spent must not issue: the command would only buffer in its slot, and a buffered
+        /// Standard blocks every Move rule through the paired-slot rule for the whole
+        /// cooldown (the 1.29.x "Cackle never fires without cooldowns" report).
+        ///
+        /// Buffering is still allowed when the action frees before the next evaluation
+        /// tick: the command then starts exactly when the engine allows it, and no other
+        /// slot lost a tick to it. Re-evaluating at the next tick would only add latency.
+        /// </summary>
+        internal static bool ActionSpent(bool slotOnCooldown, float remainingSeconds, float tickIntervalSeconds) {
+            return slotOnCooldown && remainingSeconds > tickIntervalSeconds;
+        }
+
+        /// <summary>
         /// A running Swift does NOT hold a pending Standard back (the engine's Standard start
         /// check only looks at a running Move). So a Swift may overlap a pending Standard only
         /// when the Standard is guaranteed to still be cooling down after the swift animation
