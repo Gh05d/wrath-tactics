@@ -1,3 +1,4 @@
+using Kingmaker.Utility;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Items;
 using Kingmaker.UnitLogic.Commands.Base;
@@ -53,6 +54,15 @@ namespace WrathTactics.Engine {
                     string _unusedId;
                     var ability = ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId);
                     if (ability == null) return false;
+                    // The engine's own legality check for THIS target (target-type flags and
+                    // IAbilityTargetRestriction components such as "not hexed within 24 h").
+                    // Without it the cast is issued, UnitUseAbility.OnTick self-interrupts it
+                    // unacted a frame after it starts, and the rule burns its tick for nothing
+                    // (Camellia's Misfortune on an already-hexed treant, deck 2026-09-16).
+                    if (unit != null && !ability.CanTarget(new TargetWrapper(unit))) {
+                        Log.Engine.Trace($"CanExecute: {owner.CharacterName} '{ability.Name}' cannot target {unit.CharacterName} (engine CanTarget)");
+                        return false;
+                    }
                     abilitySlot = ability.RuntimeActionType;
                     return true;
                 }

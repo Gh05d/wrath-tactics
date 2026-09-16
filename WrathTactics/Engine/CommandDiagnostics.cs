@@ -33,8 +33,12 @@ namespace WrathTactics.Engine {
             if (!Relevant(command)) return;
             Log.Engine.Debug($"{Who(command)}: {Describe(command)} ended {command.Result} (acted={command.IsActed})");
             // One of ours just freed a slot: evaluate next frame, before the party AI's
-            // default action can claim it for the rest of the round.
-            if (PlayerCommandGuard.IsOurs(command.Executor, command) && command.Executor.IsInCombat)
+            // default action can claim it for the rest of the round. Only after a command
+            // that ACTED — a command dying unacted (self-interrupt in UnitUseAbility.OnTick,
+            // e.g. a hex the target cannot take again) plus the cooldown refund plus an
+            // immediate re-tick is a frame-rate loop (deck 2026-09-16: 856 Misfortunes).
+            bool acted = command.IsActed || command.Result == UnitCommand.ResultType.Success;
+            if (acted && PlayerCommandGuard.IsOurs(command.Executor, command) && command.Executor.IsInCombat)
                 TacticsEvaluator.RequestTick($"{Who(command)} {Describe(command)} ended");
         }
 
@@ -77,7 +81,7 @@ namespace WrathTactics.Engine {
             try {
                 var state = cmd.Executor?.State;
                 var queue = cmd.Executor?.Commands?.Queue;
-                return $", asap={cmd.InterruptAsSoonAsPossible}, interruptible={cmd.IsInterruptible}, shouldBeInterrupted={cmd.ShouldBeInterrupted}, canAct={state?.CanAct}, canCast={state?.CanCast}, closeEnough={cmd.IsUnitCloseEnough()}, queued={queue?.Count ?? 0}";
+                return $", asap={cmd.InterruptAsSoonAsPossible}, interruptible={cmd.IsInterruptible}, shouldBeInterrupted={cmd.ShouldBeInterrupted}, canAct={state?.CanAct}, canCast={state?.CanCast}, closeEnough={cmd.IsUnitCloseEnough()}, queued={queue?.Count ?? 0}, aiMark={cmd.AiCanInterruptMark}, aiAction={(cmd.AiAction != null)}";
             } catch (Exception ex) {
                 return $", state? ({ex.GetType().Name})";
             }

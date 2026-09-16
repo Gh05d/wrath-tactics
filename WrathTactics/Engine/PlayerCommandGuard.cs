@@ -81,6 +81,15 @@ namespace WrathTactics.Engine {
             // engine runs it once the slot frees. Every Run() without doNotClearQueue
             // wipes that queue first, so if we issued anything now the player's order
             // would silently vanish. Stand down until the queue has drained.
+            // A player's ground click is a UnitMoveTo in the Move slot with no AiAction and no
+            // AiCanInterruptMark (the engine sets the mark on its own formation / return-to-
+            // position moves, and the party AI's moves carry an AiAction). Any command we
+            // issue would cancel it: a Move rule replaces it in its slot, a Standard rule
+            // removes it through the paired-slot rule. Stand down until the walk is over.
+            if (IsPlayerWalk(unit.Commands.Raw?[(int)UnitCommand.CommandType.Move], ours)) {
+                Log.Engine.Trace($"  Player move order active on {unit.CharacterName}");
+                return true;
+            }
             var queue = unit.Commands.Queue;
             if (queue != null && queue.Count > 0) {
                 foreach (var queued in queue) {
@@ -91,6 +100,12 @@ namespace WrathTactics.Engine {
                 }
             }
             return false;
+        }
+
+        static bool IsPlayerWalk(UnitCommand cmd, HashSet<UnitCommand> ours) {
+            if (!(cmd is UnitMoveTo move) || move.IsFinished) return false;
+            if (ours != null && ours.Contains(cmd)) return false;
+            return move.AiAction == null && !move.AiCanInterruptMark;
         }
 
         // Standard-slot / queued UnitUseAbility that is neither ours nor the unit's
