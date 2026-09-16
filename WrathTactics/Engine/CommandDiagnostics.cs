@@ -32,11 +32,15 @@ namespace WrathTactics.Engine {
         public void HandleUnitCommandDidEnd(UnitCommand command) {
             if (!Relevant(command)) return;
             Log.Engine.Debug($"{Who(command)}: {Describe(command)} ended {command.Result} (acted={command.IsActed})");
+            // One of ours just freed a slot: evaluate next frame, before the party AI's
+            // default action can claim it for the rest of the round.
+            if (PlayerCommandGuard.IsOurs(command.Executor, command) && command.Executor.IsInCombat)
+                TacticsEvaluator.RequestTick($"{Who(command)} {Describe(command)} ended");
         }
 
         internal static bool Relevant(UnitCommand command) {
             if (command == null) return false;
-            if (!(command is UnitUseAbility) && !(command is UnitAttack)) return false;
+            if (!(command is UnitUseAbility) && !(command is UnitAttack) && !(command is UnitMoveTo)) return false;
             var unit = command.Executor;
             return unit != null && unit.IsPlayerFaction;
         }

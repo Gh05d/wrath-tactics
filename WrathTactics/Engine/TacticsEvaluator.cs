@@ -22,6 +22,21 @@ namespace WrathTactics.Engine {
         // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
         static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
 
+        /// <summary>
+        /// Evaluate on the next Update instead of waiting for the interval. Raised by
+        /// CommandDiagnostics when a command WE issued ends: the party AI reacts to a free
+        /// slot within a frame (its default action started 37 ms after Cackle ended on the
+        /// deck), a 3 s poll cannot compete for the standard action. With the reactive
+        /// tick our next rule is issued in the same window, so rules win over the
+        /// right-click default action and cast → cackle → cast chains run back to back.
+        /// Bounded by the number of own command ends, i.e. a few per unit per round.
+        /// </summary>
+        public static void RequestTick(string reason) {
+            if (forceNextTick) return;
+            forceNextTick = true;
+            Log.Engine.Trace($"  reactive tick requested: {reason}");
+        }
+
         public static void Tick(float gameTimeSec) {
             bool inCombat = Game.Instance.Player.IsInCombat;
 
@@ -188,7 +203,12 @@ namespace WrathTactics.Engine {
                 // The slot is only known once the AbilityData is resolved, so validation
                 // must run before the gate and budget checks.
                 if (!ActionValidator.CanExecute(rule.Action, unit, target, out var abilitySlot)) {
-                    Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    // MoveToTarget falls through by design once the unit is inside its
+                    // bracket (validator traced "already within"); that is not a WARN.
+                    if (rule.Action.Type == ActionType.MoveToTarget)
+                        Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): move not needed or not possible");
+                    else
+                        Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
                     continue;
                 }
 
