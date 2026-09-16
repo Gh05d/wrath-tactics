@@ -59,7 +59,9 @@ namespace WrathTactics.Engine {
                     // Without it the cast is issued, UnitUseAbility.OnTick self-interrupts it
                     // unacted a frame after it starts, and the rule burns its tick for nothing
                     // (Camellia's Misfortune on an already-hexed treant, deck 2026-09-16).
-                    if (unit != null && !ability.CanTarget(new TargetWrapper(unit))) {
+                    // Point-capable spells (Fireball, Grease) are cast AT the unit's position and
+                    // may carry no unit-target flags at all — leave them to the old path.
+                    if (unit != null && !ability.CanTargetPoint && !ability.CanTarget(new TargetWrapper(unit))) {
                         Log.Engine.Trace($"CanExecute: {owner.CharacterName} '{ability.Name}' cannot target {unit.CharacterName} (engine CanTarget)");
                         return false;
                     }

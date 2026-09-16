@@ -31,8 +31,20 @@ namespace WrathTactics.Engine {
         /// right-click default action and cast → cackle → cast chains run back to back.
         /// Bounded by the number of own command ends, i.e. a few per unit per round.
         /// </summary>
+        /// <summary>Floor between reactive ticks. Insurance against any future path that
+        /// ends own commands faster than they can act — at worst the evaluator then runs
+        /// twice a second instead of once per frame.</summary>
+        internal const float ReactiveTickMinSpacingSeconds = 0.5f;
+        static float lastReactiveTickTime;
+
         public static void RequestTick(string reason) {
             if (forceNextTick) return;
+            float now = (float)Game.Instance.Player.GameTime.TotalSeconds;
+            if (now - lastReactiveTickTime < ReactiveTickMinSpacingSeconds) {
+                Log.Engine.Trace($"  reactive tick suppressed ({now - lastReactiveTickTime:F2}s since last): {reason}");
+                return;
+            }
+            lastReactiveTickTime = now;
             forceNextTick = true;
             Log.Engine.Trace($"  reactive tick requested: {reason}");
         }
@@ -461,6 +473,7 @@ namespace WrathTactics.Engine {
             tickCounter = 0;
             cooldowns.Clear();
             issued.Clear();
+            lastReactiveTickTime = 0;
             ActiveRuleTracker.Reset();
         }
 
