@@ -81,6 +81,15 @@ namespace WrathTactics.Engine {
             // engine runs it once the slot frees. Every Run() without doNotClearQueue
             // wipes that queue first, so if we issued anything now the player's order
             // would silently vanish. Stand down until the queue has drained.
+            // A player's ground click is a UnitMoveTo in the Move slot with no AiAction and no
+            // AiCanInterruptMark (the engine sets the mark on its own formation / return-to-
+            // position moves, and the party AI's moves carry an AiAction). Any command we
+            // issue would cancel it: a Move rule replaces it in its slot, a Standard rule
+            // removes it through the paired-slot rule. Stand down until the walk is over.
+            if (IsPlayerWalk(unit.Commands.Raw?[(int)UnitCommand.CommandType.Move], ours)) {
+                Log.Engine.Trace($"  Player move order active on {unit.CharacterName}");
+                return true;
+            }
             var queue = unit.Commands.Queue;
             if (queue != null && queue.Count > 0) {
                 foreach (var queued in queue) {
@@ -93,6 +102,12 @@ namespace WrathTactics.Engine {
             return false;
         }
 
+        static bool IsPlayerWalk(UnitCommand cmd, HashSet<UnitCommand> ours) {
+            if (!(cmd is UnitMoveTo move) || move.IsFinished) return false;
+            if (ours != null && ours.Contains(cmd)) return false;
+            return move.AiAction == null && !move.AiCanInterruptMark;
+        }
+
         // Standard-slot / queued UnitUseAbility that is neither ours nor the unit's
         // AutoUseAbility (see the comment block below for why that one is exempt).
         static bool IsForeignCast(UnitEntityData unit, UnitCommand cmd, HashSet<UnitCommand> ours) {
@@ -101,20 +116,14 @@ namespace WrathTactics.Engine {
             if (!(cmd is UnitUseAbility useAbility)) return false;
             if (ours != null && ours.Contains(cmd)) return false;
 
-            // Right-click "default action" (UnitBrain.AutoUseAbility) goes through the
-            // same Commands.Run pipeline as a manual click — same UnitUseAbility class,
-            // no source flag. Distinguish by blueprint: if the in-slot ability matches
-            // the unit's configured AutoUseAbility, it's an engine default-action firing
-            // on cooldown (not a fresh player click), and tactics is allowed to preempt
-            // it. Without this, e.g. Ember with Magic Missile as her default action
-            // would be permanently blocked from tactics rules for the entire combat
-            // because the engine re-issues Magic Missile every cooldown.
-            var slotBp = useAbility.Ability?.Blueprint;
-            var autoBp = unit.Brain?.AutoUseAbility?.Blueprint;
-            if (slotBp != null && autoBp != null && slotBp == autoBp) {
-                return false;
-            }
-
+            // The party AI's own commands — the right-click default action re-issued while
+            // idle, the auto-attack — carry an AiAction (AiBrainController.SelectAction sets
+            // it before Commands.Run). A player click never does. That is the discriminator:
+            // an AI-issued cast may be replaced by a rule, a player's cast pauses the unit,
+            // even when both use the same blueprint. The earlier blueprint comparison against
+            // Brain.AutoUseAbility could not tell the player's explicit Burning Arc from the
+            // AI's Burning Arc and let rules override the player (deck 2026-09-16).
+            if (cmd.AiAction != null) return false;
             return true;
         }
 

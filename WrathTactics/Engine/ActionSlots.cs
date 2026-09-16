@@ -39,6 +39,11 @@ namespace WrathTactics.Engine {
                 case ActionType.SwitchWeaponSet:
                     return UnitCommand.CommandType.Free;
 
+                // UnitMoveTo lives in the Move slot. Not animated, but Run(Move) removes the
+                // paired Standard command, so it goes through the cross-slot check.
+                case ActionType.MoveToTarget:
+                    return UnitCommand.CommandType.Move;
+
                 // Sets ActivatableAbility.IsOn — issues no command, so it claims nothing and
                 // is exempt from both the gate and the budget. A toggle rule stops matching
                 // once its activatable reaches the requested state, so this does not spam.
@@ -82,6 +87,33 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// Rule types whose command must pass HasCrossSlotConflict: every animated command,
+        /// plus MoveToTarget — UnitMoveTo plays no animation, but issuing it removes an own
+        /// pending or running Standard command through the paired-slot rule.
+        /// </summary>
+        internal static bool NeedsCrossSlotCheck(ActionType type) {
+            return IssuesAnimatedCommand(type) || type == ActionType.MoveToTarget;
+        }
+
+        /// <summary>
+        /// Engine action budget (v1.30). The engine books every acted command into
+        /// UnitCombatState.Cooldown — a standard action sets StandardAction = 6 s and
+        /// MoveAction = 3 s, a move action MoveAction += 3 s, a swift action SwiftAction = 6 s
+        /// (IL: UnitEntityData.SpendAction, RTWP branch) — and HasCooldownForCommand(type) is
+        /// its verdict on "is this action still available this round". A rule whose slot is
+        /// spent must not issue: the command would only buffer in its slot, and a buffered
+        /// Standard blocks every Move rule through the paired-slot rule for the whole
+        /// cooldown (the 1.29.x "Cackle never fires without cooldowns" report).
+        ///
+        /// Buffering is still allowed when the action frees before the next evaluation
+        /// tick: the command then starts exactly when the engine allows it, and no other
+        /// slot lost a tick to it. Re-evaluating at the next tick would only add latency.
+        /// </summary>
+        internal static bool ActionSpent(bool slotOnCooldown, float remainingSeconds, float tickIntervalSeconds) {
+            return slotOnCooldown && remainingSeconds > tickIntervalSeconds;
+        }
+
+        /// <summary>
         /// A running Swift does NOT hold a pending Standard back (the engine's Standard start
         /// check only looks at a running Move). So a Swift may overlap a pending Standard only
         /// when the Standard is guaranteed to still be cooling down after the swift animation
@@ -95,7 +127,8 @@ namespace WrathTactics.Engine {
         /// sitting in <paramref name="occupied"/>. The caller guarantees the two slots differ
         /// and the occupant is animated and not finished; <paramref name="occupantApproaching"/>
         /// is <c>!occupant.IsStarted &amp;&amp; !occupant.IsUnitCloseEnough()</c>,
-        /// <paramref name="occupantOwn"/> is <c>PlayerCommandGuard.IsOurs(occupant)</c>.
+        /// <paramref name="occupantOwn"/> is <c>PlayerCommandGuard.IsOurs(occupant)</c>,
+        /// <paramref name="occupantIsCast"/> is <c>occupant is UnitUseAbility</c>.
         /// Same-slot conflicts are the budget's and the priority gate's business.
         ///
         /// Two engine facts drive this (both IL-verified, both learnt the hard way in 1.29.0):
@@ -123,11 +156,22 @@ namespace WrathTactics.Engine {
             bool occupantStarted,
             bool occupantApproaching,
             bool occupantOwn,
+            bool occupantIsCast,
             bool issuingSlotOnCooldown,
             float standardCooldownRemaining) {
             // Fact 1: Run(Move) removes the Standard command outright.
             if (issuing == UnitCommand.CommandType.Move && occupied == UnitCommand.CommandType.Standard) {
-                return occupantOwn ? SlotConflict.PairedOwn : SlotConflict.None;
+                if (occupantOwn) return SlotConflict.PairedOwn;
+                // A foreign cast that has already started (the party AI's default action,
+                // e.g. Ray of Frost) is seconds from acting. Issuing a Move now does not
+                // even remove it cleanly: Run queues ours behind the uninterruptible cast
+                // and flags it InterruptAsSoonAsPossible, which TickCommand honours during
+                // the wind-up — the cast dies unacted (deck 2026-09-16: 10 of 10 Cackles
+                // killed a Ray). Wait; the budget gate then hands the next tick to us.
+                // A PENDING foreign cast or an auto-attack in any state is fair game: the
+                // AI re-issues it after our Move, exactly as after a player click.
+                if (occupantIsCast && occupantStarted) return SlotConflict.Running;
+                return SlotConflict.None;
             }
 
             // Fact 2: a started, unfinished animated command owns the AnimationManager.

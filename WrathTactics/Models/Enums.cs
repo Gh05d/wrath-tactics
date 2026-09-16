@@ -80,7 +80,8 @@ namespace WrathTactics.Models {
         Heal,           // automatically use best available heal
         DoNothing,
         ThrowSplash,    // throw a splash weapon (Alchemist's Fire, Acid Flask, Holy Water)
-        SwitchWeaponSet // swap to a specific HandsEquipmentSet (engine allocates 4 slots, index 0-3)
+        SwitchWeaponSet, // swap to a specific HandsEquipmentSet (engine allocates 4 slots, index 0-3)
+        MoveToTarget    // walk towards the target until within ActionDef.MoveWithin (UnitMoveTo, Move slot)
     }
 
     public enum HealMode {
@@ -178,6 +179,12 @@ namespace WrathTactics.Models {
     public enum RangeBracket { Melee, Cone, Short, Medium, Long, Far }
 
     public static class RangeBrackets {
+        /// <summary>True when <paramref name="distanceMeters"/> lies outside the bracket, i.e.
+        /// a MoveToTarget rule still has ground to cover. Pure; shared by validator and tests.</summary>
+        public static bool Beyond(float distanceMeters, RangeBracket b) {
+            return distanceMeters > MaxMeters(b);
+        }
+
         public static float MaxMeters(RangeBracket b) {
             switch (b) {
                 case RangeBracket.Melee:  return 2f;

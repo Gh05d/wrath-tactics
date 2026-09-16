@@ -150,5 +150,5 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 ## Code Style
 
 - Shared style (K&R braces, 4-space indent, `var` when apparent): parent `wrath-mods/CLAUDE.md` §Code Style.
-- **Partial-class file split for fat engine files**: `ActionValidator` is `partial` across `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.Find.cs` — one Action-type per file. New Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back — it grew to 902 LOC once.
+- **Partial-class file split for fat engine files**: `ActionValidator` is `partial` across `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.MoveToTarget/.Find.cs` — one Action-type per file. New Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back — it grew to 902 LOC once.
 - **`catch (Exception ex)` is reserved for three patterns**: per-tick/per-frame guards, user-surface persistence, static/sentinel blueprint init. Everything else narrows. ([deep-dive](docs/wrath-api-deep-dive.md#catch-discipline))

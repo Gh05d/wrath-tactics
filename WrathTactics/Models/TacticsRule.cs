@@ -63,6 +63,8 @@ namespace WrathTactics.Models {
         // exactly 4 slots, so valid range is 0-3. Stored as plain int (not enum) because the
         // engine uses int indices throughout (UnitSwitchHandEquipmentSet ctor + set_CurrentHandEquipmentSetIndex).
         [JsonProperty] public int WeaponSetIndex { get; set; }
+        // MoveToTarget: stop once the unit is inside this bracket of the target.
+        [JsonProperty] public RangeBracket MoveWithin { get; set; } = RangeBracket.Melee;
     }
 
     public class TargetDef {

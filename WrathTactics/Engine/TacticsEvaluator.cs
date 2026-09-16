@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
+using Kingmaker.Controllers.Combat;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic.Commands.Base;
@@ -20,6 +21,33 @@ namespace WrathTactics.Engine {
 
         // Per-rule cooldown tracking: (unitId, ruleId) -> last fire game time
         static readonly Dictionary<(string, string), float> cooldowns = new Dictionary<(string, string), float>();
+
+        /// <summary>
+        /// Evaluate on the next Update instead of waiting for the interval. Raised by
+        /// CommandDiagnostics when a command WE issued ends: the party AI reacts to a free
+        /// slot within a frame (its default action started 37 ms after Cackle ended on the
+        /// deck), a 3 s poll cannot compete for the standard action. With the reactive
+        /// tick our next rule is issued in the same window, so rules win over the
+        /// right-click default action and cast → cackle → cast chains run back to back.
+        /// Bounded by the number of own command ends, i.e. a few per unit per round.
+        /// </summary>
+        /// <summary>Floor between reactive ticks. Insurance against any future path that
+        /// ends own commands faster than they can act — at worst the evaluator then runs
+        /// twice a second instead of once per frame.</summary>
+        internal const float ReactiveTickMinSpacingSeconds = 0.5f;
+        static float lastReactiveTickTime;
+
+        public static void RequestTick(string reason) {
+            if (forceNextTick) return;
+            float now = (float)Game.Instance.Player.GameTime.TotalSeconds;
+            if (now - lastReactiveTickTime < ReactiveTickMinSpacingSeconds) {
+                Log.Engine.Trace($"  reactive tick suppressed ({now - lastReactiveTickTime:F2}s since last): {reason}");
+                return;
+            }
+            lastReactiveTickTime = now;
+            forceNextTick = true;
+            Log.Engine.Trace($"  reactive tick requested: {reason}");
+        }
 
         public static void Tick(float gameTimeSec) {
             bool inCombat = Game.Instance.Player.IsInCombat;
@@ -187,7 +215,12 @@ namespace WrathTactics.Engine {
                 // The slot is only known once the AbilityData is resolved, so validation
                 // must run before the gate and budget checks.
                 if (!ActionValidator.CanExecute(rule.Action, unit, target, out var abilitySlot)) {
-                    Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    // MoveToTarget falls through by design once the unit is inside its
+                    // bracket (validator traced "already within"); that is not a WARN.
+                    if (rule.Action.Type == ActionType.MoveToTarget)
+                        Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): move not needed or not possible");
+                    else
+                        Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
                     continue;
                 }
 
@@ -205,6 +238,15 @@ namespace WrathTactics.Engine {
                 // same tick would destroy each other via InterruptAndRemoveCommand(Swift).
                 if (slot.HasValue && slotUsed[(int)slot.Value]) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): slot {slot.Value} already used this tick");
+                    continue;
+                }
+
+                // Engine action budget (v1.30): skip while the slot's action is spent for
+                // this round and would not free before the next tick. Standard commands used
+                // to be issued regardless and buffer in their slot — which, through the
+                // paired-slot rule, starved every Move rule below a cooldown-0 Standard rule.
+                if (slot.HasValue && IsActionSpent(unit, slot.Value, out var spentReason)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): {spentReason}");
                     continue;
                 }
 
@@ -236,7 +278,7 @@ namespace WrathTactics.Engine {
                 // behind-running-Move; every other overlap is ours to prevent. Applies to
                 // Standard rules too: a Standard cast issued over a pending Move ability
                 // would be cut down the moment that Move's cooldown expires.
-                if (slot.HasValue && ActionSlots.IssuesAnimatedCommand(rule.Action.Type)
+                if (slot.HasValue && ActionSlots.NeedsCrossSlotCheck(rule.Action.Type)
                     && HasCrossSlotConflict(unit, slot.Value, out var conflictReason)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): unit busy — {conflictReason}");
                     continue;
@@ -263,6 +305,30 @@ namespace WrathTactics.Engine {
                 }
             }
             return false;
+        }
+
+        // Engine action budget: HasCooldownForCommand(slot) is the engine's verdict, the
+        // Cooldown float only feeds the buffering tolerance (ActionSlots.ActionSpent).
+        static bool IsActionSpent(UnitEntityData unit, UnitCommand.CommandType slot, out string reason) {
+            reason = null;
+            var combat = unit.CombatState;
+            if (combat == null) return false;
+            float remaining = RemainingActionCooldown(combat, slot);
+            float tick = ConfigManager.Current?.TickIntervalSeconds ?? 3f;
+            if (!ActionSlots.ActionSpent(combat.HasCooldownForCommand(slot), remaining, tick)) return false;
+            reason = $"{slot} action spent ({remaining:F1}s left)";
+            return true;
+        }
+
+        static float RemainingActionCooldown(UnitCombatState combat, UnitCommand.CommandType slot) {
+            var cd = combat.Cooldown;
+            if (cd == null) return 0f;
+            switch (slot) {
+                case UnitCommand.CommandType.Standard: return cd.StandardAction;
+                case UnitCommand.CommandType.Move: return cd.MoveAction;
+                case UnitCommand.CommandType.Swift: return cd.SwiftAction;
+                default: return 0f;
+            }
         }
 
         // True when the given slot holds an unfinished ability command. Deliberately
@@ -311,7 +377,10 @@ namespace WrathTactics.Engine {
                 if (!ReferenceEquals(e.Unit, unit)) continue;
                 var cmd = e.Command;
                 bool resident = unit.Commands != null && unit.Commands.ContainsOrQueued(cmd);
-                switch (IssuedCommandPolicy.Classify(cmd.IsStarted, cmd.IsFinished, cmd.IsActed, resident)) {
+                // UnitMoveTo never reports IsActed; a walk that finished with Success did
+                // its job, so a Success result counts as acted for every command class.
+                bool acted = cmd.IsActed || (cmd.IsFinished && cmd.Result == UnitCommand.ResultType.Success);
+                switch (IssuedCommandPolicy.Classify(cmd.IsStarted, cmd.IsFinished, acted, resident)) {
                     case IssuedCommandOutcome.Keep:
                         continue;
                     case IssuedCommandOutcome.Spent:
@@ -360,7 +429,8 @@ namespace WrathTactics.Engine {
                 var occupied = (UnitCommand.CommandType)i;
                 bool approaching = !cmd.IsStarted && !cmd.IsUnitCloseEnough();
                 bool own = PlayerCommandGuard.IsOurs(unit, cmd);
-                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, issuingOnCooldown, standardRemaining);
+                bool isCast = cmd is UnitUseAbility;
+                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, isCast, issuingOnCooldown, standardRemaining);
                 string what = (own ? "own " : "foreign ") + (cmd is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack");
                 switch (verdict) {
                     case SlotConflict.Running:
@@ -403,6 +473,7 @@ namespace WrathTactics.Engine {
             tickCounter = 0;
             cooldowns.Clear();
             issued.Clear();
+            lastReactiveTickTime = 0;
             ActiveRuleTracker.Reset();
         }
 

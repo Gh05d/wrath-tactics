@@ -1,3 +1,4 @@
+using Kingmaker.Utility;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Items;
 using Kingmaker.UnitLogic.Commands.Base;
@@ -38,6 +39,8 @@ namespace WrathTactics.Engine {
                         abilitySlot = itemAbility.RuntimeActionType;
                         return true;
                     }
+                    case ActionType.MoveToTarget:
+                        return CanMoveToTarget(owner, target, action.MoveWithin);
                     default:
                         return false;
                 }
@@ -51,6 +54,17 @@ namespace WrathTactics.Engine {
                     string _unusedId;
                     var ability = ResolveCastSpellChain(owner, target, action, out _unused, out _unusedId);
                     if (ability == null) return false;
+                    // The engine's own legality check for THIS target (target-type flags and
+                    // IAbilityTargetRestriction components such as "not hexed within 24 h").
+                    // Without it the cast is issued, UnitUseAbility.OnTick self-interrupts it
+                    // unacted a frame after it starts, and the rule burns its tick for nothing
+                    // (Camellia's Misfortune on an already-hexed treant, deck 2026-09-16).
+                    // Point-capable spells (Fireball, Grease) are cast AT the unit's position and
+                    // may carry no unit-target flags at all — leave them to the old path.
+                    if (unit != null && !ability.CanTargetPoint && !ability.CanTarget(new TargetWrapper(unit))) {
+                        Log.Engine.Trace($"CanExecute: {owner.CharacterName} '{ability.Name}' cannot target {unit.CharacterName} (engine CanTarget)");
+                        return false;
+                    }
                     abilitySlot = ability.RuntimeActionType;
                     return true;
                 }
@@ -75,6 +89,8 @@ namespace WrathTactics.Engine {
                     return unit != null && SplashItemResolver.FindBest(owner, action.SplashMode).HasValue;
                 case ActionType.SwitchWeaponSet:
                     return CanSwitchWeaponSet(owner, action.WeaponSetIndex);
+                case ActionType.MoveToTarget:
+                    return CanMoveToTarget(owner, target, action.MoveWithin);
                 case ActionType.DoNothing:
                     return true;
                 default:
