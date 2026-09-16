@@ -102,7 +102,7 @@ namespace WrathTactics.Tests {
         public void a_started_occupant_always_conflicts(UnitCommand.CommandType issuing, UnitCommand.CommandType occupied) {
             // Even with a generous Standard cooldown and a free issuing slot.
             Assert.Equal(SlotConflict.Running,
-                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: true, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: true, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 
@@ -112,32 +112,41 @@ namespace WrathTactics.Tests {
         [InlineData(true, 5f)]
         public void move_never_issues_over_an_own_standard_command(bool started, float cooldown) {
             Assert.Equal(SlotConflict.PairedOwn,
-                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: cooldown));
         }
 
         [Theory]
-        [InlineData(false, false)]
-        [InlineData(true, false)]
-        [InlineData(false, true)]
-        public void move_may_cancel_an_engine_issued_standard_command(bool started, bool approaching) {
-            // Auto-attack / default action in Standard: Run(Move) removes it, the party AI
-            // re-issues its own command afterwards — same as the player clicking the ability.
+        [InlineData(false, false, true)]   // pending default-action cast: AI re-issues it after our Move
+        [InlineData(false, true, true)]    // pending and still approaching
+        [InlineData(false, false, false)]  // pending auto-attack
+        [InlineData(true, false, false)]   // running auto-attack: interrupting it is what a click does
+        public void move_may_cancel_a_pending_engine_command_or_an_auto_attack(bool started, bool approaching, bool isCast) {
             Assert.Equal(SlotConflict.None,
-                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: approaching, occupantOwn: false,
+                ActionSlots.CheckConflict(Mov, Std, occupantStarted: started, occupantApproaching: approaching, occupantOwn: false, occupantIsCast: isCast,
                     issuingSlotOnCooldown: true, standardCooldownRemaining: 0f));
+        }
+
+        [Fact]
+        public void move_waits_for_a_running_foreign_cast() {
+            // Run(Move) over a casting unit queues behind the cast and flags it
+            // InterruptAsSoonAsPossible — the cast dies in its wind-up. Two seconds of
+            // patience instead.
+            Assert.Equal(SlotConflict.Running,
+                ActionSlots.CheckConflict(Mov, Std, occupantStarted: true, occupantApproaching: false, occupantOwn: false, occupantIsCast: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 0f));
         }
 
         [Fact]
         public void swift_needs_the_standard_cooldown_to_outlast_its_animation() {
             Assert.Equal(SlotConflict.None,
-                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 3f));
             Assert.Equal(SlotConflict.Pending,
-                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 1f));
             Assert.Equal(SlotConflict.Pending,
-                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: true, standardCooldownRemaining: 5f));
         }
 
@@ -150,7 +159,7 @@ namespace WrathTactics.Tests {
         [InlineData(Fre, Mov)]
         public void other_pending_combinations_always_wait(UnitCommand.CommandType issuing, UnitCommand.CommandType occupied) {
             Assert.Equal(SlotConflict.Pending,
-                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: false, occupantApproaching: false, occupantOwn: true,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 
@@ -162,14 +171,14 @@ namespace WrathTactics.Tests {
             // enough to its target when a Move (or a far-targeted Swift) is issued. The
             // cooldown is irrelevant: the approach, not the cooldown, is what holds it.
             Assert.Equal(SlotConflict.Approaching,
-                ActionSlots.CheckConflict(issuing, Std, occupantStarted: false, occupantApproaching: true, occupantOwn: true,
+                ActionSlots.CheckConflict(issuing, Std, occupantStarted: false, occupantApproaching: true, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 
         [Fact]
         public void started_wins_over_approaching() {
             Assert.Equal(SlotConflict.Running,
-                ActionSlots.CheckConflict(Swf, Std, occupantStarted: true, occupantApproaching: true, occupantOwn: true,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: true, occupantApproaching: true, occupantOwn: true, occupantIsCast: true,
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
         }
 

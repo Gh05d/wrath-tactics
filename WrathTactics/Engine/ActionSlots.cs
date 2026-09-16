@@ -127,7 +127,8 @@ namespace WrathTactics.Engine {
         /// sitting in <paramref name="occupied"/>. The caller guarantees the two slots differ
         /// and the occupant is animated and not finished; <paramref name="occupantApproaching"/>
         /// is <c>!occupant.IsStarted &amp;&amp; !occupant.IsUnitCloseEnough()</c>,
-        /// <paramref name="occupantOwn"/> is <c>PlayerCommandGuard.IsOurs(occupant)</c>.
+        /// <paramref name="occupantOwn"/> is <c>PlayerCommandGuard.IsOurs(occupant)</c>,
+        /// <paramref name="occupantIsCast"/> is <c>occupant is UnitUseAbility</c>.
         /// Same-slot conflicts are the budget's and the priority gate's business.
         ///
         /// Two engine facts drive this (both IL-verified, both learnt the hard way in 1.29.0):
@@ -155,11 +156,22 @@ namespace WrathTactics.Engine {
             bool occupantStarted,
             bool occupantApproaching,
             bool occupantOwn,
+            bool occupantIsCast,
             bool issuingSlotOnCooldown,
             float standardCooldownRemaining) {
             // Fact 1: Run(Move) removes the Standard command outright.
             if (issuing == UnitCommand.CommandType.Move && occupied == UnitCommand.CommandType.Standard) {
-                return occupantOwn ? SlotConflict.PairedOwn : SlotConflict.None;
+                if (occupantOwn) return SlotConflict.PairedOwn;
+                // A foreign cast that has already started (the party AI's default action,
+                // e.g. Ray of Frost) is seconds from acting. Issuing a Move now does not
+                // even remove it cleanly: Run queues ours behind the uninterruptible cast
+                // and flags it InterruptAsSoonAsPossible, which TickCommand honours during
+                // the wind-up — the cast dies unacted (deck 2026-09-16: 10 of 10 Cackles
+                // killed a Ray). Wait; the budget gate then hands the next tick to us.
+                // A PENDING foreign cast or an auto-attack in any state is fair game: the
+                // AI re-issues it after our Move, exactly as after a player click.
+                if (occupantIsCast && occupantStarted) return SlotConflict.Running;
+                return SlotConflict.None;
             }
 
             // Fact 2: a started, unfinished animated command owns the AnimationManager.

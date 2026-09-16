@@ -397,7 +397,8 @@ namespace WrathTactics.Engine {
                 var occupied = (UnitCommand.CommandType)i;
                 bool approaching = !cmd.IsStarted && !cmd.IsUnitCloseEnough();
                 bool own = PlayerCommandGuard.IsOurs(unit, cmd);
-                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, issuingOnCooldown, standardRemaining);
+                bool isCast = cmd is UnitUseAbility;
+                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, isCast, issuingOnCooldown, standardRemaining);
                 string what = (own ? "own " : "foreign ") + (cmd is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack");
                 switch (verdict) {
                     case SlotConflict.Running:
