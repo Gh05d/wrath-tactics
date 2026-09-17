@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
+using Kingmaker.Blueprints;
+using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using TMPro;
 using UnityEngine;
@@ -37,6 +39,15 @@ namespace WrathTactics.UI {
                         && (ActionType)idx != ActionType.CastAbility) {
                         rule.Action.Sources = SpellSourceMask.All;
                         rule.Action.FallbackAbilityIds?.Clear();
+                    }
+                    // Offensive actions flip the constructor default (Self) to a threat-based
+                    // selector; the whole body is rebuilt so the target row shows the new value.
+                    var defaultTarget = TargetDefaults.ForAction((ActionType)idx, rule.Target.Type);
+                    if (defaultTarget.HasValue) {
+                        rule.Target.Type = defaultTarget.Value;
+                        PersistEdit();
+                        RebuildBody();
+                        return;
                     }
                     RefreshSpellSelector((ActionType)idx);
                     PersistEdit();
@@ -260,6 +271,7 @@ namespace WrathTactics.UI {
                     rule.Action.AbilityId = picked.Guid;
                     UpdateSpellPickerButton(picked, true);
                     PersistEdit();
+                    if (ApplyAbilityTargetDefault(picked.Guid)) RebuildBody();
                 });
             });
         }
@@ -404,6 +416,25 @@ namespace WrathTactics.UI {
                 rule.Action.AbilityId = "";
             }
             UpdateSpellPickerButton(first, entries.Count > 0);
+        }
+
+        /// <summary>
+        /// Enemy-only ability picked while the target still sits on the constructor default
+        /// (Self): switch to the threat selector. Returns true when the target changed.
+        /// Resolves the variant blueprint when the key carries one — variants can differ
+        /// from their parent in targeting.
+        /// </summary>
+        bool ApplyAbilityTargetDefault(string abilityKey) {
+            if (rule.Target.Type != TargetType.Self || string.IsNullOrEmpty(abilityKey)) return false;
+            var parsed = SpellDropdownProvider.ParseKey(abilityKey);
+            var guid = string.IsNullOrEmpty(parsed.VariantGuid) ? parsed.BlueprintGuid : parsed.VariantGuid;
+            var bp = ResourcesLibrary.TryGetBlueprint<BlueprintAbility>(guid);
+            if (bp == null) return false;
+            var defaultTarget = TargetDefaults.ForAbility(rule.Target.Type, bp.CanTargetEnemies, bp.CanTargetFriends, bp.CanTargetSelf);
+            if (!defaultTarget.HasValue) return false;
+            rule.Target.Type = defaultTarget.Value;
+            PersistEdit();
+            return true;
         }
 
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {

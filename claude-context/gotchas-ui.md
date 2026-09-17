@@ -21,3 +21,9 @@ Operative rules for `UI/` (TacticsPanel, RuleEditorWidget, ConditionRowWidget, P
 ## Pickers
 
 - **Buff picker search ranking**: `BuffPickerOverlay.RenderFilteredLayout` sorts by (prefix-match first, shorter-name first). Pure alphabetical breaks search.
+
+## Target defaults on action change (v1.31 dev)
+
+- **`TargetDefaults` (Models) is the SSoT for "what target does a fresh rule get when the action changes"** — Attack/ThrowSplash → `EnemyHighestThreat`, MoveToTarget → `EnemyNearest`, enemy-only ability pick (`CanTargetEnemies && !Friends && !Self`, variant blueprint wins over parent) → `EnemyHighestThreat`. It only ever replaces `TargetType.Self` (the constructor default, enum index 0), so an explicit player choice survives. Extend the switch there, not in the widget; unit-tested in `TargetDefaultsTests`.
+- The action-type handler in `RuleEditorWidget.Action.cs` calls `RebuildBody()` when a default applied (the target row is a separate `PopupSelector` and would otherwise show the stale value). Rebuilding from inside a popup callback is the established pattern (target-type handler does the same). The auto-first-entry paths (`SetupSpellSelector`, `RefreshSpellSelector`) deliberately do NOT apply the ability default — the first spell in a book is arbitrary and would flip the target before the player picked anything.
+- **Deploy check for identifiers**: `strings -el` finds only UTF-16 user strings (log text). Method/type names live in UTF-8 metadata — use plain `strings` for those.
