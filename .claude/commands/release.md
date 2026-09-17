@@ -52,7 +52,7 @@ Führe alle Checks aus, bevor du irgendetwas änderst.
 
 5. **Tag noch nicht vorhanden?**
    ```
-   git rev-parse "vX.Y.Z" 2>/dev/null
+   git rev-parse -q --verify "refs/tags/vX.Y.Z"
    ```
    Existiert bereits: Abbruch mit „Fehler: Tag vX.Y.Z existiert bereits. Version prüfen."
 

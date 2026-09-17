@@ -38,7 +38,7 @@ Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct`
 
 Synthetisches Deck-Testpack (Evil Eye / Attack / Cackle / Move to nearest, Cooldown 0, keine Bedingungen): `docs/testing/deck-smoke/{Presets,Packs}` — per tar-over-ssh aufs Deck (Rezept in `triage.md`); nicht im Scratchpad ablegen, der überlebt keinen Tageswechsel.
 
-Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — ohne `-el` (UTF-16) findet `strings` in .NET-DLLs nichts.
+Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — `-el` (UTF-16) für Log-/User-Strings; Methoden-/Typnamen liegen als UTF-8 in der Metadata → dafür plain `strings`. Falscher Modus = `0` Treffer trotz korrektem Deploy.
 
 ## Architecture
 
@@ -134,6 +134,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).
+- **„Muss ich jedes Mal einstellen"-Reports = Default-Frage, kein Feature-Gap**: jedes Rule-Feld startet auf Enum-Index 0 (`TargetType.Self`, …). Action-abhängige Defaults gehören in `Models/TargetDefaults` (rein, getestet), nie in den Widget-Handler; nur den Index-0-Wert ersetzen, explizite Wahl nie überschreiben.
 - **CodeGraph stale lock**: `database is locked` ODER Agenten melden „not initialized" trotz vorhandener `.codegraph/` ⇒ `rm -rf .codegraph/codegraph.db.lock/`.
 
 ## Release Process
