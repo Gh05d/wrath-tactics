@@ -1,0 +1,15 @@
+{
+  "Id": "a51075e1-0000-4000-8000-000000000002",
+  "Name": "SlotFix 3 · Cackle [Move]",
+  "Enabled": true,
+  "CooldownRounds": 0,
+  "ConditionGroups": [],
+  "Action": {
+    "Type": 1,
+    "AbilityId": "4bd01292a9bc4304f861a6a07f03b855"
+  },
+  "Target": {
+    "Type": 0,
+    "Filter": ""
+  }
+}

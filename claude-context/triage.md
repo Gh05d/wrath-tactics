@@ -49,6 +49,8 @@ The `EXECUTED` line now carries the slot: `EXECUTED [Move] -> Ember`. `[no-slot]
 
 Statt auf eine passende User-Config zu hoffen: Presets als `Presets/{Id}.json` + Pack als `Packs/{Id}.json` direkt aufs Deck legen (Enums **numerisch**, Format aus einem vorhandenen Preset abschauen). **Leere `ConditionGroups` = immer wahr** und `CooldownRounds: 0` erzwingen das volle Muster in jedem Tick — deterministischer Log ohne Condition-Encoding-Risiko. Presets/Packs werden beim Mod-Load gelesen, also Spielneustart nötig. Auswertung: `grep -oE 'EXECUTED \[[A-Za-z-]+\]' | sort | uniq -c` plus die Skip-Gründe.
 
+Presets, die nach der Zuweisung ins Pack kommen, erscheinen erst nach erneutem **Anwenden** des Packs auf der Figur — es gibt keinen Sync beim Laden. Log-Zähler auf den Zeilenanfang ankern (`'\] MoveToTarget: '`), sonst zählen Teilstrings wie `CanMoveToTarget:` mit. Die Fixture liegt im Repo: `docs/testing/deck-smoke/` (Push: `tar -C docs/testing/deck-smoke -cf - Presets Packs | ssh deck-direct "tar -xf - -C '<gamepath>/Mods/WrathTactics'"`).
+
 Das Pack danach von der Figur abziehen — `CooldownRounds: 0` + leere Conditions heißt sonst jede Runde in jedem Kampf.
 
 ## Silent Freezes

@@ -1,0 +1,15 @@
+{
+  "Id": "a51075e1-0000-4000-8000-000000000003",
+  "Name": "SlotFix 2 · Attack nearest [Standard]",
+  "Enabled": true,
+  "CooldownRounds": 0,
+  "ConditionGroups": [],
+  "Action": {
+    "Type": 4,
+    "AbilityId": ""
+  },
+  "Target": {
+    "Type": 4,
+    "Filter": ""
+  }
+}

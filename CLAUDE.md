@@ -12,6 +12,8 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 
 **Release build** (produces distribution zip): add `-c Release` — the `CreateZip` target only runs in Release config; output `bin/WrathTactics-<version>.zip`. NU1900 warnings im Build = NuGet-Vulnerability-Index via Proxy unerreichbar — harmlos, kein Artefakt-Problem.
 
+**Build-Ergebnis in Ketten prüfen**: `OUT=$(~/.dotnet/dotnet build … 2>&1); echo "$OUT" | grep -q ' error ' && exit 1` — ein `grep -E ' error |Build succeeded'` ist bei Fehlern trotzdem exit 0 und lässt `&& git commit && ./deploy.sh` weiterlaufen.
+
 **Version bump requires TWO files**: `WrathTactics/Info.json` (UMM reads this) and `WrathTactics/WrathTactics.csproj` `<Version>`. Bumping only one ships a zip with the stale version in its name.
 
 ## Tests
@@ -33,6 +35,8 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 ```
 
 Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias. **Dev-only** — Debug build for smoke-testing; release builds come from `/release`'s Release-config build.
+
+Synthetisches Deck-Testpack (Evil Eye / Attack / Cackle / Move to nearest, Cooldown 0, keine Bedingungen): `docs/testing/deck-smoke/{Presets,Packs}` — per tar-over-ssh aufs Deck (Rezept in `triage.md`); nicht im Scratchpad ablegen, der überlebt keinen Tageswechsel.
 
 Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — ohne `-el` (UTF-16) findet `strings` in .NET-DLLs nichts.
 
@@ -126,6 +130,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Packs live in their own directory (`Packs/`), never `Presets/`** — `PresetManager.LoadAll` globs `Presets/*.json` and would silently parse a pack file as a malformed rule (`gotchas-persistence.md`).
 - **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts (`WrathOfTheUndeadCountBuff` machte Golems zu Untoten); Bug-Klasse traf HasBuff (pre-1.17.4) UND CreatureType (pre-1.23.3). Details `gotchas-conditions.md`.
 - **Move und Standard sind gepaarte Slots**: `UnitCommands.Run` eines Move-Kommandos löscht das Standard-Kommando (pending oder laufend) und umgekehrt; nur Swift/Free sind unabhängig. Eine Move-Regel darf nie über einem eigenen Cast feuern (`ActionSlots.CheckConflict`, `gotchas-engine.md`).
+- **KI-Kommando vs. Spielerklick = `UnitCommand.AiAction`**: `AiBrainController.SelectAction` stempelt jedes eigene Kommando, ein Klick nie. Nie über Blueprint (`Brain.AutoUseAbility`) unterscheiden — der Spieler castet denselben Zauber auch explizit (`gotchas-engine.md`).
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).

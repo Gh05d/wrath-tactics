@@ -1,0 +1,16 @@
+{
+  "Id": "a51075e1-0000-4000-8000-000000000004",
+  "Name": "SlotFix 4 · Move to nearest (melee) [Move]",
+  "Enabled": true,
+  "CooldownRounds": 0,
+  "ConditionGroups": [],
+  "Action": {
+    "Type": 9,
+    "AbilityId": "",
+    "MoveWithin": 0
+  },
+  "Target": {
+    "Type": 4,
+    "Filter": ""
+  }
+}

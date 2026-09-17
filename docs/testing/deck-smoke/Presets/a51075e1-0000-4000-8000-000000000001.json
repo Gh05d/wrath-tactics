@@ -1,0 +1,15 @@
+{
+  "Id": "a51075e1-0000-4000-8000-000000000001",
+  "Name": "SlotFix 1 · Evil Eye [Standard]",
+  "Enabled": true,
+  "CooldownRounds": 1,
+  "ConditionGroups": [],
+  "Action": {
+    "Type": 1,
+    "AbilityId": "899b08dfc31868e4cb2c6287df9d355c"
+  },
+  "Target": {
+    "Type": 4,
+    "Filter": ""
+  }
+}
