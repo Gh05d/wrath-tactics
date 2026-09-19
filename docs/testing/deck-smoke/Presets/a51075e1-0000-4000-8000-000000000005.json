@@ -1,13 +1,13 @@
 {
   "Id": "a51075e1-0000-4000-8000-000000000005",
-  "Name": "WalkHold 1 · Move to Arasmes (Short) [Move]",
+  "Name": "WalkHold 1 · Move to Arasmes (Melee) [Move]",
   "Enabled": true,
   "CooldownRounds": 0,
   "ConditionGroups": [],
   "Action": {
     "Type": 9,
     "AbilityId": "",
-    "MoveWithin": 2
+    "MoveWithin": 0
   },
   "Target": {
     "Type": 22,

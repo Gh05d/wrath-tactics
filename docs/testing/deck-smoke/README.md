@@ -15,7 +15,7 @@ Remove the pack's rules from the unit afterwards (chip menu, option 2) — it fi
 ## Walk Hold Test (pack `…fac2`)
 
 Reproduces the 1.31.0 report: walk rule above Cackle, both cooldown 0, no conditions.
-Preset `…0005` walks to within Short (10 m) of a **pinned ally** (`TargetType.SpecificAlly` = 22,
+Preset `…0005` walks to within Melee (2 m) of a **pinned ally** (Short was too short: a 16.7 m start finished the walk inside one 3 s tick window and never exercised the hold) (`TargetType.SpecificAlly` = 22,
 `Filter` = the ally's `UniqueId`; the fixture pins Arasmes in Pascal's save,
 `43b607d1-766c-4cac-8034-adfd79124293` — replace for another save, ids are in
 `UserSettings/tactics-<GameId>.json`). Apply to Ember, start a fight with her well behind Arasmes.
