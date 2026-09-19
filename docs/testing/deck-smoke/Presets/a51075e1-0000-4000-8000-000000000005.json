@@ -1,0 +1,16 @@
+{
+  "Id": "a51075e1-0000-4000-8000-000000000005",
+  "Name": "WalkHold 1 · Move to Arasmes (Short) [Move]",
+  "Enabled": true,
+  "CooldownRounds": 0,
+  "ConditionGroups": [],
+  "Action": {
+    "Type": 9,
+    "AbilityId": "",
+    "MoveWithin": 2
+  },
+  "Target": {
+    "Type": 22,
+    "Filter": "43b607d1-766c-4cac-8034-adfd79124293"
+  }
+}
