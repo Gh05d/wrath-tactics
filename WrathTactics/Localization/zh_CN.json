@@ -271,12 +271,12 @@
   "enum.splash_mode.Strongest": "最强",
   "enum.splash_mode.Cheapest": "最便宜",
 
-  "enum.range.Melee": "近战 (≤2 米)",
-  "enum.range.Cone": "锥形 (≤5 米)",
-  "enum.range.Short": "短 (≤10 米)",
-  "enum.range.Medium": "中 (≤20 米)",
-  "enum.range.Far": "远 (≤30 米)",
-  "enum.range.Long": "长 (≤40 米)",
+  "enum.range.Melee": "近战 (≤2 米 / 6.5 ft)",
+  "enum.range.Cone": "锥形 (≤5 米 / 16 ft)",
+  "enum.range.Short": "短 (≤10 米 / 33 ft)",
+  "enum.range.Medium": "中 (≤20 米 / 66 ft)",
+  "enum.range.Far": "远 (≤30 米 / 98 ft)",
+  "enum.range.Long": "长 (≤40 米 / 131 ft)",
 
   "enum.creature_type.Aberration": "异怪",
   "enum.creature_type.Animal": "动物",

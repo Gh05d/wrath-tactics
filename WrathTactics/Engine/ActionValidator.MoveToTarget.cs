@@ -17,6 +17,15 @@ namespace WrathTactics.Engine {
         internal const float WalkRetargetMeters = 1.5f;
 
         public static bool CanMoveToTarget(UnitEntityData owner, ResolvedTarget target, RangeBracket within) {
+            return CanMoveToTarget(owner, target, within, out _);
+        }
+
+        /// <summary>True when the walk rule is still needed: the unit is walking there
+        /// already. The evaluator turns this into a hold on lower rules — any Standard or
+        /// Move command they issued would cancel the walk (paired slots).</summary>
+        public static bool CanMoveToTarget(UnitEntityData owner, ResolvedTarget target, RangeBracket within,
+                                           out bool walkInProgress) {
+            walkInProgress = false;
             if (!TryGetMoveDestination(owner, target, out var destination, out float distance)) return false;
             if (!RangeBrackets.Beyond(distance, within)) {
                 Log.Engine.Trace($"CanMoveToTarget: {owner.CharacterName} already within {within} ({distance:F1} m)");
@@ -26,6 +35,7 @@ namespace WrathTactics.Engine {
             if (current != null && !current.IsFinished && PlayerCommandGuard.IsOurs(owner, current)
                 && Vector3.Distance(current.Target, destination) <= WalkRetargetMeters) {
                 Log.Engine.Trace($"CanMoveToTarget: {owner.CharacterName} walk in progress ({distance:F1} m left)");
+                walkInProgress = true;
                 return false;
             }
             return true;

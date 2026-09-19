@@ -114,6 +114,17 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// Rule types whose command the engine starts regardless of action cooldowns.
+        /// UnitCommandController.ShouldStartCommand returns true for UnitMoveTo (and area
+        /// transitions) BEFORE its HasCooldownForCommand check — walking is free in RTWP,
+        /// exactly as a player's ground click right after a cast. Gating a walk on the move
+        /// action made it wait up to 3 s for nothing (Nexus, 1.31.0 follow-up).
+        /// </summary>
+        internal static bool UsesActionBudget(ActionType type) {
+            return type != ActionType.MoveToTarget;
+        }
+
+        /// <summary>
         /// A running Swift does NOT hold a pending Standard back (the engine's Standard start
         /// check only looks at a running Move). So a Swift may overlap a pending Standard only
         /// when the Standard is guaranteed to still be cooling down after the swift animation

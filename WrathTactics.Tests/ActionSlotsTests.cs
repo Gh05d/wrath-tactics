@@ -220,6 +220,14 @@ namespace WrathTactics.Tests {
         }
 
         [Fact]
+        public void walks_bypass_the_action_budget_every_other_type_uses_it() {
+            Assert.False(ActionSlots.UsesActionBudget(ActionType.MoveToTarget));
+            Assert.True(ActionSlots.UsesActionBudget(ActionType.CastSpell));
+            Assert.True(ActionSlots.UsesActionBudget(ActionType.AttackTarget));
+            Assert.True(ActionSlots.UsesActionBudget(ActionType.CastAbility));
+        }
+
+        [Fact]
         public void a_slot_not_on_cooldown_is_never_spent_whatever_the_number_says() {
             // HasCooldownForCommand is the engine's verdict; the float is only used for the
             // buffering tolerance.

@@ -271,12 +271,12 @@
   "enum.splash_mode.Strongest": "Сильнейший",
   "enum.splash_mode.Cheapest": "Дешёвый",
 
-  "enum.range.Melee": "Ближний (≤2 м)",
-  "enum.range.Cone": "Конус (≤5 м)",
-  "enum.range.Short": "Короткий (≤10 м)",
-  "enum.range.Medium": "Средний (≤20 м)",
-  "enum.range.Far": "Дальний (≤30 м)",
-  "enum.range.Long": "Длинный (≤40 м)",
+  "enum.range.Melee": "Ближний (≤2 м / 6.5 ft)",
+  "enum.range.Cone": "Конус (≤5 м / 16 ft)",
+  "enum.range.Short": "Короткий (≤10 м / 33 ft)",
+  "enum.range.Medium": "Средний (≤20 м / 66 ft)",
+  "enum.range.Far": "Дальний (≤30 м / 98 ft)",
+  "enum.range.Long": "Длинный (≤40 м / 131 ft)",
 
   "enum.creature_type.Aberration": "Аберрация",
   "enum.creature_type.Animal": "Животное",

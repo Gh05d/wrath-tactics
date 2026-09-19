@@ -162,16 +162,26 @@ namespace WrathTactics.Engine {
             // (Free = 0, Standard = 1, Swift = 2, Move = 3). Shared across the global and
             // character lists so a standard-action rule in the global list still blocks a
             // standard-action rule in the character list within the same tick.
-            var slotUsed = new bool[4];
-
             // Toggle rules issue no command, so the slot budget cannot bound them. Bound them
-            // per activatable instead — see the togglesUsed check in TryExecuteRules.
-            var togglesUsed = new HashSet<string>();
+            // per activatable instead — see the TogglesUsed check in TryExecuteRules.
+            var tick = new UnitTickState();
 
             // TryExecuteRules now returns "stop evaluating this unit", not "something fired".
-            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate, slotUsed, togglesUsed))
+            if (TryExecuteRules(globalRules, unit, RuleListSource.Global, gameTimeSec, inCombat, globalGate, tick))
                 return;
-            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate, slotUsed, togglesUsed);
+            TryExecuteRules(charRules, unit, RuleListSource.Character, gameTimeSec, inCombat, charGate, tick);
+        }
+
+        /// <summary>Per-unit, per-tick state shared by the global and character passes.</summary>
+        sealed class UnitTickState {
+            /// <summary>One command per slot per tick, indexed by (int)UnitCommand.CommandType.</summary>
+            public readonly bool[] SlotUsed = new bool[4];
+            public readonly HashSet<string> TogglesUsed = new HashSet<string>();
+            /// <summary>Set when a MoveToTarget rule matched and its own walk is still under
+            /// way: label of that rule. Lower rules must not issue a Standard or Move command —
+            /// either would cancel the walk (paired slots), inverting the list priority
+            /// (Nexus, 1.31.0: Cackle below the walk rule stopped the walk every tick).</summary>
+            public string WalkHold;
         }
 
         // Returns true when evaluation of this unit must stop for the whole tick
@@ -179,7 +189,7 @@ namespace WrathTactics.Engine {
         // continues so the unit can spend its remaining action slots.
         static bool TryExecuteRules(List<TacticsRule> rules, UnitEntityData unit,
             RuleListSource source, float gameTimeSec, bool inCombat, int priorityLimit,
-            bool[] slotUsed, HashSet<string> togglesUsed) {
+            UnitTickState tick) {
             for (int i = 0; i < rules.Count; i++) {
                 var entry = rules[i];
                 if (!entry.Enabled) continue;
@@ -216,11 +226,18 @@ namespace WrathTactics.Engine {
                 // must run before the gate and budget checks.
                 if (!ActionValidator.CanExecute(rule.Action, unit, target, out var abilitySlot)) {
                     // MoveToTarget falls through by design once the unit is inside its
-                    // bracket (validator traced "already within"); that is not a WARN.
-                    if (rule.Action.Type == ActionType.MoveToTarget)
+                    // bracket (validator traced "already within"); that is not a WARN. A walk
+                    // still under way keeps this rule's priority: hold the paired slots.
+                    if (rule.Action.Type == ActionType.MoveToTarget) {
+                        if (tick.WalkHold == null
+                            && ActionValidator.CanMoveToTarget(unit, target, rule.Action.MoveWithin, out bool walking) == false
+                            && walking) {
+                            tick.WalkHold = $"Rule {i} \"{rule.Name}\" ({source})";
+                        }
                         Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): move not needed or not possible");
-                    else
+                    } else {
                         Log.Engine.Warn($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): MATCH but action not executable");
+                    }
                     continue;
                 }
 
@@ -234,9 +251,17 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
+                // A higher rule's walk is under way: a Standard or Move command from a lower
+                // rule would cancel it (paired slots). Swift/Free commands leave it alone.
+                if (tick.WalkHold != null && slot.HasValue
+                    && (slot.Value == UnitCommand.CommandType.Standard || slot.Value == UnitCommand.CommandType.Move)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): waiting for walk to finish ({tick.WalkHold})");
+                    continue;
+                }
+
                 // Per-tick budget: one command per slot. Without it two swift rules in the
                 // same tick would destroy each other via InterruptAndRemoveCommand(Swift).
-                if (slot.HasValue && slotUsed[(int)slot.Value]) {
+                if (slot.HasValue && tick.SlotUsed[(int)slot.Value]) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): slot {slot.Value} already used this tick");
                     continue;
                 }
@@ -245,7 +270,8 @@ namespace WrathTactics.Engine {
                 // this round and would not free before the next tick. Standard commands used
                 // to be issued regardless and buffer in their slot — which, through the
                 // paired-slot rule, starved every Move rule below a cooldown-0 Standard rule.
-                if (slot.HasValue && IsActionSpent(unit, slot.Value, out var spentReason)) {
+                if (slot.HasValue && ActionSlots.UsesActionBudget(rule.Action.Type)
+                    && IsActionSpent(unit, slot.Value, out var spentReason)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): {spentReason}");
                     continue;
                 }
@@ -258,7 +284,7 @@ namespace WrathTactics.Engine {
                 // Keyed per ability, so unrelated toggles still fire in the same tick.
                 if (rule.Action.Type == ActionType.ToggleActivatable
                     && !string.IsNullOrEmpty(rule.Action.AbilityId)
-                    && togglesUsed.Contains(rule.Action.AbilityId)) {
+                    && tick.TogglesUsed.Contains(rule.Action.AbilityId)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): activatable already toggled this tick");
                     continue;
                 }
@@ -287,10 +313,10 @@ namespace WrathTactics.Engine {
                 if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
                     if (issuedCmd != null) RememberIssued(unit, issuedCmd, cooldownKey, $"Rule {i} \"{rule.Name}\" ({source})");
-                    if (slot.HasValue) slotUsed[(int)slot.Value] = true;
+                    if (slot.HasValue) tick.SlotUsed[(int)slot.Value] = true;
                     if (rule.Action.Type == ActionType.ToggleActivatable
                         && !string.IsNullOrEmpty(rule.Action.AbilityId)) {
-                        togglesUsed.Add(rule.Action.AbilityId);
+                        tick.TogglesUsed.Add(rule.Action.AbilityId);
                     }
                     // Only gated (Standard) rules go into the tracker, so its contents keep
                     // exactly their present meaning and ActiveRuleTracker stays untouched.
