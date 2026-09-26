@@ -25,24 +25,11 @@ namespace WrathTactics.UI {
         public static GameObject Open(List<SpellDropdownProvider.SpellEntry> entries,
             string currentGuid,
             Action<SpellDropdownProvider.SpellEntry> onSelected) {
-            var canvas = Game.Instance.UI.Canvas.transform;
-
-            var (overlay, overlayRect) = UIHelpers.Create("SpellPickerOverlay", canvas);
-            overlayRect.FillParent();
-            UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.4f));
-            overlay.AddComponent<Button>().onClick.AddListener(() => Destroy(overlay));
-
-            var (popup, popupRect) = UIHelpers.Create("Popup", overlay.transform);
-            UIHelpers.AddBackground(popup, new Color(0.12f, 0.12f, 0.12f, 0.99f));
-            popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-            popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-            popupRect.pivot = new Vector2(0.5f, 0.5f);
-            popupRect.anchoredPosition = Vector2.zero;
-            popupRect.sizeDelta = new Vector2(480f, 540f);
-
-            // Prevent popup clicks from bubbling up and closing the overlay.
-            var swallow = popup.AddComponent<Button>();
-            swallow.targetGraphic = popup.GetComponent<Image>();
+            // No title (no locale key for it); close = outside click / Escape, as before.
+            var parts = Widgets.PaperPopup("SpellPickerOverlay", Theme.PopupWidth, Theme.PopupHeight, null, null);
+            var overlay = parts.Overlay;
+            var popup = parts.Popup;
+            parts.OverlayButton.onClick.AddListener(() => Destroy(overlay));
 
             var controller = popup.AddComponent<SpellPickerOverlay>();
             controller.entries = entries ?? new List<SpellDropdownProvider.SpellEntry>();
@@ -52,14 +39,14 @@ namespace WrathTactics.UI {
                 onSelected?.Invoke(entry);
                 Destroy(overlay);
             };
-            controller.BuildUI(popup);
+            controller.BuildUI(parts.Content);
             controller.RenderList();
 
             return overlay;
         }
 
         void BuildUI(GameObject popup) {
-            const float headerHeight = 52f;  // 40 felt cramped — overlay is 480x540 (BuffPicker's 420x500 used 40)
+            float headerHeight = Theme.RowHeight + 8f;
 
             var (header, headerRect) = UIHelpers.Create("Header", popup.transform);
             headerRect.anchorMin = new Vector2(0, 1);
@@ -67,7 +54,6 @@ namespace WrathTactics.UI {
             headerRect.pivot = new Vector2(0.5f, 1f);
             headerRect.sizeDelta = new Vector2(0, headerHeight);
             headerRect.anchoredPosition = Vector2.zero;
-            UIHelpers.AddBackground(header, new Color(0.18f, 0.18f, 0.18f, 1f));
 
             searchInput = UIHelpers.CreateTMPInputField(header, "Search",
                 0.02, 0.98, "", 16f);
@@ -188,15 +174,12 @@ namespace WrathTactics.UI {
         void AddInfoLabel(string text) {
             var (info, _) = UIHelpers.Create("Info", rowsContainer.transform);
             info.AddComponent<LayoutElement>().preferredHeight = 28;
-            var label = UIHelpers.AddLabel(info, text, 13f, TextAlignmentOptions.Midline,
-                new Color(0.55f, 0.55f, 0.55f));
+            var label = Widgets.InkLabel(info, text, 13f, TextAlignmentOptions.Midline, Theme.InkMuted, italic: true);
             label.margin = new Vector4(8, 0, 8, 0);
         }
 
         void AddRow(SpellDropdownProvider.SpellEntry entry) {
-            var (row, _) = UIHelpers.Create("Row_" + (entry.Guid ?? ""), rowsContainer.transform);
-            row.AddComponent<LayoutElement>().preferredHeight = 32;
-            UIHelpers.AddBackground(row, new Color(0.2f, 0.2f, 0.2f, 1f));
+            var row = Widgets.ListRow(rowsContainer.transform, "Row_" + (entry.Guid ?? ""), Theme.PopupRowHeight, false);
 
             // Icon on the left (28x28 inside the 32px row)
             if (entry.Icon != null) {
@@ -210,11 +193,14 @@ namespace WrathTactics.UI {
                 img.raycastTarget = false;
             }
 
-            var label = UIHelpers.AddLabel(row, entry.Name, 14f, TextAlignmentOptions.MidlineLeft);
+            var label = Widgets.InkLabel(row, entry.Name, 14f);
             label.margin = new Vector4(entry.Icon != null ? 40 : 8, 0, 4, 0);
 
             var captured = entry;
-            row.AddComponent<Button>().onClick.AddListener(() => onSelected?.Invoke(captured));
+            var rowBtn = row.AddComponent<Button>();
+            rowBtn.targetGraphic = row.GetComponent<Image>();
+            Widgets.ApplyColorTint(rowBtn);
+            rowBtn.onClick.AddListener(() => onSelected?.Invoke(captured));
         }
     }
 }

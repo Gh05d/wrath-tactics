@@ -31,25 +31,10 @@ namespace WrathTactics.UI {
 
         public static GameObject Open(string currentGuid, ConditionSubject subject,
             Action<string> onSelected) {
-            var canvas = Game.Instance.UI.Canvas.transform;
-
-            var (overlay, overlayRect) = UIHelpers.Create("BuffPickerOverlay", canvas);
-            overlayRect.FillParent();
-            UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.4f));
-            overlay.AddComponent<Button>().onClick.AddListener(() => Destroy(overlay));
-
-            var (popup, popupRect) = UIHelpers.Create("Popup", overlay.transform);
-            UIHelpers.AddBackground(popup, new Color(0.12f, 0.12f, 0.12f, 0.99f));
-            popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-            popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-            popupRect.pivot = new Vector2(0.5f, 0.5f);
-            popupRect.anchoredPosition = Vector2.zero;
-            popupRect.sizeDelta = new Vector2(420f, 500f);
-
-            // Prevent clicks on the popup from bubbling to the overlay (which would close it).
-            // Bind the Button's targetGraphic to the background Image that AddBackground attached.
-            var swallow = popup.AddComponent<Button>();
-            swallow.targetGraphic = popup.GetComponent<Image>();
+            var parts = Widgets.PaperPopup("BuffPickerOverlay", Theme.PopupWidth * 0.9f, Theme.PopupHeight * 0.93f, null, null);
+            var overlay = parts.Overlay;
+            var popup = parts.Popup;
+            parts.OverlayButton.onClick.AddListener(() => Destroy(overlay));
 
             var controller = popup.AddComponent<BuffPickerOverlay>();
             controller.subject = subject;
@@ -60,14 +45,14 @@ namespace WrathTactics.UI {
                 onSelected?.Invoke(guid);
                 Destroy(overlay);
             };
-            controller.BuildUI(popup);
+            controller.BuildUI(parts.Content);
             controller.RenderList(); // initial render with empty query
 
             return overlay;
         }
 
         void BuildUI(GameObject popup) {
-            const float headerHeight = 40f;
+            float headerHeight = Theme.RowHeight + 4f;
 
             // Header: pinned to the top, 40px tall. Pivot at top-center so
             // anchoredPosition (0,0) puts its top edge flush with the popup's top edge.
@@ -77,7 +62,6 @@ namespace WrathTactics.UI {
             headerRect.pivot = new Vector2(0.5f, 1f);
             headerRect.sizeDelta = new Vector2(0, headerHeight);
             headerRect.anchoredPosition = Vector2.zero;
-            UIHelpers.AddBackground(header, new Color(0.18f, 0.18f, 0.18f, 1f));
 
             searchInput = UIHelpers.CreateTMPInputField(header, "Search",
                 0.02, 0.98, "", 16f);
@@ -258,34 +242,30 @@ namespace WrathTactics.UI {
 
         void AddSectionHeader(string text) {
             var (hdr, _) = UIHelpers.Create("Header_" + text, rowsContainer.transform);
-            hdr.AddComponent<LayoutElement>().preferredHeight = 24;
-            UIHelpers.AddBackground(hdr, new Color(0.08f, 0.08f, 0.08f, 1f));
-            var label = UIHelpers.AddLabel(hdr, text, 13f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.7f, 0.7f, 0.7f));
-            label.margin = new Vector4(6, 0, 4, 0);
+            hdr.AddComponent<LayoutElement>().preferredHeight = Theme.SectionLabelHeight;
+            Widgets.SectionLabel(hdr, text, 13f).margin = new Vector4(6, 0, 4, 0);
         }
 
         void AddInfoLabel(string text) {
             var (info, _) = UIHelpers.Create("Info", rowsContainer.transform);
             info.AddComponent<LayoutElement>().preferredHeight = 28;
-            var label = UIHelpers.AddLabel(info, text, 13f, TextAlignmentOptions.Midline,
-                new Color(0.55f, 0.55f, 0.55f));
+            var label = Widgets.InkLabel(info, text, 13f, TextAlignmentOptions.Midline, Theme.InkMuted, italic: true);
             label.margin = new Vector4(8, 0, 8, 0);
         }
 
         void AddRow(BuffBlueprintProvider.BuffEntry entry) {
-            var (row, _) = UIHelpers.Create("Row_" + entry.Guid, rowsContainer.transform);
-            row.AddComponent<LayoutElement>().preferredHeight = 32;
-            UIHelpers.AddBackground(row, new Color(0.2f, 0.2f, 0.2f, 1f));
+            var row = Widgets.ListRow(rowsContainer.transform, "Row_" + entry.Guid, Theme.PopupRowHeight, false);
             // Localized name + dim internal id (e.g. "Evil Eye (ShamanEvilEyeHexBuff)") so
             // distinct buffs sharing a display name are distinguishable — HasBuff matches by
             // exact GUID, so picking the wrong same-named blueprint silently never matches.
-            var label = UIHelpers.AddLabel(row,
-                BuffBlueprintProvider.FormatDisplayLabel(entry.Name, entry.InternalName),
-                14f, TextAlignmentOptions.MidlineLeft);
+            var label = Widgets.InkLabel(row,
+                BuffBlueprintProvider.FormatDisplayLabel(entry.Name, entry.InternalName), 14f);
             label.margin = new Vector4(8, 0, 4, 0);
             var guid = entry.Guid;
-            row.AddComponent<Button>().onClick.AddListener(() => onSelected?.Invoke(guid));
+            var rowBtn = row.AddComponent<Button>();
+            rowBtn.targetGraphic = row.GetComponent<Image>();
+            Widgets.ApplyColorTint(rowBtn);
+            rowBtn.onClick.AddListener(() => onSelected?.Invoke(guid));
         }
 
 
