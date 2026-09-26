@@ -4,6 +4,8 @@
 
 Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteous. UMM mod that lets players define prioritized rules per companion (and globally) that are evaluated in real-time combat and executed as actions.
 
+Shared build/deploy/Nexus/release rules: → parent `wrath-mods/CLAUDE.md` (§Common Build Setup, §Steam Deck Deployment, §Nexus Mods, §Release Process). Incident history behind the rules here: `claude-context/incidents.md`.
+
 ## Build
 
 ```bash
@@ -14,7 +16,7 @@ Dragon Age Origins-style companion tactics for Pathfinder: Wrath of the Righteou
 
 **Build-Ergebnis in Ketten prüfen**: `OUT=$(~/.dotnet/dotnet build … 2>&1); echo "$OUT" | grep -q ' error ' && exit 1` — ein `grep -E ' error |Build succeeded'` ist bei Fehlern trotzdem exit 0 und lässt `&& git commit && ./deploy.sh` weiterlaufen.
 
-**Version bump requires TWO files**: `WrathTactics/Info.json` (UMM reads this) and `WrathTactics/WrathTactics.csproj` `<Version>`. Bumping only one ships a zip with the stale version in its name.
+**Version files** (generic rule → parent §Release Process): `WrathTactics/Info.json` (UMM reads this), `WrathTactics/WrathTactics.csproj` `<Version>` (zip filename), `Repository.json`. Bumping only one ships a zip with the stale version in its name.
 
 ## Tests
 
@@ -24,10 +26,8 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 ~/.dotnet/dotnet test WrathTactics.Tests/WrathTactics.Tests.csproj -p:SolutionDir=$(pwd)/
 ```
 
-- **Flaky mono runner — loop until green before believing failures**: the first run after a build often crashes the mono host (mass-failures with run-to-run varying counts = flake signature, not regression; can flake several times in a row). `for i in 1 2 3; do ~/.dotnet/dotnet test --no-build WrathTactics.Tests/WrathTactics.Tests.csproj -p:SolutionDir=$(pwd)/; done` — trust the first all-green run; only trust failures that reproduce.
-- **Game-DLLs im Test-Output ≠ Compile-Referenz**: `CopyGameDllsToTestOutput` reicht fürs Typ-Laden zur Laufzeit, aber ein Test, der einen Kingmaker-Typ *benennt* (`UnitCommand.CommandType`), scheitert an `CS0246: Kingmaker could not be found`. Die csproj importiert deshalb `GamePath.props` und referenziert `Assembly-CSharp.dll` (nicht-publicized, nur Public-Surface).
-- **UI-Layout ist nur am Deck verifizierbar**: xUnit kann keine GameObjects bauen, ein Code-Review sieht uGUI-Layoutfehler nicht. Jede Schicht UI-Arbeit endet mit einem Screenshot vom User (Steam + R1, er pastet ihn); ohne den gilt sie als ungetestet. Pure Teile (`Theme.PackBandTint`) bekommen echte Tests — die csproj referenziert dafür `UnityEngine.CoreModule.dll` (Color/Mathf sind managed).
-- Game DLLs are copied to test output by an `AfterTargets="Build"` target (without it: `TypeLoadException`). `InternalsVisibleTo` in `WrathTactics/Properties/AssemblyInfo.cs` — promote private statics to `internal static` to test them. No CI by design (game DLLs unreachable from GitHub runners).
+- **Flaky mono runner — loop until green before believing failures** (`for i in 1 2 3; do … test --no-build …; done`; mass-failures with varying counts = flake, not regression). Test-csproj facts (game DLLs copied to output by `AfterTargets="Build"`, compile reference to non-publicized `Assembly-CSharp.dll` + `UnityEngine.CoreModule.dll`, `InternalsVisibleTo` → `internal static`, no CI by design) and the Deck smoke-test pack (`docs/testing/deck-smoke/`): `claude-context/testing.md`.
+- **UI-Layout ist nur am Deck verifizierbar** — jede Schicht UI-Arbeit endet mit einem Screenshot vom User; ohne den gilt sie als ungetestet (`testing.md`).
 
 ## Deploy
 
@@ -35,25 +35,24 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 ./deploy.sh
 ```
 
-Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias. **Dev-only** — Debug build for smoke-testing; release builds come from `/release`'s Release-config build.
-
-Synthetisches Deck-Testpack (Evil Eye / Attack / Cackle / Move to nearest, Cooldown 0, keine Bedingungen): `docs/testing/deck-smoke/{Presets,Packs}` — per tar-over-ssh aufs Deck (Rezept in `triage.md`); nicht im Scratchpad ablegen, der überlebt keinen Tageswechsel.
-
-- **`./deploy.sh` immer mit `timeout 240` und NIE in einer `&&`-Kette vor `git commit`**: ein SSH-Hänger (USB-Link kurz weg) blockiert sonst bis zum Tool-Timeout und der Commit fällt mit. Erst `timeout 12 ssh -o ConnectTimeout=6 deck-direct true`; ein einzelner Timeout heißt nicht „Deck offline" — 2026-09-26 zweimal falsch geschlossen, während der User am Deck saß.
-
-Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — `-el` (UTF-16) für Log-/User-Strings; Methoden-/Typnamen liegen als UTF-8 in der Metadata → dafür plain `strings`. Falscher Modus = `0` Treffer trotz korrektem Deploy.
+Rules (timeout 240, never in an `&&` chain before `git commit`, SSH probe first, `strings -el` verification): → parent §Steam Deck Deployment. Tactics-specific: `deploy.sh` also creates `<game>/Mods/WrathTactics/Assets/icons/` and ships `Assets/icons/*.png` (required by `AssetLoader`) next to DLL + Info.json.
 
 ## Architecture
 
 ```
 WrathTactics/
   Main.cs              # UMM entry point, Harmony init, Update() tick loop
+  Assets/icons/        # PNG sprites for the UI (deployed by deploy.sh, loaded by AssetLoader)
   Engine/              # Combat AI logic
     TacticsEvaluator   # Main tick loop — evaluates rules per companion each interval
-    ConditionEvaluator # Evaluates rule conditions (HP%, buffs, saves, creature type)
+    ConditionEvaluator # Evaluates rule conditions (HP%, buffs, saves, creature type);
+                       # partials .Buckets / .Helpers / .PickMetrics / .UnitProperty
     TargetResolver     # Resolves target selection (lowest HP, nearest, creature type)
     CommandExecutor    # Executes actions (cast spell, use item, toggle, attack)
-    ActionValidator    # Pre-checks action validity (range, resources, cooldown)
+    ActionValidator    # Pre-checks action validity (range, resources, cooldown); partials per Action type (§Code Style)
+    ActionSlots        # Paired-slot conflict model (Move ↔ Standard), CheckConflict
+    CommandDiagnostics # Logs interrupt callers + TickCommand interrupt inputs (§Logs)
+    IssuedCommandOutcome # Result of an issued command (accepted/discarded/…)
     ThreatCalculator   # Computes per-enemy threat scores
     PlayerCommandGuard # Reference-tracks own commands; gates eval on foreign casts
     ActiveRuleTracker  # DAO priority gate (per-unit)
@@ -75,17 +74,18 @@ WrathTactics/
     BuffIndexCache     # Persisted buff metadata index, game-version+locale stamped
     BuffPackScanner    # Full blueprint enumeration → buff metadata (main-thread, persisted)
     AssetLoader        # Loads PNGs as 9-slice Sprites for UI
-  Models/              # TacticsRule, TacticsConfig, Enums
+  Models/              # TacticsRule, TacticsConfig, TacticsPack, Enums, TargetDefaults (action-dependent index-0 defaults)
   Persistence/         # ConfigManager (per-save JSON), PresetManager, PackManager,
-                       # SafeConditionConverter
-  UI/                  # TacticsPanel, RuleEditorWidget, ConditionRowWidget, PresetPanel,
-                       # PackPanel, PackPalette, SaveAsPackOverlay, BuffPickerOverlay,
-                       # SpellPickerOverlay, SpellDropdownProvider, UIHelpers,
-                       # Theme (alle Farben/Maße) + Widgets (alle Controls) — SSoT, s. gotchas-ui.md
-  tools/extract_sprites.py  # Owlcat-Sprites + 9-Slice-Borders aus sharedassets0.assets (UnityPy-venv)
+                       # ModSettingsManager, SafeConditionConverter
+  UI/                  # TacticsPanel, RuleEditorWidget (+ partials .Action/.Cooldown/.Header/.Target),
+                       # ConditionRowWidget, PresetPanel, PackPanel, PackPalette, SaveAsPackOverlay,
+                       # BuffPickerOverlay, SpellPickerOverlay, SpellDropdownProvider,
+                       # PortraitToggleBadge/PortraitToggleOverlay, UIHelpers,
+                       # Theme (alle Farben/Maße) + ThemeProvider + Widgets (alle Controls) — SSoT, s. gotchas-ui.md
   Compatibility/       # BubbleBuffsCompat (Buff It 2 The Limit integration)
   Localization/        # Strings + EnumLabels + 5 locale JSONs (en/de/fr/ru/zh)
   Logging/             # Category-based logging (Engine, Game, Persistence, UI)
+tools/extract_sprites.py  # (repo root) Owlcat-Sprites + 9-Slice-Borders aus sharedassets0.assets (UnityPy-venv)
 ```
 
 ### Core Data Flow
@@ -102,7 +102,7 @@ Main.OnUpdate() → TacticsEvaluator.Tick(gameTime)
 ## UI
 
 - **Keybind:** `Ctrl+T` toggles the Tactics panel, `ESC` closes it when open
-- **HUD button:** Small "Tactics" button at bottom-left (10px from left, 80px from bottom), created lazily once `Game.Instance.UI.Canvas` is available
+- **HUD button:** helmet-sprite button parented into the game's HUD `GridLayoutGroup` (next to BubbleBuffs' buttons when installed); standalone fallback bottom-left `anchoredPosition (20,120)`, 48×48; created lazily once `Game.Instance.UI.Canvas` is available and re-created only if destroyed (BubbleBuffs rebuilds the container). Source: `UI/TacticsPanel.cs` ~1018-1107.
 
 ## Topic Index
 
@@ -118,14 +118,15 @@ Detailed gotchas live in `claude-context/` — **read the matching file BEFORE e
 | Adding a new ConditionSubject / Property / UnitCondition / ActionType | `claude-context/checklists.md` |
 | Bug reports, log analysis, "rule didn't fire" | `claude-context/triage.md` |
 | Locale files, new strings | `claude-context/i18n.md` |
+| Test suite, mono runner, Deck smoke-test pack | `claude-context/testing.md` |
+| Why a Top Gotcha exists (dated regressions) | `claude-context/incidents.md` |
 
-IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.md`](docs/wrath-api-deep-dive.md).
+IL evidence, version history, and incident reports: `docs/wrath-api-deep-dive.md`.
 
 **Maintenance rule:** new gotcha → matching topic file. This file only gets a one-liner if violating the rule causes silent corruption (§Top Gotchas). Update the table only if the routing itself changes.
 
 ## Top Gotchas (always apply)
 
-- `GameInstall/` is a symlink to `../wrath-epic-buffing/GameInstall` — do not commit. `GamePath.props` is machine-specific — gitignored.
 - **Never `owner.Commands.Run` directly in `CommandExecutor`** — route through `RunVerified` (engine can silently discard commands; details `gotchas-engine.md`).
 - **Use `Player.PartyAndPets`, never `Player.Party`** (excludes pets; one documented exception — `gotchas-conditions.md`). Regression check: `grep 'Player.Party'` before merge.
 - **`IsFinallyDead`, not `IsDead`** — and the two `IsDead` sites in `ConditionEvaluator` must stay in sync (`gotchas-conditions.md`).
@@ -133,7 +134,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 - **Enums are APPEND-ONLY** — preset/config JSON persists numeric indices (`gotchas-persistence.md`).
 - **`PresetId`-only rules have empty bodies by design** — cleanup passes must exempt them (`gotchas-persistence.md`).
 - **Packs live in their own directory (`Packs/`), never `Presets/`** — `PresetManager.LoadAll` globs `Presets/*.json` and would silently parse a pack file as a malformed rule (`gotchas-persistence.md`).
-- **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts (`WrathOfTheUndeadCountBuff` machte Golems zu Untoten); Bug-Klasse traf HasBuff (pre-1.17.4) UND CreatureType (pre-1.23.3). Details `gotchas-conditions.md`.
+- **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts; traf HasBuff UND CreatureType (`incidents.md`). Details `gotchas-conditions.md`.
 - **Move und Standard sind gepaarte Slots**: `UnitCommands.Run` eines Move-Kommandos löscht das Standard-Kommando (pending oder laufend) und umgekehrt; nur Swift/Free sind unabhängig. Eine Move-Regel darf nie über einem eigenen Cast feuern (`ActionSlots.CheckConflict`, `gotchas-engine.md`).
 - **KI-Kommando vs. Spielerklick = `UnitCommand.AiAction`**: `AiBrainController.SelectAction` stempelt jedes eigene Kommando, ein Klick nie. Nie über Blueprint (`Brain.AutoUseAbility`) unterscheiden — der Spieler castet denselben Zauber auch explizit (`gotchas-engine.md`).
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
@@ -144,14 +145,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 
 ## Release Process
 
-Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`).
-`gh release create` / `gh run watch` mit `HTTPS_PROXY= HTTP_PROXY= NO_PROXY='*'` voranstellen (TLS-Timeout über den citadel-Proxy); `git push` (SSH) ist unbetroffen. Nach dem Release `./deploy.sh`, damit UMM auf dem Deck die neue Version zeigt.
-
-Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, `file_id` = `7334711`, repo var `NEXUSMODS_FILE_ID` — see parent `docs/nexus.md`).
-
-**Nexus-upload action fails with Cloudflare 504**: transient Nexus-side timeout, not a workflow problem. Fix: `gh run rerun <run-id> --repo Gh05d/wrath-tactics --failed`; await outcome via `gh run watch <run-id> --repo Gh05d/wrath-tactics --exit-status` (don't poll `gh run list`).
-
-**Deck offline blockiert einen Release nicht** (Präzedenz 1.21.0–1.22.1), aber: fehlenden Smoke-Test im Nexus-Reply offenlegen, im Auto-Memory vermerken, In-Game-Test nachholen sobald das Deck online ist.
+→ parent §Release Process / §Nexus Mods. Remote is `origin`. `/release` (`.claude/commands/release.md`): bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto). Mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005.
 
 ## Logs
 
@@ -161,6 +155,6 @@ Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/100
 
 ## Code Style
 
-- Shared style (K&R braces, 4-space indent, `var` when apparent): parent `wrath-mods/CLAUDE.md` §Code Style.
-- **Partial-class file split for fat engine files**: `ActionValidator` is `partial` across `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.MoveToTarget/.Find.cs` — one Action-type per file. New Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back — it grew to 902 LOC once.
-- **`catch (Exception ex)` is reserved for three patterns**: per-tick/per-frame guards, user-surface persistence, static/sentinel blueprint init. Everything else narrows. ([deep-dive](docs/wrath-api-deep-dive.md#catch-discipline))
+- Shared style (K&R braces, 4-space indent, `var` when apparent): → parent §Code Style.
+- **`ActionValidator` is `partial`**: `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.MoveToTarget/.Find.cs` — one Action-type per file; new Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back (`incidents.md`).
+- **`catch (Exception ex)` is reserved for three patterns**: per-tick/per-frame guards, user-surface persistence, static/sentinel blueprint init. Everything else narrows. (`docs/wrath-api-deep-dive.md#catch-discipline`)
