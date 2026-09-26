@@ -114,7 +114,7 @@ namespace WrathTactics.UI {
                 var hlg = row.AddComponent<HorizontalLayoutGroup>();
                 hlg.spacing = 6;
                 hlg.childForceExpandWidth = false;
-                hlg.childForceExpandHeight = true;
+                hlg.childForceExpandHeight = false;   // keeps the check box square
                 hlg.childControlWidth = true;
                 hlg.childControlHeight = true;
                 hlg.padding = new RectOffset(6, 6, 2, 2);

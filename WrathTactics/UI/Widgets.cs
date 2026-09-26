@@ -247,7 +247,8 @@ namespace WrathTactics.UI {
         }
 
         /// <summary>Clickable icon (delete, X, arrows). SpriteSwap when a hover sprite exists, else ColorTint.</summary>
-        public static GameObject IconButton(Transform parent, string name, Icon icon, float size, UnityAction onClick) {
+        public static GameObject IconButton(Transform parent, string name, Icon icon, float size, UnityAction onClick,
+            Color? tint = null) {
             var (obj, rect) = UIHelpers.Create(name, parent);
             var le = obj.AddComponent<LayoutElement>();
             le.preferredWidth = size;
@@ -260,6 +261,7 @@ namespace WrathTactics.UI {
                 img.sprite = sprite;
                 img.preserveAspect = true;
                 img.raycastTarget = true;
+                img.color = tint ?? Color.white;
                 if (up) rect.localRotation = Quaternion.Euler(0, 0, 90f);
                 if (down) rect.localRotation = Quaternion.Euler(0, 0, -90f);
             } else {
@@ -268,7 +270,7 @@ namespace WrathTactics.UI {
             }
             var btn = obj.AddComponent<Button>();
             btn.targetGraphic = img;
-            if (hover != null) {
+            if (hover != null && sprite != null) {
                 btn.transition = Selectable.Transition.SpriteSwap;
                 btn.spriteState = new SpriteState {
                     highlightedSprite = hover, pressedSprite = hover, selectedSprite = sprite, disabledSprite = sprite,
@@ -339,7 +341,8 @@ namespace WrathTactics.UI {
             hlg.childControlHeight = true;
             hlg.childAlignment = TextAnchor.MiddleLeft;
             hlg.padding = new RectOffset(2, 4, 0, 0);
-            InRow(root, 0f, 0f);
+            // No LayoutElement here: one with preferredWidth >= 0 (priority 1) would override the
+            // HLG's own content width (priority 0) and collapse the link to its padding.
             if (prefix.HasValue) IconImage(root.transform, "Prefix", prefix.Value, Theme.IconSmall);
 
             var (txt, _t) = UIHelpers.Create("Text", root.transform);
@@ -363,6 +366,8 @@ namespace WrathTactics.UI {
         /// <summary>Ink-framed box with a check tick + label. onChanged receives the new value.</summary>
         public static GameObject Checkbox(Transform parent, string name, string label, bool value, Action<bool> onChanged) {
             var row = Row(parent, name, Theme.InlineRowHeight);
+            // Children keep their preferred height (box stays square); the row centres them.
+            row.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
             var (box, _) = UIHelpers.Create("Box", row.transform);
             float size = Theme.IconSmall;
             InRow(box, size, 0f).preferredHeight = size;
@@ -376,8 +381,8 @@ namespace WrathTactics.UI {
             tick.SetActive(value);
 
             var (lbl, _l) = UIHelpers.Create("Label", row.transform);
-            InRow(lbl, 200f, 1f);
-            InkLabel(lbl, label, 14f);
+            InRow(lbl, 200f, 1f).flexibleHeight = 1f;
+            InkLabel(lbl, label, 14f).raycastTarget = true;   // the whole row is the click target
 
             bool current = value;
             var btn = row.AddComponent<Button>();
@@ -436,7 +441,9 @@ namespace WrathTactics.UI {
             label = BandLabel(obj, text, 15f);
             label.margin = new Vector4(leftMargin, 0f, Theme.BandPaddingX + Theme.IconSmall, 0f);
 
-            var chev = IconImage(obj.transform, "Chevron", Icon.Chevron, Theme.IconSmall * 0.65f, Theme.BandText);
+            // Image.color multiplies the sprite: the grey ink glyph cannot be lightened onto the
+            // band, so it is darkened to ink instead (dark-on-mauve reads; grey-on-mauve does not).
+            var chev = IconImage(obj.transform, "Chevron", Icon.Chevron, Theme.IconSmall * 0.65f, Theme.Ink);
             chev.GetComponent<LayoutElement>().ignoreLayout = true;
             var cr = chev.Rect();
             cr.anchorMin = new Vector2(1, 0.5f);
@@ -449,6 +456,7 @@ namespace WrathTactics.UI {
         /// <summary>Thin line — "or" — thin line.</summary>
         public static GameObject OrDivider(Transform parent, string text) {
             var row = Row(parent, "OrDivider", Theme.DividerHeight);
+            row.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
             GameObject Line(string n) {
                 var (l, _) = UIHelpers.Create(n, row.transform);
                 InRow(l, 0f, 1f).preferredHeight = 4f;
@@ -465,7 +473,7 @@ namespace WrathTactics.UI {
             }
             Line("LineL");
             var (lbl, _) = UIHelpers.Create("Text", row.transform);
-            InRow(lbl, 30f, 0f);
+            InRow(lbl, Theme.OrLabelWidth, 0f).flexibleHeight = 1f;
             InkLabel(lbl, text, 13f, TextAlignmentOptions.Midline, Theme.InkMuted, italic: true);
             Line("LineR");
             return row;
@@ -547,6 +555,8 @@ namespace WrathTactics.UI {
 
             if (title != null) {
                 var (titleRow, titleRect) = UIHelpers.Create("Title", content.transform);
+                // Callers may put a layout group on Content (SaveAsPack does); the title is anchored.
+                titleRow.AddComponent<LayoutElement>().ignoreLayout = true;
                 titleRect.anchorMin = new Vector2(0, 1);
                 titleRect.anchorMax = new Vector2(1, 1);
                 titleRect.pivot = new Vector2(0.5f, 1);

@@ -565,7 +565,10 @@ namespace WrathTactics.UI {
                     // retry timer past its threshold so Update() recreates the button on
                     // the next frame instead of after the 5 s BubbleBuffs grace period.
                     if (s.ShowHudButton) hudButtonRetrySeconds = 6f;
-                    if (!saved) SetPackStatus("hud_button.save_failed".i18n(), Theme.StatusError);
+                    if (!saved) {
+                        SetPackStatus("hud_button.save_failed".i18n(), Theme.StatusError);
+                        RefreshRuleList();   // the pack row renders the status; nothing else repaints it
+                    }
                 });
             row.GetComponent<LayoutElement>().preferredHeight = Theme.InlineRowHeight;
         }
