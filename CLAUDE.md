@@ -26,6 +26,7 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 
 - **Flaky mono runner — loop until green before believing failures**: the first run after a build often crashes the mono host (mass-failures with run-to-run varying counts = flake signature, not regression; can flake several times in a row). `for i in 1 2 3; do ~/.dotnet/dotnet test --no-build WrathTactics.Tests/WrathTactics.Tests.csproj -p:SolutionDir=$(pwd)/; done` — trust the first all-green run; only trust failures that reproduce.
 - **Game-DLLs im Test-Output ≠ Compile-Referenz**: `CopyGameDllsToTestOutput` reicht fürs Typ-Laden zur Laufzeit, aber ein Test, der einen Kingmaker-Typ *benennt* (`UnitCommand.CommandType`), scheitert an `CS0246: Kingmaker could not be found`. Die csproj importiert deshalb `GamePath.props` und referenziert `Assembly-CSharp.dll` (nicht-publicized, nur Public-Surface).
+- **UI-Layout ist nur am Deck verifizierbar**: xUnit kann keine GameObjects bauen, ein Code-Review sieht uGUI-Layoutfehler nicht. Jede Schicht UI-Arbeit endet mit einem Screenshot vom User (Steam + R1, er pastet ihn); ohne den gilt sie als ungetestet. Pure Teile (`Theme.PackBandTint`) bekommen echte Tests — die csproj referenziert dafür `UnityEngine.CoreModule.dll` (Color/Mathf sind managed).
 - Game DLLs are copied to test output by an `AfterTargets="Build"` target (without it: `TypeLoadException`). `InternalsVisibleTo` in `WrathTactics/Properties/AssemblyInfo.cs` — promote private statics to `internal static` to test them. No CI by design (game DLLs unreachable from GitHub runners).
 
 ## Deploy
@@ -37,6 +38,8 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 Builds and deploys DLL + Info.json to Steam Deck via SCP. Requires `deck-direct` SSH alias. **Dev-only** — Debug build for smoke-testing; release builds come from `/release`'s Release-config build.
 
 Synthetisches Deck-Testpack (Evil Eye / Attack / Cackle / Move to nearest, Cooldown 0, keine Bedingungen): `docs/testing/deck-smoke/{Presets,Packs}` — per tar-over-ssh aufs Deck (Rezept in `triage.md`); nicht im Scratchpad ablegen, der überlebt keinen Tageswechsel.
+
+- **`./deploy.sh` immer mit `timeout 240` und NIE in einer `&&`-Kette vor `git commit`**: ein SSH-Hänger (USB-Link kurz weg) blockiert sonst bis zum Tool-Timeout und der Commit fällt mit. Erst `timeout 12 ssh -o ConnectTimeout=6 deck-direct true`; ein einzelner Timeout heißt nicht „Deck offline" — 2026-09-26 zweimal falsch geschlossen, während der User am Deck saß.
 
 Deploy verifizieren: `ssh deck-direct "strings -el '<game>/Mods/WrathTactics/WrathTactics.dll' | grep -c '<neuer Log-Text>'"` — `-el` (UTF-16) für Log-/User-Strings; Methoden-/Typnamen liegen als UTF-8 in der Metadata → dafür plain `strings`. Falscher Modus = `0` Treffer trotz korrektem Deploy.
 
@@ -77,7 +80,9 @@ WrathTactics/
                        # SafeConditionConverter
   UI/                  # TacticsPanel, RuleEditorWidget, ConditionRowWidget, PresetPanel,
                        # PackPanel, PackPalette, SaveAsPackOverlay, BuffPickerOverlay,
-                       # SpellPickerOverlay, SpellDropdownProvider, UIHelpers
+                       # SpellPickerOverlay, SpellDropdownProvider, UIHelpers,
+                       # Theme (alle Farben/Maße) + Widgets (alle Controls) — SSoT, s. gotchas-ui.md
+  tools/extract_sprites.py  # Owlcat-Sprites + 9-Slice-Borders aus sharedassets0.assets (UnityPy-venv)
   Compatibility/       # BubbleBuffsCompat (Buff It 2 The Limit integration)
   Localization/        # Strings + EnumLabels + 5 locale JSONs (en/de/fr/ru/zh)
   Logging/             # Category-based logging (Engine, Game, Persistence, UI)
@@ -140,6 +145,7 @@ IL evidence, version history, and incident reports: [`docs/wrath-api-deep-dive.m
 ## Release Process
 
 Follow parent `wrath-mods/CLAUDE.md` §Release Process. Remote is `origin`. The `/release` slash-command (`.claude/commands/release.md`) runs the full flow: bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto via `.github/workflows/nexus-upload.yml`).
+`gh release create` / `gh run watch` mit `HTTPS_PROXY= HTTP_PROXY= NO_PROXY='*'` voranstellen (TLS-Timeout über den citadel-Proxy); `git push` (SSH) ist unbetroffen. Nach dem Release `./deploy.sh`, damit UMM auf dem Deck die neue Version zeigt.
 
 Nexus mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005 (ID 1005, `file_id` = `7334711`, repo var `NEXUSMODS_FILE_ID` — see parent `docs/nexus.md`).
 
