@@ -20,6 +20,23 @@ namespace WrathTactics.UI {
         public static Sprite ScrollbarHandle { get; private set; }
         public static Sprite HudButton { get; private set; }
         public static Sprite HudButtonHover { get; private set; }
+        public static Sprite BandMauve { get; private set; }
+        public static Sprite BandBlue { get; private set; }
+        public static Sprite PopupPaper { get; private set; }
+        public static Sprite HintAnnotation { get; private set; }
+        public static Sprite IconAdd { get; private set; }
+        public static Sprite IconDelete { get; private set; }
+        public static Sprite IconX { get; private set; }
+        public static Sprite IconXHover { get; private set; }
+        public static Sprite IconCheck { get; private set; }
+        public static Sprite IconCheckHover { get; private set; }
+        public static Sprite IconArrow { get; private set; }
+        public static Sprite IconArrowHover { get; private set; }
+        public static Sprite ToggleOn { get; private set; }
+        public static Sprite ToggleOff { get; private set; }
+        public static Sprite DividerFlourish { get; private set; }
+        public static Sprite DividerLine { get; private set; }
+        public static Sprite InputFrame { get; private set; }
 
         public static void Init() {
             // 9-slice border values are read directly from the original Owlcat sprite metadata
@@ -40,12 +57,35 @@ namespace WrathTactics.UI {
             HudButton          = Load("hud_button.png",           Vector4.zero);
             HudButtonHover     = Load("hud_button_hover.png",     Vector4.zero);
 
+            // Ink-on-parchment set (spec 2026-09-26). Borders from tools/extract_sprites.py.
+            BandMauve       = Load("band_mauve.png",       new Vector4(112,   0, 112,  0));
+            BandBlue        = Load("band_blue.png",        new Vector4(112,   0, 112,  0));
+            PopupPaper      = Load("popup_paper.png",      new Vector4(139, 101, 145, 89));
+            HintAnnotation  = Load("hint_annotation.png",  new Vector4( 72,  58,  72, 67));
+            IconAdd         = Load("icon_add.png",         Vector4.zero);
+            IconDelete      = Load("icon_delete.png",      Vector4.zero);
+            IconX           = Load("icon_x.png",           Vector4.zero);
+            IconXHover      = Load("icon_x_hover.png",     Vector4.zero);
+            IconCheck       = Load("icon_check.png",       Vector4.zero);
+            IconCheckHover  = Load("icon_check_hover.png", Vector4.zero);
+            IconArrow       = Load("icon_arrow.png",       Vector4.zero);
+            IconArrowHover  = Load("icon_arrow_hover.png", Vector4.zero);
+            ToggleOn        = Load("toggle_on.png",        Vector4.zero);
+            ToggleOff       = Load("toggle_off.png",       Vector4.zero);
+            DividerFlourish = Load("divider_flourish.png", new Vector4(114,   0,  94,  0));
+            DividerLine     = Load("divider_line.png",     new Vector4( 16,   0,  16,  0));
+            InputFrame      = Load("input_frame.png",      new Vector4( 12,  11,  13, 13));
+
             var all = new[] { PanelBackground, InnerParchment, TitleBarBackground,
                 CloseButtonNormal, CloseButtonHover, CloseButtonPressed,
                 ActionButtonNormal, ActionButtonHover, ActionButtonPressed,
                 TabHeaderActive, TabHeaderInactive,
                 ScrollbarTrack, ScrollbarHandle,
-                HudButton, HudButtonHover };
+                HudButton, HudButtonHover,
+                BandMauve, BandBlue, PopupPaper, HintAnnotation,
+                IconAdd, IconDelete, IconX, IconXHover, IconCheck, IconCheckHover,
+                IconArrow, IconArrowHover, ToggleOn, ToggleOff,
+                DividerFlourish, DividerLine, InputFrame };
             int loaded = 0;
             foreach (var s in all) {
                 if (s != null) loaded++;

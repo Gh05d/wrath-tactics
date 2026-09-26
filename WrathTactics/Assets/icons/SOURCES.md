@@ -19,6 +19,19 @@ Sprites extracted from Wrath of the Righteous 1.4 via UnityPy
 | scrollbar_handle.png | `UI_ScrollVertical_Handl_Default` (23×95) |  |
 | hud_button.png | `UI_HudIcon_Character_Default` (106×106) | From the `Bundles/ui` bundle (not sharedassets0). The helmet icon of the vanilla ingame-menu Character button — bundled so the HUD button never falls back to a flat brown square when runtime canvas extraction fails (e.g. controller/console UI mode). |
 | hud_button_hover.png | `UI_HudIcon_Character_Hover` (106×106) | Hover state for the above (SpriteSwap). |
+| band_mauve.png | `UI_Settings_BackValue` (391×63, border 112/0/112/0) | Brush-stroke value background of the Settings menu. Rule-card headers, dropdown triggers, selected popup rows. |
+| band_blue.png | `UI_Settings_BackValueBlue` (391×63, border 112/0/112/0) | Blue variant: headers of preset-linked rules. |
+| popup_paper.png | `UI_BackgroundTooltipPaper` (554×358, border 139/101/145/89) | Tooltip parchment sheet — every popup (dropdown list, pickers, save-as-pack). |
+| hint_annotation.png | `UI_Journal_Annotation` (725×285, border 72/58/72/67) | Journal annotation box — hint cards. Drawn over `Theme.HintBacking`, its own fill is too transparent on parchment. |
+| icon_add.png | `UI_CharScreen_IconAdd` (60×62) | Green plus — prefix of "+ Condition" style inline links. |
+| icon_delete.png | `UI_CharScreen_IconDelete` (56×61) | Red brush X — delete rule / preset / pack. |
+| icon_x.png / icon_x_hover.png | `UI_EscIcon_Default` / `_Hover` (49×49) | Ink X — delete condition / fallback, close popup, clear filter. |
+| icon_check.png / icon_check_hover.png | `UI_CheckIcon_Default` / `_Hover` (40×43) | Chevron — dropdown arrow (Default, scaled), checkbox tick (Hover). |
+| icon_arrow.png / icon_arrow_hover.png | `UI_RoundButtonNextIcon_Default` / `_Hover` (48×44) | Triangle — move up/down (rotated ∓90°). |
+| toggle_on.png / toggle_off.png | `UI_PointButtonBig_Hover` / `_Default` (40×40) | Round point button — rule ON / OFF dot, pack colour dot. |
+| divider_flourish.png | `UI_CharScreen_Separator2` (1041×46, border 114/0/94/0) | Line with flourish ends — section dividers. |
+| divider_line.png | `UI_WightLine_Simple` (586×7, border 16/0/16/0) | Thin line — OR divider. |
+| input_frame.png | `UI_Loot_Slots` (135×135, border 12/11/13/13) | Sketched frame — reserved for text inputs (currently inputs use `Widgets.AddInkFrame`). |
 
 ## Re-extraction procedure
 
@@ -27,7 +40,7 @@ Source: `Wrath_Data/sharedassets0.assets` (and `.resS` companion). On Linux:
 python3 -m venv ~/.local/opt/unitypy-venv
 ~/.local/opt/unitypy-venv/bin/pip install UnityPy Pillow
 # copy sharedassets0.assets + .resS from the game install (we used scp from Steam Deck)
-~/.local/opt/unitypy-venv/bin/python /tmp/wrath-assets/extract.py
+~/.local/opt/unitypy-venv/bin/python tools/extract_sprites.py <dir-with-sharedassets0.assets>   # prints each sprite's border
 ```
 
 ## Re-export when Wrath updates
