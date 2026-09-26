@@ -22,6 +22,7 @@ namespace WrathTactics.UI {
         string selectedUnitId; // null = Global, "presets" = Presets, "packs" = Packs
         string lastNonPresetUnitId; // last selected character/global tab (skips both "presets" and "packs")
         Transform ruleListContent; // parent for rule cards
+        ScrollRect ruleScrollRect;
         GameObject toggleSlot;
         Transform tabBarTransform; // reference to rebuild tabs
 
@@ -472,6 +473,7 @@ namespace WrathTactics.UI {
             scroll.verticalScrollbarSpacing = 4f;
 
             ruleListContent = content.transform;
+            ruleScrollRect = scroll;
         }
 
         void RefreshRuleList() {
@@ -619,32 +621,12 @@ namespace WrathTactics.UI {
         // actions. The menu IS the confirmation: the previous design deleted every rule of
         // the pack on a single click of a control that read as a label (play-test finding).
         void AddPackChip(Transform parent, TacticsPack pack, UnityEngine.Events.UnityAction onClick) {
+            // Same band + tint as the rule headers this pack colours, so chip and rules match.
             var (chip, _) = UIHelpers.Create($"PackChip_{pack.Id}", parent);
-            Widgets.InRow(chip, 130f * UIHelpers.FontScale, 0f);
-            Widgets.AddInset(chip);
-            var hlg = chip.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 6f;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
-            hlg.childControlWidth = true;
-            hlg.childControlHeight = true;
-            hlg.childAlignment = TextAnchor.MiddleLeft;
-            hlg.padding = new RectOffset(8, 8, 3, 3);
-
-            var (dot, _d) = UIHelpers.Create("Dot", chip.transform);
-            float d = Theme.IconSmall * 0.6f;
-            Widgets.InRow(dot, d, 0f).preferredHeight = d;
-            var dotImg = dot.AddComponent<Image>();
-            dotImg.color = PackPalette.ColorAt(pack.ColorIndex);
-            dotImg.raycastTarget = false;
-            if (ThemeProvider.ToggleOn != null) {
-                dotImg.sprite = ThemeProvider.ToggleOn;
-                dotImg.preserveAspect = true;
-            }
-
-            var (lbl, _t) = UIHelpers.Create("Label", chip.transform);
-            Widgets.InRow(lbl, 80f, 1f);
-            Widgets.InkLabel(lbl, pack.Name + "  \u25be", 13f);
+            Widgets.InRow(chip, 150f * UIHelpers.FontScale, 0f);
+            Widgets.ApplyBand(chip, BandStyle.Mauve, Theme.PackBandTint(pack.ColorIndex));
+            var label = Widgets.BandLabel(chip, pack.Name + "  \u25be", 13f, TextAlignmentOptions.Midline);
+            label.margin = new Vector4(Theme.BandPaddingX * 0.6f, 0, Theme.BandPaddingX * 0.6f, 0);
 
             var btn = chip.AddComponent<Button>();
             btn.targetGraphic = chip.GetComponent<Image>();
@@ -962,6 +944,7 @@ namespace WrathTactics.UI {
             });
             ConfigManager.Save();
             RefreshRuleList();
+            StartCoroutine(ScrollRuleListToBottom());
         }
 
         void AddFromPreset() {
@@ -990,7 +973,17 @@ namespace WrathTactics.UI {
                 });
                 ConfigManager.Save();
                 RefreshRuleList();
+                StartCoroutine(ScrollRuleListToBottom());
             });
+        }
+
+        // New rules append at the end of the list; without this the user scrolls down by hand
+        // to find the card they just created (Deck play-test, 2026-09-26).
+        System.Collections.IEnumerator ScrollRuleListToBottom() {
+            yield return null;   // let the VLG / ContentSizeFitter size the new card first
+            if (ruleScrollRect == null) yield break;
+            Canvas.ForceUpdateCanvases();
+            ruleScrollRect.verticalNormalizedPosition = 0f;
         }
 
         List<TacticsRule> GetOrCreateCharacterRules(string unitId) {

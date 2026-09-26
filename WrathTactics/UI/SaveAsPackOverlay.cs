@@ -148,6 +148,7 @@ namespace WrathTactics.UI {
                 var nameLE = nameObj.AddComponent<LayoutElement>();
                 nameLE.flexibleWidth = 1;
                 nameLE.preferredWidth = 300;
+                nameLE.flexibleHeight = 1;   // row no longer force-expands height (square box)
                 Widgets.InkLabel(nameObj, describe(captured), 13f);
             }
 
@@ -156,7 +157,11 @@ namespace WrathTactics.UI {
             errorLabel = Widgets.InkLabel(errObj, "", 13f, TextAlignmentOptions.MidlineLeft, Theme.StatusError, italic: true);
 
             var (buttons, _bt) = UIHelpers.Create("Buttons", popup.transform);
-            buttons.AddComponent<LayoutElement>().preferredHeight = 36;
+            var buttonsLE = buttons.AddComponent<LayoutElement>();
+            buttonsLE.preferredHeight = Theme.ActionRowHeight;
+            // The HLG below reports flexibleHeight 1 (childForceExpandHeight); pin it to 0 or the
+            // buttons share the popup's spare height with the rule list.
+            buttonsLE.flexibleHeight = 0;
             var bhlg = buttons.AddComponent<HorizontalLayoutGroup>();
             bhlg.spacing = 8;
             bhlg.childForceExpandWidth = true;

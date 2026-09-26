@@ -59,9 +59,15 @@ namespace WrathTactics.UI {
             float d = Theme.IconMedium;
             Widgets.InRow(swatch, d, 0f).preferredHeight = d;
             var swImg = swatch.AddComponent<Image>();
-            swImg.color = PackPalette.ColorAt(pack.ColorIndex);
             swImg.preserveAspect = true;
-            if (ThemeProvider.ToggleOn != null) swImg.sprite = ThemeProvider.ToggleOn;
+            // Pale circle × normalised pack colour = a readable colour dot (the raw palette
+            // colour multiplied onto the purple sprite went near-black).
+            if (ThemeProvider.ToggleOff != null) {
+                swImg.sprite = ThemeProvider.ToggleOff;
+                swImg.color = Theme.PackBandTint(pack.ColorIndex);
+            } else {
+                swImg.color = PackPalette.ColorAt(pack.ColorIndex);
+            }
             var swBtn = swatch.AddComponent<Button>();
             swBtn.targetGraphic = swImg;
             Widgets.ApplyColorTint(swBtn);
@@ -240,10 +246,7 @@ namespace WrathTactics.UI {
         }
 
         static void PersistPack(TacticsPack pack, Action onChanged, Action<string, Color> setStatus) {
-            // Packs persist on every edit — say so, or the missing "Save" button reads as data loss.
-            if (PackRegistry.Save(pack))
-                setStatus(string.Format("status.pack_saved".i18n(), pack.Name), Theme.StatusOk);
-            else
+            if (!PackRegistry.Save(pack))
                 setStatus(string.Format("status.save_failed".i18n(), pack.Name), Theme.StatusError);
             onChanged();
         }

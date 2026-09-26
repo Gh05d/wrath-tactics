@@ -132,7 +132,6 @@
   "status.pack_saved_from_list_partial": "Правил сохранено как набор '{1}': {0} — не удалось сохранить как пресеты: {2}",
   "status.pack_save_list_empty": "Нечего сохранять — в списке нет правил",
   "status.pack_export_copied": "Набор '{0}' скопирован в буфер обмена (пресетов: {1})",
-  "status.pack_saved": "Набор '{0}' сохранён",
   "status.pack_import_success": "Набор '{0}' импортирован (пресетов: {1})",
   "status.pack_export_empty": "В наборе '{0}' нет правил для экспорта",
 

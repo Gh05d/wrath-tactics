@@ -132,7 +132,6 @@
   "status.pack_saved_from_list_partial": "{0} règle(s) enregistrée(s) comme pack '{1}' — {2} règle(s) n'ont pas pu être enregistrées comme préréglages",
   "status.pack_save_list_empty": "Rien à enregistrer — cette liste ne contient aucune règle",
   "status.pack_export_copied": "Pack '{0}' copié dans le presse-papiers ({1} préréglage(s))",
-  "status.pack_saved": "Pack '{0}' enregistré",
   "status.pack_import_success": "Pack '{0}' importé avec {1} préréglage(s)",
   "status.pack_export_empty": "Le pack '{0}' n'a aucune règle à exporter",
 

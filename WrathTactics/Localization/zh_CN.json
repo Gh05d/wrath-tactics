@@ -132,7 +132,6 @@
   "status.pack_saved_from_list_partial": "已将 {0} 条规则保存为规则包 '{1}', {2} 条规则未能保存为预设",
   "status.pack_save_list_empty": "没有可保存的内容, 此列表没有规则",
   "status.pack_export_copied": "规则包 '{0}' 已复制到剪贴板 ({1} 个预设)",
-  "status.pack_saved": "规则包 '{0}' 已保存",
   "status.pack_import_success": "已导入规则包 '{0}', 包含 {1} 个预设",
   "status.pack_export_empty": "规则包 '{0}' 没有可导出的规则",
 
