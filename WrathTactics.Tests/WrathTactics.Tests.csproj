@@ -35,6 +35,8 @@
   -->
   <ItemGroup>
     <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\Assembly-CSharp.dll" Private="false" />
+    <!-- UnityEngine.Color / Mathf are plain managed structs: ThemeTests exercises Theme.PackBandTint. -->
+    <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\UnityEngine.CoreModule.dll" Private="false" />
   </ItemGroup>
 
   <!--
