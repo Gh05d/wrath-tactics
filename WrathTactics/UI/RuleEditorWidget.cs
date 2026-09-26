@@ -192,43 +192,41 @@ namespace WrathTactics.UI {
 
         void UpdateHeight(TacticsRule linkedPreset) {
             if (layoutElement == null) return;
-            float headerH = hideHeader ? 0f : 44f;
-            // VLG spacing between body children (see BuildUI: vlg.spacing = 4).
-            const float bodySpacing = 4f;
+            float headerH = hideHeader ? 0f : Theme.HeaderHeight;
+            float pad = Theme.CardPadding * 2f + 4f;   // BodyScroll insets + VLG padding
             if (linkedPreset != null) {
-                // header + badge (26) + summary (22) + unlink btn (28) + 3 VLG gaps + padding
-                float gaps = (hideHeader ? 2 : 3) * bodySpacing;
-                layoutElement.preferredHeight = headerH + 26f + 22f + 28f + gaps + 12f;
+                float gaps = (hideHeader ? 0 : 1) * bodySpacing;
+                layoutElement.preferredHeight = headerH + Theme.CollapsedBodyHeight + gaps + pad;
+                if (bodyScrollRect != null) bodyScrollRect.enabled = false;
                 return;
             }
             int condCount = rule.ConditionGroups.Sum(g => g.Conditions.Count);
             int groupCount = rule.ConditionGroups.Count;
-            // Child count reflects the widgets rendered below — ~condCount + groupCount*2
-            // rows plus 6 fixed sections. Close enough to estimate VLG gaps.
-            int childEstimate = condCount + groupCount * 2 + 7 + (hideHeader ? 0 : 1);
             bool chainCapable = rule.Action.Type == ActionType.CastSpell
                              || rule.Action.Type == ActionType.CastAbility;
-            int fallbackCount = chainCapable
-                ? (rule.Action.FallbackAbilityIds?.Count ?? 0)
-                : 0;
-            bool showAddFallback = chainCapable;
+            int fallbackCount = chainCapable ? (rule.Action.FallbackAbilityIds?.Count ?? 0) : 0;
+
+            // Rows rendered by RebuildBody, in order (keep in sync with it):
+            // header | IF label | cond rows | per-group add row (or AddFirstCond) | (groups-1) OR dividers
+            // | flourish | action row | fallback rows | [+Fallback row] | target row | cooldown row
+            int rows = (hideHeader ? 0 : 1) + 1 + condCount + Mathf.Max(groupCount, 1) + Mathf.Max(0, groupCount - 1)
+                + 1 + 1 + fallbackCount + (chainCapable ? 1 : 0) + 1 + 1;
             float height = headerH
-                + 20f           // IF: label
-                + condCount * 34f
-                + groupCount * 26f   // add-cond buttons
-                + (groupCount > 1 ? (groupCount - 1) * 20f : 0f)  // OR separators
-                + 26f           // add-or button
-                + 4f            // spacer
-                + 28f           // action row
-                + fallbackCount * 26f                 // fallback rows
-                + (showAddFallback ? 22f : 0f)        // + Fallback button
-                + 28f           // target row
-                + 28f           // cooldown row
-                + Mathf.Max(0, childEstimate - 1) * bodySpacing
-                + 12f;          // VLG padding
-            layoutElement.preferredHeight = Mathf.Clamp(height, 160f, 500f);
+                + Theme.SectionLabelHeight
+                + condCount * Theme.RowHeight
+                + Mathf.Max(groupCount, 1) * Theme.InlineRowHeight
+                + Mathf.Max(0, groupCount - 1) * Theme.DividerHeight
+                + Theme.DividerHeight                       // flourish
+                + Theme.RowHeight                           // action
+                + fallbackCount * Theme.RowHeight
+                + (chainCapable ? Theme.InlineRowHeight : 0f)
+                + Theme.RowHeight                           // target
+                + Theme.RowHeight                           // cooldown
+                + Mathf.Max(0, rows - 1) * bodySpacing
+                + pad;
+            layoutElement.preferredHeight = Mathf.Clamp(height, Theme.MinCardHeight, Theme.MaxCardHeight);
             if (bodyScrollRect != null)
-                bodyScrollRect.enabled = height > 500f;
+                bodyScrollRect.enabled = height > Theme.MaxCardHeight;
         }
 
         void MoveRule(int direction) {
