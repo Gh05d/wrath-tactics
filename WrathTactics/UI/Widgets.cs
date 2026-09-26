@@ -341,6 +341,10 @@ namespace WrathTactics.UI {
         public static GameObject InlineLink(Transform parent, string name, string text, UnityAction onClick,
             Icon? prefix = null, float fontSize = 14f, bool onBand = false) {
             var (root, _) = UIHelpers.Create(name, parent);
+            // Invisible raycast surface: clicks on the icon or the padding reach the Button too.
+            var hit = root.AddComponent<Image>();
+            hit.color = Color.clear;
+            hit.raycastTarget = true;
             var hlg = root.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 4f;
             hlg.childForceExpandWidth = false;

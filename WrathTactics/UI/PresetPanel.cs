@@ -67,7 +67,7 @@ namespace WrathTactics.UI {
             Widgets.HintCard(root.transform, "preset.hint".i18n(), Theme.HintHeightShort);
 
             // One action row: New / Export all / Import as Owlcat buttons, folder as a link.
-            var actions = Widgets.Row(root.transform, "PresetActions", Theme.ControlRowHeight);
+            var actions = Widgets.Row(root.transform, "PresetActions", Theme.ActionRowHeight);
             Widgets.ActionButton(actions.transform, "NewPresetBtn", "preset.button.new".i18n(), 15f, () => {
                 var preset = new TacticsRule {
                     Name = "preset.default_name".i18n(),
@@ -81,11 +81,11 @@ namespace WrathTactics.UI {
                 }
                 expandedIds.Add(preset.Id);
                 Rebuild();
-            }, 180f);
+            }, 220f);
             Widgets.ActionButton(actions.transform, "ExportAllBtn", "preset.button.export_all".i18n(), 15f,
-                () => ExportAllToClipboard(), 180f);
+                () => ExportAllToClipboard(), 220f);
             Widgets.ActionButton(actions.transform, "ImportBtn", "preset.button.import".i18n(), 15f,
-                () => ImportFromClipboard(), 180f);
+                () => ImportFromClipboard(), 220f);
             // Open Presets folder (manual file-based sharing / backup)
             Widgets.InlineLink(actions.transform, "FolderBtn", "preset.button.open_folder".i18n(), () => {
                 var dir = System.IO.Path.Combine(Main.ModPath, "Presets");

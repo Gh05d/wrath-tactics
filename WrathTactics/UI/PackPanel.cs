@@ -26,7 +26,7 @@ namespace WrathTactics.UI {
             // pack.tab_hint immediately above — the pre-tab-move pack.hint stacked a second,
             // near-identical paragraph under it. Key dropped from the locales with it.
 
-            var actions = Widgets.Row(parent, "PackActions", Theme.ControlRowHeight);
+            var actions = Widgets.Row(parent, "PackActions", Theme.ActionRowHeight);
             Widgets.ActionButton(actions.transform, "NewPackBtn", "pack.button.new".i18n(), 15f, () => {
                 var pack = new TacticsPack { Name = "pack.default_name".i18n() };
                 if (!PackRegistry.Save(pack)) {
@@ -36,7 +36,7 @@ namespace WrathTactics.UI {
                 }
                 expandedPackId = pack.Id;
                 onChanged();
-            }, 180f);
+            }, 220f);
 
             var packs = PackRegistry.All();
             if (packs.Count == 0) {
@@ -221,20 +221,29 @@ namespace WrathTactics.UI {
                 var captured = preset;
                 var availRow = Widgets.Row(box.transform, $"Avail_{pack.Id}_{preset.Id}", availH);
                 availRow.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(16, 8, 2, 2);
+                // The whole row adds the preset (a 12 px "+" was the only hit target before, play-test).
+                var rowImg = UIHelpers.AddBackground(availRow, Theme.ListRowFill);
+                var rowBtn = availRow.AddComponent<Button>();
+                rowBtn.targetGraphic = rowImg;
+                Widgets.ApplyColorTint(rowBtn);
+                rowBtn.onClick.AddListener(() => {
+                    pack.PresetIds.Add(captured.Id);
+                    PersistPack(pack, onChanged, setStatus);
+                });
 
                 var (label, _l) = UIHelpers.Create("AvailLabel", availRow.transform);
                 Widgets.InRow(label, 200f, 1f);
                 Widgets.InkLabel(label, captured.Name, 13f);
 
-                Widgets.InlineLink(availRow.transform, "AvailAdd", "pack.member_add".i18n(), () => {
-                        pack.PresetIds.Add(captured.Id);
-                        PersistPack(pack, onChanged, setStatus);
-                    }, Icon.Add);
+                Widgets.IconImage(availRow.transform, "AvailAdd", Icon.Add, Theme.IconSmall);
             }
         }
 
         static void PersistPack(TacticsPack pack, Action onChanged, Action<string, Color> setStatus) {
-            if (!PackRegistry.Save(pack))
+            // Packs persist on every edit — say so, or the missing "Save" button reads as data loss.
+            if (PackRegistry.Save(pack))
+                setStatus(string.Format("status.pack_saved".i18n(), pack.Name), Theme.StatusOk);
+            else
                 setStatus(string.Format("status.save_failed".i18n(), pack.Name), Theme.StatusError);
             onChanged();
         }

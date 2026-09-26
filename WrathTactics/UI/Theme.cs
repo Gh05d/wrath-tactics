@@ -65,6 +65,13 @@ namespace WrathTactics.UI {
             return new Color(c.r / m, c.g / m, c.b / m, 1f);
         }
 
+        /// <summary>
+        /// Base multiplier folded into UIHelpers.FontScale on top of the game's font slider:
+        /// at slider 1.0 the panel read too small on the Deck (2026-09-26), and the slider
+        /// tops out at 1.2.
+        /// </summary>
+        public const float BaseScale = 1.15f;
+
         // ---- metrics (base px × FontScale) ----
         static float S => UIHelpers.FontScale;
         public static float RowHeight           => 30f * S;
@@ -87,6 +94,8 @@ namespace WrathTactics.UI {
         public static float PopupListMaxHeight  => 400f * S;
         public static float PopupRowHeight      => 32f * S;
         public static float ControlRowHeight    => 36f * S;
+        /// <summary>Rows of Owlcat action buttons on the Presets / Packs tabs (the 9-slice needs the height).</summary>
+        public static float ActionRowHeight     => 44f * S;
         public static float FilterRowHeight     => 32f * S;
         public static float HintHeight          => 52f * S;
         public static float HintHeightShort     => 40f * S;

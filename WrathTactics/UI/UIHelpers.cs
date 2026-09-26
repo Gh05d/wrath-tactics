@@ -20,7 +20,7 @@ namespace WrathTactics.UI {
         /// by). Refreshed on-open via <see cref="RefreshFontScale"/>; settings changes made
         /// while the panel is open take effect on the next Ctrl+T cycle.
         /// </summary>
-        public static float FontScale { get; private set; } = 1f;
+        public static float FontScale { get; private set; } = Theme.BaseScale;
 
         public static void RefreshFontScale() {
             try {
@@ -30,11 +30,11 @@ namespace WrathTactics.UI {
                     // Defensive clamp — game slider never produces these, but a corrupt
                     // settings file shouldn't render the panel unreadable.
                     if (float.IsNaN(v) || v < 0.5f || v > 3f) v = 1f;
-                    FontScale = v;
+                    FontScale = v * Theme.BaseScale;
                 }
             } catch (Exception ex) {
                 Log.UI.Warn($"FontScale read failed, using 1.0: {ex.Message}");
-                FontScale = 1f;
+                FontScale = Theme.BaseScale;
             }
         }
 

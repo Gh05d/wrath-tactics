@@ -132,6 +132,7 @@
   "status.pack_saved_from_list_partial": "{0} Regel(n) als Paket '{1}' gespeichert — {2} Regel(n) konnten nicht als Presets gespeichert werden",
   "status.pack_save_list_empty": "Nichts zu speichern — diese Liste hat keine Regeln",
   "status.pack_export_copied": "Paket '{0}' in die Zwischenablage kopiert ({1} Preset(s))",
+  "status.pack_saved": "Paket '{0}' gespeichert",
   "status.pack_import_success": "Paket '{0}' mit {1} Preset(s) importiert",
   "status.pack_export_empty": "Paket '{0}' hat keine Regeln zum Exportieren",
 
