@@ -28,6 +28,9 @@ namespace WrathTactics.UI {
             if (sprite != null) {
                 img.sprite = sprite;
                 img.type = Image.Type.Sliced;
+                // The brush-stroke ends are 112 px 9-slice borders; at 1× they are wider than
+                // the text padding and neighbouring bands overlap. 2× halves them on screen.
+                img.pixelsPerUnitMultiplier = 2f;
                 img.color = tint ?? Color.white;
             } else {
                 var flat = style == BandStyle.Blue ? Theme.BandFallbackBlue : Theme.BandFallbackMauve;
@@ -130,6 +133,8 @@ namespace WrathTactics.UI {
             TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft, bool italic = false) {
             var tmp = UIHelpers.AddLabel(parent, text, Mathf.Max(14f, fontSize), align, Theme.BandText);
             if (italic) tmp.fontStyle |= FontStyles.Italic;
+            tmp.outlineWidth = 0.15f;
+            tmp.outlineColor = Theme.BandTextOutline;
             return tmp;
         }
 
@@ -183,7 +188,7 @@ namespace WrathTactics.UI {
                 img.color = Color.white;
                 img.raycastTarget = false;
             }
-            var tmp = UIHelpers.AddLabel(obj, text, 13f, TextAlignmentOptions.MidlineLeft, Theme.HintText);
+            var tmp = UIHelpers.AddLabel(obj, text, 14f, TextAlignmentOptions.MidlineLeft, Theme.HintText);
             tmp.fontStyle |= FontStyles.Italic;
             tmp.enableWordWrapping = true;
             tmp.raycastTarget = true;
@@ -341,8 +346,6 @@ namespace WrathTactics.UI {
             hlg.childControlHeight = true;
             hlg.childAlignment = TextAnchor.MiddleLeft;
             hlg.padding = new RectOffset(2, 4, 0, 0);
-            // No LayoutElement here: one with preferredWidth >= 0 (priority 1) would override the
-            // HLG's own content width (priority 0) and collapse the link to its padding.
             if (prefix.HasValue) IconImage(root.transform, "Prefix", prefix.Value, Theme.IconSmall);
 
             var (txt, _t) = UIHelpers.Create("Text", root.transform);
@@ -355,6 +358,18 @@ namespace WrathTactics.UI {
             tmp.enableWordWrapping = false;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = true;
+            if (onBand) {
+                tmp.outlineWidth = 0.15f;
+                tmp.outlineColor = Theme.BandTextOutline;
+            }
+
+            // The nested HLG reported 0 width for the TMP child in the game's TMP build (every
+            // link collapsed on the Deck), so the root's width is measured and pinned explicitly.
+            if (tmp.font == null) tmp.font = TMP_Settings.defaultFontAsset;
+            float textWidth = tmp.GetPreferredValues(text).x;
+            float linkWidth = textWidth + hlg.padding.horizontal + 2f
+                + (prefix.HasValue ? Theme.IconSmall + hlg.spacing : 0f);
+            InRow(root, linkWidth, 0f);
 
             var btn = root.AddComponent<Button>();
             btn.targetGraphic = tmp;
@@ -443,7 +458,7 @@ namespace WrathTactics.UI {
 
             // Image.color multiplies the sprite: the grey ink glyph cannot be lightened onto the
             // band, so it is darkened to ink instead (dark-on-mauve reads; grey-on-mauve does not).
-            var chev = IconImage(obj.transform, "Chevron", Icon.Chevron, Theme.IconSmall * 0.65f, Theme.Ink);
+            var chev = IconImage(obj.transform, "Chevron", Icon.Chevron, Theme.IconSmall * 0.9f, Theme.Ink);
             chev.GetComponent<LayoutElement>().ignoreLayout = true;
             var cr = chev.Rect();
             cr.anchorMin = new Vector2(1, 0.5f);

@@ -19,6 +19,8 @@ namespace WrathTactics.UI {
         public static readonly Color CardFill    = Rgb(0xFF, 0xFA, 0xF0, 0.18f);
         public static readonly Color ListRowFill = Rgb(0xFF, 0xFA, 0xEE, 0.35f);
         public static readonly Color BandText    = Rgb(0xF3, 0xE9, 0xD8);
+        /// <summary>Soft ink outline under band text so it survives the band's translucent ends.</summary>
+        public static readonly Color BandTextOutline = Rgb(0x2B, 0x1D, 0x12, 0.75f);
         public static readonly Color HintBacking = Rgb(0x30, 0x28, 0x19, 0.90f);
         public static readonly Color HintText    = Rgb(0xE9, 0xE2, 0xD0);
 
@@ -67,7 +69,8 @@ namespace WrathTactics.UI {
         public static float DividerHeight       => 14f * S;
         public static float IconSmall           => 18f * S;
         public static float IconMedium          => 24f * S;
-        public static float BandPaddingX        => 14f * S;
+        /// <summary>Clears the band sprite's brush-stroke fade (≈18 px after the 2× slice multiplier in Widgets.ApplyBand).</summary>
+        public static float BandPaddingX        => 26f * S;
         public static float RowGap              => 6f * S;
         public static float CardGap             => 12f * S;
         public static float CardPadding         => 8f * S;
