@@ -21,8 +21,9 @@ namespace WrathTactics.UI {
         string unitId;
         bool hideHeader;  // when true, skip the list-entry header (used by the preset editor)
 
-        TextMeshProUGUI enabledLabel;
+        GameObject enabledDot;
         LayoutElement layoutElement;
+        float bodySpacing;
 
         // The body container that holds conditions + action + target rows
         GameObject bodyContainer;
@@ -48,21 +49,16 @@ namespace WrathTactics.UI {
 
         void BuildUI() {
             var root = gameObject;
-            // Use the actual parchment sprite as background so each card has the
-            // natural paper texture / gradient instead of a flat sampled colour.
-            if (ThemeProvider.InnerParchment != null) {
-                ThemeProvider.ApplyInnerParchment(root);
-            } else {
-                UIHelpers.AddBackground(root, new Color(0.824f, 0.804f, 0.769f, 1f));
-            }
+            // Card = ink frame on the page sheet (spec §3.1). The sheet supplies the paper.
+            Widgets.ApplyCard(root);
             layoutElement = root.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 200;
+            layoutElement.preferredHeight = Theme.MinCardHeight;
 
             // ScrollRect wrapper — clips body content when card exceeds max height
             var (scrollObj, scrollObjRect) = UIHelpers.Create("BodyScroll", root.transform);
             scrollObjRect.FillParent();
-            scrollObjRect.offsetMin = new Vector2(4, 4);
-            scrollObjRect.offsetMax = new Vector2(-4, -4);
+            scrollObjRect.offsetMin = new Vector2(Theme.CardPadding, Theme.CardPadding);
+            scrollObjRect.offsetMax = new Vector2(-Theme.CardPadding, -Theme.CardPadding);
 
             var (viewport, viewportRect) = UIHelpers.Create("Viewport", scrollObj.transform);
             viewportRect.FillParent();
@@ -76,7 +72,8 @@ namespace WrathTactics.UI {
             bodyRt.sizeDelta = new Vector2(0, 0);
 
             var vlg = body.AddComponent<VerticalLayoutGroup>();
-            vlg.spacing = 4;
+            bodySpacing = Theme.RowGap * 0.66f;   // ≈4 at scale 1; UpdateHeight reads it
+            vlg.spacing = bodySpacing;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
             vlg.childControlHeight = true;
