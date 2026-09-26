@@ -1,3 +1,6 @@
+using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.Items;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -59,18 +62,32 @@ namespace WrathTactics.UI {
             Widgets.IconButton(header.transform, "Del", Icon.Delete, Theme.IconMedium, () => DeleteRule());
         }
 
+        /// <summary>
+        /// Display name for a stored ability key (spell / ability / activatable / item), or a
+        /// shortened GUID when the blueprint cannot be resolved (mod removed, corrupt key).
+        /// A bare GUID told the player nothing about what the linked rule casts.
+        /// </summary>
+        static string DescribeAbility(string abilityKey) {
+            if (string.IsNullOrEmpty(abilityKey)) return "";
+            var parsed = SpellDropdownProvider.ParseKey(abilityKey);
+            var guid = string.IsNullOrEmpty(parsed.VariantGuid) ? parsed.BlueprintGuid : parsed.VariantGuid;
+            string name = ResourcesLibrary.TryGetBlueprint<BlueprintUnitFact>(guid)?.Name;
+            if (string.IsNullOrEmpty(name)) name = ResourcesLibrary.TryGetBlueprint<BlueprintItem>(guid)?.Name;
+            if (!string.IsNullOrEmpty(name)) return name;
+            return abilityKey.Substring(0, System.Math.Min(8, abilityKey.Length)) + "\u2026";
+        }
+
         void RenderLinkedSummary(Transform parent, TacticsRule preset) {
             int condCount = 0;
             if (preset.ConditionGroups != null) {
                 foreach (var g in preset.ConditionGroups)
                     if (g?.Conditions != null) condCount += g.Conditions.Count;
             }
-            string abilityInfo = string.IsNullOrEmpty(preset.Action.AbilityId)
-                ? ""
-                : $" ({preset.Action.AbilityId.Substring(0, System.Math.Min(8, preset.Action.AbilityId.Length))}…)";
+            string abilityName = DescribeAbility(preset.Action.AbilityId);
+            string abilityInfo = abilityName.Length == 0 ? "" : $" ({abilityName})";
             string condCountText = string.Format("linked.summary.condition_count".i18n(), condCount);
             string summary = string.Format("linked.summary".i18n(),
-                condCountText, preset.Action.Type, abilityInfo, preset.Target.Type);
+                condCountText, EnumLabels.For(preset.Action.Type), abilityInfo, EnumLabels.For(preset.Target.Type));
 
             // One ink line: summary on the left, "Unlink & edit" link on the right.
             var row = Widgets.Row(parent, "LinkedSummary", Theme.CollapsedBodyHeight);
