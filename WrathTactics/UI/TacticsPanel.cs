@@ -37,13 +37,13 @@ namespace WrathTactics.UI {
         // from the last full RefreshRuleList (see AddPackRow / UpdateSaveListAsPackButton).
         // Null on the Presets tab, where the pack row doesn't exist.
         Button saveListAsPackButton;
-        Image saveListAsPackBackground;
+        CanvasGroup saveListAsPackGroup;
 
         // Result of the last pack action, rendered in the pack row. Mirrors
         // PresetPanel.lastIOStatus: the row is rebuilt constantly, so the text must
         // live on the panel, not on the label.
         string lastPackStatus;
-        Color lastPackStatusColor = Color.gray;
+        Color lastPackStatusColor = Theme.StatusMuted;
 
         // Both sentinel tabs show a panel instead of a character's rule list. Anything that
         // asks "is this a rule list?" must exclude both, or actions like AddNewRule fire
@@ -348,10 +348,7 @@ namespace WrathTactics.UI {
             if (saveListAsPackButton == null) return;
             bool filterActive = !string.IsNullOrWhiteSpace(currentRuleFilter);
             saveListAsPackButton.interactable = !filterActive;
-            if (saveListAsPackBackground != null)
-                saveListAsPackBackground.color = filterActive
-                    ? new Color(0.22f, 0.22f, 0.22f, 0.6f)
-                    : new Color(0.25f, 0.45f, 0.3f, 1f);
+            if (saveListAsPackGroup != null) saveListAsPackGroup.alpha = filterActive ? 0.45f : 1f;
         }
 
         void CreateRuleFilterEmptyLabel(Transform parent) {
@@ -443,7 +440,7 @@ namespace WrathTactics.UI {
                 trackImg.type = Image.Type.Sliced;
                 trackImg.color = Color.white;
             } else {
-                UIHelpers.AddBackground(scrollbarObj, new Color(0.15f, 0.15f, 0.15f, 0.85f));
+                UIHelpers.AddBackground(scrollbarObj, Theme.InkFrame);
             }
 
             var (handleObj, handleRect) = UIHelpers.Create("Handle", scrollbarObj.transform);
@@ -454,7 +451,7 @@ namespace WrathTactics.UI {
                 handleImg.type = Image.Type.Sliced;
                 handleImg.color = Color.white;
             } else {
-                UIHelpers.AddBackground(handleObj, new Color(0.7f, 0.7f, 0.7f, 1.0f));
+                UIHelpers.AddBackground(handleObj, Theme.InkMuted);
             }
 
             var scrollbar = scrollbarObj.AddComponent<Scrollbar>();
@@ -492,7 +489,7 @@ namespace WrathTactics.UI {
             // on other tabs it's about to be destroyed above — drop the references now so a
             // same-frame ApplyFilter can't act on an about-to-be-destroyed button.
             saveListAsPackButton = null;
-            saveListAsPackBackground = null;
+            saveListAsPackGroup = null;
 
             if (selectedUnitId == "presets") {
                 var (presetObj, _) = UIHelpers.Create("PresetPanel", ruleListContent);
@@ -528,7 +525,7 @@ namespace WrathTactics.UI {
             // the semantics where the rules are edited. Plain label card without
             // RuleEditorWidget — ApplyFilter ignores it.
             if (selectedUnitId == null) {
-                UIHelpers.AddHintCard(ruleListContent, "global.priority_hint".i18n());
+                Widgets.HintCard(ruleListContent, "global.priority_hint".i18n(), Theme.HintHeight);
                 AddHudButtonToggleRow();
             } else {
                 // Char-tab counterpart: show how many enabled global rules run ahead
@@ -536,11 +533,12 @@ namespace WrathTactics.UI {
                 int enabledGlobals = 0;
                 foreach (var r in config.GlobalRules) if (r.Enabled) enabledGlobals++;
                 if (enabledGlobals > 0)
-                    UIHelpers.AddHintCard(ruleListContent,
-                        Strings.Format("global.preempt_hint", enabledGlobals), 24f);
+                    Widgets.HintCard(ruleListContent,
+                        Strings.Format("global.preempt_hint", enabledGlobals), Theme.HintHeightShort);
             }
 
             AddPackRow(rules);
+            Widgets.FlourishDivider(ruleListContent);
 
             for (int i = 0; i < rules.Count; i++) {
                 var (card, _) = UIHelpers.Create($"Rule_{i}", ruleListContent);
@@ -556,106 +554,98 @@ namespace WrathTactics.UI {
         // cursor to click it and want it gone; Ctrl+T keeps working). Lives in the rule
         // list like the hint cards — no RuleEditorWidget, so ApplyFilter ignores it.
         void AddHudButtonToggleRow() {
-            var (row, _) = UIHelpers.Create("HudButtonToggle", ruleListContent);
-            row.AddComponent<LayoutElement>().preferredHeight = 32f * UIHelpers.FontScale;
-
-            TextMeshProUGUI label = null;
-            var btn = UIHelpers.MakeButton(row.transform, "HudButtonToggleBtn", HudToggleLabel(), 14f,
-                new Color(0.25f, 0.2f, 0.15f, 1f), () => {
-                    var settings = ModSettingsManager.Current;
-                    settings.ShowHudButton = !settings.ShowHudButton;
+            var settings = ModSettingsManager.Current;
+            // Checkbox semantics: checked = HUD button hidden (the setting is "ShowHudButton").
+            var row = Widgets.Checkbox(ruleListContent, "HudButtonToggle", "hud_button.hide".i18n(),
+                !settings.ShowHudButton, hidden => {
+                    var s = ModSettingsManager.Current;
+                    s.ShowHudButton = !hidden;
                     bool saved = ModSettingsManager.Save();
                     // Re-enabling should give instant feedback: push the floating-fallback
                     // retry timer past its threshold so Update() recreates the button on
                     // the next frame instead of after the 5 s BubbleBuffs grace period.
-                    if (settings.ShowHudButton) hudButtonRetrySeconds = 6f;
-                    // Update the label in place — a full RefreshRuleList would reset the
-                    // rule list scroll position just to repaint one string.
-                    if (label != null)
-                        label.text = saved ? HudToggleLabel() : "hud_button.save_failed".i18n();
+                    if (s.ShowHudButton) hudButtonRetrySeconds = 6f;
+                    if (!saved) SetPackStatus("hud_button.save_failed".i18n(), Theme.StatusError);
                 });
-            btn.FillParent();
-            label = btn.GetComponentInChildren<TextMeshProUGUI>();
-            UIHelpers.EnsureAllHoverable(row);
+            row.GetComponent<LayoutElement>().preferredHeight = Theme.InlineRowHeight;
         }
 
         // Applied-packs strip: one chip per pack present in this list plus the apply button.
         // Lives in the rule list like the hint cards — no RuleEditorWidget, so ApplyFilter
         // ignores it. Chips are per-pack, so a companion can carry any number of packs.
         void AddPackRow(List<TacticsRule> rules) {
-            var (row, _) = UIHelpers.Create("PackRow", ruleListContent);
-            row.AddComponent<LayoutElement>().preferredHeight = 32f * UIHelpers.FontScale;
-            // The strip carries its own surface: its label and status text sat straight on the
-            // book-page art, and an outline alone was not enough to read them (play-test).
-            UIHelpers.AddBackground(row, UIHelpers.PanelSurface);
-
-            var hlg = row.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 4;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
-            hlg.childControlWidth = true;
-            hlg.childControlHeight = true;
-            hlg.padding = new RectOffset(4, 4, 2, 2);
-            hlg.childAlignment = TextAnchor.MiddleLeft;
+            var row = Widgets.Row(ruleListContent, "PackRow", Theme.RowHeight);
+            row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(4, 4, 2, 2);
 
             var (labelObj, _l) = UIHelpers.Create("PackRowLabel", row.transform);
-            var labelLE = labelObj.AddComponent<LayoutElement>();
-            labelLE.preferredWidth = 70;
-            labelLE.flexibleWidth = 0;
-            UIHelpers.AddLabel(labelObj, "pack.row_label".i18n(), 14f,
-                TextAlignmentOptions.MidlineLeft, Color.white);
+            Widgets.InRow(labelObj, 60f, 0f);
+            Widgets.SectionLabel(labelObj, "pack.row_label".i18n(), 14f);
 
             foreach (var packId in Engine.PackRegistry.AppliedPackIds(rules)) {
                 var pack = Engine.PackRegistry.Get(packId);
                 if (pack == null) continue;  // pack deleted — rules keep working, no chip
                 var captured = pack;
-                var (chip, _c) = UIHelpers.Create($"PackChip_{pack.Id}", row.transform);
-                var chipLE = chip.AddComponent<LayoutElement>();
-                chipLE.preferredWidth = 130f * UIHelpers.FontScale;
-                chipLE.flexibleWidth = 0;
-                UIHelpers.AddBackground(chip, PackPalette.ColorAt(pack.ColorIndex));
-                UIHelpers.AddLabel(chip, pack.Name + "  ▾", 13f, TextAlignmentOptions.Midline);
-                // One click opens a menu with both actions. The menu IS the confirmation:
-                // the previous design deleted every rule of the pack on a single click of a
-                // control that read as a label (play-test finding).
-                chip.AddComponent<Button>().onClick.AddListener(() => ShowPackChipMenu(captured));
+                AddPackChip(row.transform, pack, () => ShowPackChipMenu(captured));
             }
 
-            var (applyBtn, _a) = UIHelpers.Create("ApplyPackBtn", row.transform);
-            var applyLE = applyBtn.AddComponent<LayoutElement>();
-            applyLE.preferredWidth = 120;
-            applyLE.flexibleWidth = 0;
-            UIHelpers.AddBackground(applyBtn, new Color(0.2f, 0.4f, 0.45f, 1f));
-            UIHelpers.AddLabel(applyBtn, "pack.button.apply".i18n(), 14f, TextAlignmentOptions.Midline);
-            applyBtn.AddComponent<Button>().onClick.AddListener(ShowPackPicker);
+            Widgets.InlineLink(row.transform, "ApplyPackBtn", "pack.button.apply".i18n(), ShowPackPicker, Icon.Add);
 
-            var (saveBtn, _s) = UIHelpers.Create("SaveListAsPackBtn", row.transform);
-            var saveLE = saveBtn.AddComponent<LayoutElement>();
-            saveLE.preferredWidth = 150;
-            saveLE.flexibleWidth = 0;
             // SaveListAsPack always claims the WHOLE list (see its own comment) — while a
             // filter is active that would silently promote/stamp rules the user can't even
-            // see right now, so the button goes dim and non-interactable instead of firing.
-            // Background/Button are held on the panel so ApplyFilter can keep this state in
+            // see right now, so the link goes dim and non-interactable instead of firing.
+            // Button/CanvasGroup are held on the panel so ApplyFilter can keep this state in
             // sync on every keystroke, not just on a full RefreshRuleList (review finding A).
-            saveListAsPackBackground = UIHelpers.AddBackground(saveBtn, new Color(0.25f, 0.45f, 0.3f, 1f));
-            UIHelpers.AddLabel(saveBtn, "pack.button.save_list".i18n(), 14f, TextAlignmentOptions.Midline);
-            saveListAsPackButton = saveBtn.AddComponent<Button>();
-            saveListAsPackButton.onClick.AddListener(SaveListAsPack);
+            var saveLink = Widgets.InlineLink(row.transform, "SaveListAsPackBtn", "pack.button.save_list".i18n(),
+                SaveListAsPack);
+            saveListAsPackButton = saveLink.GetComponent<Button>();
+            saveListAsPackGroup = saveLink.AddComponent<CanvasGroup>();
             UpdateSaveListAsPackButton();
 
             // Result of the last pack action — the character tab has no status line of its
             // own, and a silent "nothing happened" is indistinguishable from a broken button.
             if (!string.IsNullOrEmpty(lastPackStatus)) {
                 var (statusObj, _st) = UIHelpers.Create("PackStatus", row.transform);
-                var statusLE = statusObj.AddComponent<LayoutElement>();
-                statusLE.preferredWidth = 240;
-                statusLE.flexibleWidth = 1;
-                UIHelpers.AddLabel(statusObj, lastPackStatus, 12f,
-                    TextAlignmentOptions.MidlineLeft, lastPackStatusColor);
+                Widgets.InRow(statusObj, 240f, 1f);
+                Widgets.InkLabel(statusObj, lastPackStatus, 12f, TextAlignmentOptions.MidlineLeft,
+                    lastPackStatusColor, italic: true);
+            }
+        }
+
+        // Pack chip: ink pill with the pack's colour dot. One click opens a menu with both
+        // actions. The menu IS the confirmation: the previous design deleted every rule of
+        // the pack on a single click of a control that read as a label (play-test finding).
+        void AddPackChip(Transform parent, TacticsPack pack, UnityEngine.Events.UnityAction onClick) {
+            var (chip, _) = UIHelpers.Create($"PackChip_{pack.Id}", parent);
+            Widgets.InRow(chip, 130f * UIHelpers.FontScale, 0f);
+            Widgets.AddInset(chip);
+            var hlg = chip.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 6f;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.padding = new RectOffset(8, 8, 3, 3);
+
+            var (dot, _d) = UIHelpers.Create("Dot", chip.transform);
+            float d = Theme.IconSmall * 0.6f;
+            Widgets.InRow(dot, d, 0f).preferredHeight = d;
+            var dotImg = dot.AddComponent<Image>();
+            dotImg.color = PackPalette.ColorAt(pack.ColorIndex);
+            dotImg.raycastTarget = false;
+            if (ThemeProvider.ToggleOn != null) {
+                dotImg.sprite = ThemeProvider.ToggleOn;
+                dotImg.preserveAspect = true;
             }
 
-            UIHelpers.EnsureAllHoverable(row);
+            var (lbl, _t) = UIHelpers.Create("Label", chip.transform);
+            Widgets.InRow(lbl, 80f, 1f);
+            Widgets.InkLabel(lbl, pack.Name + "  \u25be", 13f);
+
+            var btn = chip.AddComponent<Button>();
+            btn.targetGraphic = chip.GetComponent<Image>();
+            Widgets.ApplyColorTint(btn);
+            btn.onClick.AddListener(onClick);
         }
 
         void SetPackStatus(string text, Color color) {
@@ -668,7 +658,7 @@ namespace WrathTactics.UI {
 
             var packs = Engine.PackRegistry.All();
             if (packs.Count == 0) {
-                SetPackStatus("pack.none_defined".i18n(), new Color(1f, 0.5f, 0.4f));
+                SetPackStatus("pack.none_defined".i18n(), Theme.StatusError);
                 Log.UI.Info("No packs available — create one on the Packs tab first");
                 RefreshRuleList();
                 return;
@@ -712,19 +702,19 @@ namespace WrathTactics.UI {
                 // doc comment anticipates this). Distinct from "already fully applied" below,
                 // which would otherwise report this broken pack as healthy.
                 SetPackStatus(string.Format("status.pack_no_usable_members".i18n(), pack.Name),
-                    new Color(1f, 0.8f, 0.4f));
+                    Theme.StatusWarn);
             } else if (plan.Count == 0 && readopted > 0) {
                 // Nothing NEW was added, but rules left behind by a prior "Remove pack marking"
                 // were just re-linked to this pack — say so instead of "already fully applied",
                 // which would read as a no-op even though the chip just came back.
                 SetPackStatus(string.Format("status.pack_readopted".i18n(), pack.Name, readopted),
-                    new Color(0.6f, 0.85f, 0.6f));
+                    Theme.StatusOk);
             } else {
                 SetPackStatus(
                     plan.Count == 0
                         ? string.Format("status.pack_nothing_to_add".i18n(), pack.Name)
                         : string.Format("status.pack_applied".i18n(), pack.Name, plan.Count, alreadyPresent),
-                    plan.Count == 0 ? Color.gray : new Color(0.6f, 0.85f, 0.6f));
+                    plan.Count == 0 ? Theme.StatusMuted : Theme.StatusOk);
             }
             Log.UI.Info($"Applied pack '{pack.Name}': +{plan.Count} rule(s), {alreadyPresent} already present, {readopted} readopted");
             RefreshRuleList();
@@ -780,7 +770,7 @@ namespace WrathTactics.UI {
             }
             ConfigManager.Save();
             SetPackStatus(string.Format("status.pack_detached".i18n(), pack.Name, detached),
-                new Color(0.6f, 0.85f, 0.6f));
+                Theme.StatusOk);
             Log.UI.Info($"Detached pack '{pack.Name}' from {detached} rule(s)");
             RefreshRuleList();
         }
@@ -795,7 +785,7 @@ namespace WrathTactics.UI {
             int removed = list.RemoveAll(r => r != null && r.PackId == pack.Id);
             ConfigManager.Save();
             SetPackStatus(string.Format("status.pack_removed".i18n(), removed, pack.Name),
-                new Color(0.6f, 0.85f, 0.6f));
+                Theme.StatusOk);
             Log.UI.Info($"Removed {removed} rule(s) of pack '{pack.Name}'");
             RefreshRuleList();
         }
@@ -811,7 +801,7 @@ namespace WrathTactics.UI {
             // kept here too so any invocation path that bypasses that guard still can't
             // silently promote/stamp rules the user can't currently see.
             if (!string.IsNullOrWhiteSpace(currentRuleFilter)) {
-                SetPackStatus("status.pack_save_list_filtered".i18n(), new Color(1f, 0.8f, 0.4f));
+                SetPackStatus("status.pack_save_list_filtered".i18n(), Theme.StatusWarn);
                 RefreshRuleList();
                 return;
             }
@@ -821,7 +811,7 @@ namespace WrathTactics.UI {
                 : GetOrCreateCharacterRules(selectedUnitId);
 
             if (list.Count == 0) {
-                SetPackStatus("status.pack_save_list_empty".i18n(), new Color(1f, 0.5f, 0.4f));
+                SetPackStatus("status.pack_save_list_empty".i18n(), Theme.StatusError);
                 Log.UI.Info("Save list as pack: list is empty");
                 RefreshRuleList();
                 return;
@@ -887,14 +877,14 @@ namespace WrathTactics.UI {
             }
 
             if (pack.PresetIds.Count == 0) {
-                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), new Color(1f, 0.5f, 0.4f));
+                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), Theme.StatusError);
                 Log.UI.Warn("Save list as pack: no rule could be promoted");
                 RefreshRuleList();
                 return;
             }
 
             if (!Engine.PackRegistry.Save(pack)) {
-                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), new Color(1f, 0.5f, 0.4f));
+                SetPackStatus(string.Format("status.save_failed".i18n(), pack.Name), Theme.StatusError);
                 Log.UI.Error($"Save list as pack: failed to persist pack '{pack.Name}'");
                 // The rules were already promoted and re-linked in memory; persist that much
                 // so the user doesn't lose the promotion along with the pack.
@@ -906,18 +896,15 @@ namespace WrathTactics.UI {
             if (skipped > 0) {
                 SetPackStatus(
                     string.Format("status.pack_saved_from_list_partial".i18n(), pack.PresetIds.Count, pack.Name, skipped),
-                    new Color(1f, 0.8f, 0.4f));
+                    Theme.StatusWarn);
             } else {
                 SetPackStatus(
                     string.Format("status.pack_saved_from_list".i18n(), pack.PresetIds.Count, pack.Name),
-                    new Color(0.6f, 0.85f, 0.6f));
+                    Theme.StatusOk);
             }
             Log.UI.Info($"Saved {pack.PresetIds.Count} rule(s) as pack '{pack.Name}' ({promoted} newly promoted, {skipped} skipped)");
             RefreshRuleList();
         }
-
-        static string HudToggleLabel() =>
-            (ModSettingsManager.Current.ShowHudButton ? "hud_button.hide" : "hud_button.show").i18n();
 
         void UpdateToggleLabel() {
             if (toggleSlot == null) return;
