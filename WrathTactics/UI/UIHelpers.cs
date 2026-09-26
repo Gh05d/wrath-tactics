@@ -507,29 +507,15 @@ namespace WrathTactics.UI {
         static GameObject CreatePickerOverlay(List<string> options, List<Sprite> icons,
             int selectedIndex, Action<int> onOptionClicked) {
 
-            var canvas = Game.Instance.UI.Canvas.transform;
+            float itemHeight = Theme.PopupRowHeight;
+            float maxPopupHeight = Theme.PopupListMaxHeight;
+            float totalHeight = Mathf.Min(options.Count * itemHeight + Theme.PaperInset * 2f + 8f, maxPopupHeight);
 
-            // Full-screen overlay to catch clicks outside
-            var (overlay, overlayRect) = UIHelpers.Create("PopupOverlay", canvas);
-            overlayRect.FillParent();
-            UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.3f));
-            // Button with no listeners yet; callers attach their outside-click handler
-            overlay.AddComponent<Button>();
-
-            // Popup container — centered on screen
-            var (popup, popupRect) = UIHelpers.Create("PopupList", overlay.transform);
-            UIHelpers.AddBackground(popup, new Color(0.15f, 0.15f, 0.15f, 0.98f));
-
-            float popupWidth = 350f * UIHelpers.FontScale;
-            float maxPopupHeight = 400f * UIHelpers.FontScale;
-            float itemHeight = 36f * UIHelpers.FontScale;
-            float totalHeight = Mathf.Min(options.Count * itemHeight + 8f, maxPopupHeight);
-
-            popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-            popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-            popupRect.pivot = new Vector2(0.5f, 0.5f);
-            popupRect.anchoredPosition = Vector2.zero;
-            popupRect.sizeDelta = new Vector2(popupWidth, totalHeight);
+            // Paper sheet over a dim; callers attach their outside-click handler to the
+            // overlay's Button (parts.OverlayButton == overlay.GetComponent<Button>()).
+            var parts = Widgets.PaperPopup("PopupOverlay", Theme.PopupListWidth, totalHeight, null, null);
+            var overlay = parts.Overlay;
+            var popup = parts.Content;
 
             // Scroll view
             var (scrollObj, scrollRect) = UIHelpers.Create("Scroll", popup.transform);
@@ -572,7 +558,7 @@ namespace WrathTactics.UI {
             sbRect.pivot = new Vector2(1, 0.5f);
             sbRect.sizeDelta = new Vector2(sbWidth, 0);
             sbRect.anchoredPosition = Vector2.zero;
-            UIHelpers.AddBackground(sbObj, new Color(0.10f, 0.10f, 0.10f, 0.7f));
+            UIHelpers.AddBackground(sbObj, Theme.InkFrame);
 
             var (slidingArea, slidingRect) = UIHelpers.Create("SlidingArea", sbObj.transform);
             slidingRect.anchorMin = new Vector2(0, 0);
@@ -585,7 +571,7 @@ namespace WrathTactics.UI {
             handleRect.anchorMax = new Vector2(1, 1);
             handleRect.sizeDelta = Vector2.zero;
             var handleImg = handleObj.AddComponent<Image>();
-            handleImg.color = new Color(0.45f, 0.45f, 0.45f, 1f);
+            handleImg.color = Theme.InkMuted;
             handleImg.raycastTarget = true;
 
             var sb = sbObj.AddComponent<Scrollbar>();
@@ -600,15 +586,10 @@ namespace WrathTactics.UI {
             // Option buttons
             for (int i = 0; i < options.Count; i++) {
                 var capturedIndex = i;
-                var (itemObj, itemObjRect) = UIHelpers.Create($"Option_{i}", content.transform);
-                itemObj.AddComponent<LayoutElement>().preferredHeight = itemHeight;
-
-                var bgColor = i == selectedIndex
-                    ? new Color(0.3f, 0.35f, 0.45f, 1f)
-                    : new Color(0.2f, 0.2f, 0.2f, 1f);
-                UIHelpers.AddBackground(itemObj, bgColor);
-                var label = UIHelpers.AddLabel(itemObj, options[i], 16f,
-                    TextAlignmentOptions.MidlineLeft);
+                bool selected = i == selectedIndex;
+                var itemObj = Widgets.ListRow(content.transform, $"Option_{i}", itemHeight, selected);
+                var label = Widgets.InkLabel(itemObj, options[i], 15f, TextAlignmentOptions.MidlineLeft,
+                    Widgets.ListRowTextColor(selected));
 
                 if (icons != null && i < icons.Count && icons[i] != null) {
                     var (iconObj, iconRect) = UIHelpers.Create("Icon", itemObj.transform);
@@ -626,7 +607,10 @@ namespace WrathTactics.UI {
                     label.margin = new Vector4(4, 0, 4, 0);
                 }
 
-                itemObj.AddComponent<Button>().onClick.AddListener(() => {
+                var itemBtn = itemObj.AddComponent<Button>();
+                itemBtn.targetGraphic = itemObj.GetComponent<Image>();
+                Widgets.ApplyColorTint(itemBtn);
+                itemBtn.onClick.AddListener(() => {
                     onOptionClicked?.Invoke(capturedIndex);
                 });
             }
