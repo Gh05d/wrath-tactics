@@ -185,6 +185,7 @@ namespace WrathTactics.UI {
                 var img = art.AddComponent<Image>();
                 img.sprite = ThemeProvider.HintAnnotation;
                 img.type = Image.Type.Sliced;
+                img.pixelsPerUnitMultiplier = 2f;   // 58+67 px vertical borders vs a 40–52 px card
                 img.color = Color.white;
                 img.raycastTarget = false;
             }
@@ -566,6 +567,7 @@ namespace WrathTactics.UI {
             if (ThemeProvider.PopupPaper != null) {
                 paper.sprite = ThemeProvider.PopupPaper;
                 paper.type = Image.Type.Sliced;
+                paper.pixelsPerUnitMultiplier = 2f;   // 101+89 px vertical borders vs short 2-option lists
                 paper.color = Color.white;
             } else {
                 paper.color = Theme.PaperFallback;

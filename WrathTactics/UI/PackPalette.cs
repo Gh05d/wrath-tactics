@@ -29,11 +29,5 @@ namespace WrathTactics.UI {
             if (index < 0 || index >= Colors.Length - 1) return 0;
             return index + 1;
         }
-
-        /// <summary>Muted variant for rule-card headers, so the chip stays the louder element.</summary>
-        public static Color HeaderTint(int index) {
-            var c = ColorAt(index);
-            return new Color(c.r * 0.75f, c.g * 0.75f, c.b * 0.75f, 1f);
-        }
     }
 }

@@ -42,7 +42,7 @@ namespace WrathTactics.UI {
                 : null;
             if (origin != null) {
                 var (o, _) = UIHelpers.Create("Origin", header.transform);
-                Widgets.InRow(o, 160f, 0f);
+                Widgets.InRow(o, 240f, 0f);
                 Widgets.BandLabel(o, origin, 13f, TextAlignmentOptions.MidlineRight, italic: true);
             }
 

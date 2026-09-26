@@ -33,8 +33,13 @@ namespace WrathTactics.UI {
         }
 
         void Rebuild() {
-            for (int i = transform.childCount - 1; i >= 0; i--)
-                Destroy(transform.GetChild(i).gameObject);
+            // Detach before Destroy: Destroy lands end-of-frame and the doomed children would
+            // still take HLG slots for that frame (one-frame squeeze on every Subject change).
+            for (int i = transform.childCount - 1; i >= 0; i--) {
+                var child = transform.GetChild(i);
+                child.SetParent(null, false);
+                Destroy(child.gameObject);
+            }
             var le = GetComponent<LayoutElement>();
             if (le != null) Destroy(le);
             // DestroyImmediate: a deferred Destroy leaves two layout controllers for a frame.

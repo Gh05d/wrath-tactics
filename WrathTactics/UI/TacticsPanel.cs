@@ -573,7 +573,6 @@ namespace WrathTactics.UI {
                         RefreshRuleList();   // the pack row renders the status; nothing else repaints it
                     }
                 });
-            row.GetComponent<LayoutElement>().preferredHeight = Theme.InlineRowHeight;
         }
 
         // Applied-packs strip: one chip per pack present in this list plus the apply button.
@@ -594,7 +593,7 @@ namespace WrathTactics.UI {
                 AddPackChip(row.transform, pack, () => ShowPackChipMenu(captured));
             }
 
-            Widgets.InlineLink(row.transform, "ApplyPackBtn", "pack.button.apply".i18n(), ShowPackPicker, Icon.Add);
+            Widgets.InlineLink(row.transform, "ApplyPackBtn", "pack.button.apply".i18n().TrimStart('+', ' '), ShowPackPicker, Icon.Add);
 
             // SaveListAsPack always claims the WHOLE list (see its own comment) — while a
             // filter is active that would silently promote/stamp rules the user can't even
@@ -623,7 +622,7 @@ namespace WrathTactics.UI {
         void AddPackChip(Transform parent, TacticsPack pack, UnityEngine.Events.UnityAction onClick) {
             // Same band + tint as the rule headers this pack colours, so chip and rules match.
             var (chip, _) = UIHelpers.Create($"PackChip_{pack.Id}", parent);
-            Widgets.InRow(chip, 150f * UIHelpers.FontScale, 0f);
+            Widgets.InRow(chip, Theme.PackChipWidth, 0f);
             Widgets.ApplyBand(chip, BandStyle.Mauve, Theme.PackBandTint(pack.ColorIndex));
             var label = Widgets.BandLabel(chip, pack.Name + "  \u25be", 13f, TextAlignmentOptions.Midline);
             label.margin = new Vector4(Theme.BandPaddingX * 0.6f, 0, Theme.BandPaddingX * 0.6f, 0);

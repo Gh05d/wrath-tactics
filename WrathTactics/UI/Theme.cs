@@ -101,6 +101,8 @@ namespace WrathTactics.UI {
         public static float HintHeightShort     => 40f * S;
         public static float StatusHeight        => 24f * S;
         public static float SectionLabelHeight  => 20f * S;
+        public static float PackChipWidth       => 150f * S;
+        public static float ScrollbarWidth      => 12f * S;
         /// <summary>"or" label between the OR-divider lines — wide enough for "ODER" / "ИЛИ" at scale 2.</summary>
         public static float OrLabelWidth        => 56f * S;
         /// <summary>Popup content inset past the paper sprite's torn edge.</summary>

@@ -306,12 +306,6 @@ namespace WrathTactics.UI {
         public string SelectedOption => selectedIndex >= 0 && selectedIndex < options.Count
             ? options[selectedIndex] : "";
 
-        public static PopupSelector Create(GameObject parent, string name,
-            float xMin, float xMax, List<string> options, int initialIndex,
-            Action<int> onSelected) {
-            return CreateWithIcons(parent, name, xMin, xMax, options, null, initialIndex, onSelected);
-        }
-
         public static PopupSelector CreateWithIcons(GameObject parent, string name,
             float xMin, float xMax, List<string> options, List<Sprite> icons,
             int initialIndex, Action<int> onSelected) {
@@ -455,7 +449,7 @@ namespace WrathTactics.UI {
             // Visible vertical scrollbar — 12px wide, anchored to popup's right edge.
             // AutoHideAndExpandViewport leaves short popups uncluttered (bar hidden +
             // viewport reclaims the 12px) and only shows the bar when content overflows.
-            float sbWidth = 12f * UIHelpers.FontScale;
+            float sbWidth = Theme.ScrollbarWidth;
             var (sbObj, sbRect) = UIHelpers.Create("Scrollbar", scrollObj.transform);
             sbRect.anchorMin = new Vector2(1, 0);
             sbRect.anchorMax = new Vector2(1, 1);
