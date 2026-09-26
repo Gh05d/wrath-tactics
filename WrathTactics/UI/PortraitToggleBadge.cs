@@ -13,7 +13,7 @@ namespace WrathTactics.UI {
         ViewBase<PartyCharacterVM> cell;
         TextMeshProUGUI label;
 
-        static readonly Color OnColor = new Color(0.35f, 0.9f, 0.35f);
+        static Color OnColor => Theme.BadgeOn;
 
         public void Init(ViewBase<PartyCharacterVM> boundCell, TextMeshProUGUI stateLabel) {
             cell = boundCell;

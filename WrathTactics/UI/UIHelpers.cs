@@ -96,107 +96,11 @@ namespace WrathTactics.UI {
             return tmp;
         }
 
-        /// <summary>
-        /// Label for text drawn directly on the book-page art, which is light enough that
-        /// white text washes out. Adds the black outline the panel already used ad hoc in
-        /// TacticsPanel (CreateRuleFilterEmptyLabel, UpdateToggleLabel). Use AddLabel instead
-        /// whenever the label sits on its own dark background — the outline is pure cost there.
-        /// Mirrors AddLabel's signature exactly.
-        /// </summary>
-        public static TextMeshProUGUI AddPageLabel(GameObject parent, string text, float fontSize = 20f,
-            TextAlignmentOptions alignment = TextAlignmentOptions.MidlineLeft, Color? color = null) {
-            var label = AddLabel(parent, text, fontSize, alignment, color);
-            label.outlineWidth = 0.25f;
-            label.outlineColor = new Color32(0, 0, 0, 255);
-            return label;
-        }
-
-        /// <summary>
-        /// Explainer strip for list areas. Word-wraps within a FontScale-scaled height
-        /// budget (Ellipsis beyond). raycastTarget stays ON so mouse-wheel and drag over
-        /// the strip bubble to the enclosing ScrollRect (no Button anywhere in hint
-        /// chains, so it is click-inert).
-        ///
-        /// The card carries its own dark surface. An outline alone was tried and shipped
-        /// once: the maintainer's play-test verdict was still "viel zu schwer zu lesen".
-        /// Light text on the parchment page art needs a surface behind it, not a stroke
-        /// around it — that is the panel's own idiom everywhere content must be read.
-        /// </summary>
-        public static TextMeshProUGUI AddHintCard(Transform parent, string text, float preferredHeight = 52f) {
-            var (obj, _) = Create("Hint", parent);
-            obj.AddComponent<LayoutElement>().preferredHeight = preferredHeight * FontScale;
-            AddBackground(obj, PanelSurface);
-            var tmp = AddLabel(obj, text, 13f, TextAlignmentOptions.TopLeft, new Color(0.85f, 0.85f, 0.85f));
-            tmp.enableWordWrapping = true;
-            tmp.raycastTarget = true;
-            tmp.margin = new Vector4(6, 4, 6, 4);
-            return tmp;
-        }
-
-        /// <summary>Standard dark surface for content laid over the book-page art.</summary>
-        public static readonly Color PanelSurface = new Color(0.13f, 0.13f, 0.13f, 0.96f);
-
-        /// <summary>Slightly lighter surface for a section header inside a PanelSurface box.</summary>
-        public static readonly Color PanelHeaderSurface = new Color(0.2f, 0.2f, 0.22f, 1f);
-
-        /// <summary>
-        /// Full-width strip with its own dark surface plus a label — the readable
-        /// alternative to a bare AddPageLabel for titles, empty-state text and status
-        /// lines that would otherwise sit straight on the parchment.
-        /// </summary>
-        public static TextMeshProUGUI AddSurfaceLabel(Transform parent, string name, string text,
-            float preferredHeight, float fontSize, Color? color = null, Color? surface = null) {
-            var (obj, _) = Create(name, parent);
-            obj.AddComponent<LayoutElement>().preferredHeight = preferredHeight;
-            AddBackground(obj, surface ?? PanelSurface);
-            var tmp = AddLabel(obj, text, fontSize, TextAlignmentOptions.MidlineLeft, color);
-            tmp.margin = new Vector4(6, 0, 6, 0);
-            return tmp;
-        }
-
         public static Image AddBackground(GameObject obj, Color color) {
             var img = obj.AddComponent<Image>();
             img.color = color;
             img.raycastTarget = true;
             return img;
-        }
-
-        public static GameObject MakeButton(Transform parent, string name, string label, float fontSize,
-            Color bgColor, UnityEngine.Events.UnityAction onClick) {
-            var (btn, btnRect) = Create(name, parent);
-
-            if (ThemeProvider.ActionButtonNormal != null) {
-                ThemeProvider.ApplyActionButton(btn);
-            } else {
-                AddBackground(btn, bgColor);
-                btn.AddComponent<Button>();
-            }
-
-            AddLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
-            btn.GetComponent<Button>().onClick.AddListener(onClick);
-            return btn;
-        }
-
-        /// <summary>
-        /// Walks the GameObject tree and ensures every Button has a visible hover state.
-        /// Buttons that already use SpriteSwap (themed via ThemeProvider) are left alone
-        /// because their hover sprites are already set. Color-tint Buttons get a darken
-        /// multiplier on hover/press so the user gets feedback regardless of base colour.
-        /// </summary>
-        public static void EnsureAllHoverable(GameObject root) {
-            if (root == null) return;
-            foreach (var btn in root.GetComponentsInChildren<Button>(true)) {
-                if (btn.transition == Selectable.Transition.SpriteSwap) continue;
-                btn.transition = Selectable.Transition.ColorTint;
-                if (btn.targetGraphic == null) btn.targetGraphic = btn.GetComponent<Graphic>();
-                var c = btn.colors;
-                c.normalColor      = Color.white;
-                c.highlightedColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-                c.pressedColor     = new Color(0.55f, 0.55f, 0.55f, 1f);
-                c.selectedColor    = c.highlightedColor;
-                c.fadeDuration     = 0.1f;
-                btn.colors = c;
-            }
         }
 
         /// <summary>

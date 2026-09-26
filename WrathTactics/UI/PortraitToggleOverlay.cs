@@ -70,10 +70,8 @@ namespace WrathTactics.UI {
             rect.sizeDelta = new Vector2(size, size);
             rect.anchoredPosition = new Vector2(size * 0.5f + 2f, -(size * 0.5f + 2f));
 
-            UIHelpers.AddBackground(go, new Color(0f, 0f, 0f, 0.65f));
-            var label = UIHelpers.AddLabel(go, "T", 14f, TextAlignmentOptions.Midline, Color.white);
-            label.outlineWidth = 0.25f;
-            label.outlineColor = new Color32(0, 0, 0, 255);
+            UIHelpers.AddBackground(go, Theme.DimBackdrop);
+            var label = Widgets.BandLabel(go, "T", 14f, TextAlignmentOptions.Midline);
 
             var badge = go.AddComponent<PortraitToggleBadge>();
             badge.Init(cell, label);

@@ -1079,7 +1079,7 @@ namespace WrathTactics.UI {
                 btnImg.preserveAspect = true;
                 btnImg.color = Color.white;
             } else {
-                btnImg.color = new Color(0.5f, 0.35f, 0.15f, 1f);
+                btnImg.color = Theme.BandFallbackMauve;
             }
             btnImg.raycastTarget = true;
 
@@ -1118,7 +1118,7 @@ namespace WrathTactics.UI {
                 btnImg.preserveAspect = true;
                 btnImg.color = Color.white;
             } else {
-                btnImg.color = new Color(0.4f, 0.3f, 0.15f, 0.95f);
+                btnImg.color = Theme.TitleFallback;
             }
             btnImg.raycastTarget = true;
 
