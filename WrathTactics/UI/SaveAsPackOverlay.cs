@@ -23,23 +23,12 @@ namespace WrathTactics.UI {
         public static GameObject Open(string suggestedName, List<TacticsRule> rules,
             Func<TacticsRule, string> describe, Action<string, List<TacticsRule>> onConfirm) {
 
-            var canvas = Game.Instance.UI.Canvas.transform;
-            var (overlay, overlayRect) = UIHelpers.Create("SaveAsPackOverlay", canvas);
-            overlayRect.FillParent();
-            UIHelpers.AddBackground(overlay, new Color(0, 0, 0, 0.4f));
-            overlay.AddComponent<Button>().onClick.AddListener(() => Destroy(overlay));
-
-            var (popup, popupRect) = UIHelpers.Create("Popup", overlay.transform);
-            UIHelpers.AddBackground(popup, new Color(0.12f, 0.12f, 0.12f, 0.99f));
-            popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-            popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-            popupRect.pivot = new Vector2(0.5f, 0.5f);
-            popupRect.anchoredPosition = Vector2.zero;
-            popupRect.sizeDelta = new Vector2(460f, 520f);
-
-            // Swallow clicks so the popup itself does not close the overlay.
-            var swallow = popup.AddComponent<Button>();
-            swallow.targetGraphic = popup.GetComponent<Image>();
+            Widgets.PaperPopupParts parts = default;   // captured by the close lambda, assigned below
+            parts = Widgets.PaperPopup("SaveAsPackOverlay", Theme.PopupWidth * 0.96f, Theme.PopupHeight * 0.96f,
+                "pack.save_dialog.title".i18n(), () => Destroy(parts.Overlay));
+            parts.OverlayButton.onClick.AddListener(() => Destroy(parts.Overlay));
+            var overlay = parts.Overlay;
+            var popup = parts.Popup;
 
             var controller = popup.AddComponent<SaveAsPackOverlay>();
             controller.onConfirm = (name, chosen) => {
@@ -49,7 +38,7 @@ namespace WrathTactics.UI {
                 Destroy(overlay);
             };
             controller.selected.AddRange(rules);   // everything pre-checked
-            controller.BuildUI(popup, suggestedName, rules, describe);
+            controller.BuildUI(parts.Content, suggestedName, rules, describe);
             return overlay;
         }
 
@@ -62,17 +51,13 @@ namespace WrathTactics.UI {
             vlg.childForceExpandHeight = false;
             vlg.childControlWidth = true;
             vlg.childControlHeight = true;
-            vlg.padding = new RectOffset(12, 12, 12, 12);
-
-            var (titleObj, _t) = UIHelpers.Create("Title", popup.transform);
-            titleObj.AddComponent<LayoutElement>().preferredHeight = 30;
-            UIHelpers.AddLabel(titleObj, "pack.save_dialog.title".i18n(), 18f,
-                TextAlignmentOptions.MidlineLeft, Color.white);
+            // Top padding leaves room for the paper title row PaperPopup drew.
+            vlg.padding = new RectOffset(0, 0, (int)Theme.RowHeight + 6, 0);
 
             var (nameLabel, _nl) = UIHelpers.Create("NameLabel", popup.transform);
             nameLabel.AddComponent<LayoutElement>().preferredHeight = 22;
-            UIHelpers.AddLabel(nameLabel, "pack.save_dialog.name_label".i18n(), 14f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
+            Widgets.InkLabel(nameLabel, "pack.save_dialog.name_label".i18n(), 14f,
+                TextAlignmentOptions.MidlineLeft, Theme.InkLabel);
 
             var (nameHolder, _nh) = UIHelpers.Create("NameHolder", popup.transform);
             nameHolder.AddComponent<LayoutElement>().preferredHeight = 32;
@@ -81,8 +66,8 @@ namespace WrathTactics.UI {
 
             var (rulesLabel, _rl) = UIHelpers.Create("RulesLabel", popup.transform);
             rulesLabel.AddComponent<LayoutElement>().preferredHeight = 22;
-            UIHelpers.AddLabel(rulesLabel, "pack.save_dialog.rules_label".i18n(), 14f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.8f, 0.8f, 0.8f));
+            Widgets.InkLabel(rulesLabel, "pack.save_dialog.rules_label".i18n(), 14f,
+                TextAlignmentOptions.MidlineLeft, Theme.InkLabel);
 
             // A character can have more rules than fit in the fixed-height popup, so the
             // checklist itself scrolls while the name field and buttons stay pinned. Same
@@ -124,9 +109,7 @@ namespace WrathTactics.UI {
 
             foreach (var rule in rules) {
                 var captured = rule;
-                var (row, _r) = UIHelpers.Create($"Rule_{rule.Id}", rowsContent.transform);
-                row.AddComponent<LayoutElement>().preferredHeight = 28;
-                UIHelpers.AddBackground(row, new Color(0.16f, 0.16f, 0.16f, 1f));
+                var row = Widgets.ListRow(rowsContent.transform, $"Rule_{rule.Id}", Theme.InlineRowHeight + 4f, false);
 
                 var hlg = row.AddComponent<HorizontalLayoutGroup>();
                 hlg.spacing = 6;
@@ -138,19 +121,25 @@ namespace WrathTactics.UI {
                 hlg.childAlignment = TextAnchor.MiddleLeft;
 
                 var (box, _b) = UIHelpers.Create("Check", row.transform);
-                var boxLE = box.AddComponent<LayoutElement>();
-                boxLE.preferredWidth = 28;
-                boxLE.minWidth = 28;
-                boxLE.flexibleWidth = 0;
-                UIHelpers.AddBackground(box, new Color(0.25f, 0.4f, 0.25f, 1f));
-                var boxLabel = UIHelpers.AddLabel(box, "x", 15f, TextAlignmentOptions.Midline);
-                box.AddComponent<Button>().onClick.AddListener(() => {
+                Widgets.InRow(box, Theme.IconSmall, 0f).preferredHeight = Theme.IconSmall;
+                Widgets.AddInset(box);
+                var tick = Widgets.IconImage(box.transform, "Tick", Icon.Check, Theme.IconSmall * 0.8f);
+                tick.GetComponent<LayoutElement>().ignoreLayout = true;
+                var tr = tick.Rect();
+                tr.anchorMin = new Vector2(0.5f, 0.5f);
+                tr.anchorMax = new Vector2(0.5f, 0.5f);
+                tr.anchoredPosition = Vector2.zero;
+                tick.SetActive(true);
+                var boxBtn = box.AddComponent<Button>();
+                boxBtn.targetGraphic = box.GetComponent<Image>();
+                Widgets.ApplyColorTint(boxBtn);
+                boxBtn.onClick.AddListener(() => {
                     if (selected.Contains(captured)) {
                         selected.Remove(captured);
-                        boxLabel.text = "";
+                        tick.SetActive(false);
                     } else {
                         selected.Add(captured);
-                        boxLabel.text = "x";
+                        tick.SetActive(true);
                     }
                     if (errorLabel != null) errorLabel.text = "";
                 });
@@ -159,14 +148,12 @@ namespace WrathTactics.UI {
                 var nameLE = nameObj.AddComponent<LayoutElement>();
                 nameLE.flexibleWidth = 1;
                 nameLE.preferredWidth = 300;
-                UIHelpers.AddLabel(nameObj, describe(captured), 13f,
-                    TextAlignmentOptions.MidlineLeft, Color.white);
+                Widgets.InkLabel(nameObj, describe(captured), 13f);
             }
 
             var (errObj, _e) = UIHelpers.Create("Error", popup.transform);
             errObj.AddComponent<LayoutElement>().preferredHeight = 20;
-            errorLabel = UIHelpers.AddLabel(errObj, "", 13f,
-                TextAlignmentOptions.MidlineLeft, new Color(1f, 0.5f, 0.4f));
+            errorLabel = Widgets.InkLabel(errObj, "", 13f, TextAlignmentOptions.MidlineLeft, Theme.StatusError, italic: true);
 
             var (buttons, _bt) = UIHelpers.Create("Buttons", popup.transform);
             buttons.AddComponent<LayoutElement>().preferredHeight = 36;
@@ -177,17 +164,10 @@ namespace WrathTactics.UI {
             bhlg.childControlWidth = true;
             bhlg.childControlHeight = true;
 
-            var (cancel, _c) = UIHelpers.Create("Cancel", buttons.transform);
-            UIHelpers.AddBackground(cancel, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(cancel, "pack.save_dialog.cancel".i18n(), 15f,
-                TextAlignmentOptions.Midline);
-            cancel.AddComponent<Button>().onClick.AddListener(() => Destroy(transform.parent.gameObject));
+            Widgets.ActionButton(buttons.transform, "Cancel", "pack.save_dialog.cancel".i18n(), 15f,
+                () => Destroy(transform.parent.gameObject), 160f, 1f);   // controller sits on Popup; parent = Overlay
 
-            var (confirm, _cf) = UIHelpers.Create("Confirm", buttons.transform);
-            UIHelpers.AddBackground(confirm, new Color(0.25f, 0.45f, 0.3f, 1f));
-            UIHelpers.AddLabel(confirm, "pack.save_dialog.confirm".i18n(), 15f,
-                TextAlignmentOptions.Midline);
-            confirm.AddComponent<Button>().onClick.AddListener(() => {
+            Widgets.ActionButton(buttons.transform, "Confirm", "pack.save_dialog.confirm".i18n(), 15f, () => {
                 if (selected.Count == 0) {
                     errorLabel.text = "pack.save_dialog.none_selected".i18n();
                     return;
@@ -196,9 +176,7 @@ namespace WrathTactics.UI {
                 var ordered = new List<TacticsRule>();
                 foreach (var rule in rules) if (selected.Contains(rule)) ordered.Add(rule);
                 onConfirm(nameInput.text?.Trim(), ordered);
-            });
-
-            UIHelpers.EnsureAllHoverable(popup);
+            }, 160f, 1f);
         }
 
         // Without this, TacticsPanel's own ESC handler (Update() in TacticsPanel.cs) is the
