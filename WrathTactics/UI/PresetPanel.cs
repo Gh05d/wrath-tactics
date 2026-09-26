@@ -20,7 +20,7 @@ namespace WrathTactics.UI {
         // one before the status is ever read back. An instance field loses the message on
         // every import; only used within this class (verified no other reader).
         static string lastIOStatus;
-        static Color lastIOStatusColor = Color.gray;
+        static Color lastIOStatusColor = Theme.StatusMuted;
 
         /// <summary>
         /// Clears the static IO status. Being static, it now outlives not just the
@@ -32,7 +32,7 @@ namespace WrathTactics.UI {
         /// </summary>
         public static void ClearIOStatus() {
             lastIOStatus = null;
-            lastIOStatusColor = Color.gray;
+            lastIOStatusColor = Theme.StatusMuted;
         }
 
         // Filter state — driven from TacticsPanel via ApplyFilter(string).
@@ -63,41 +63,12 @@ namespace WrathTactics.UI {
             var csf = root.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Title
-            UIHelpers.AddSurfaceLabel(root.transform, "PresetTitle", "tab.presets".i18n(), 30f, 20f,
-                Color.white, UIHelpers.PanelHeaderSurface);
+            Widgets.SectionLabelRow(root.transform, "PresetTitle", "tab.presets".i18n());
+            Widgets.HintCard(root.transform, "preset.hint".i18n(), Theme.HintHeightShort);
 
-            // Hint
-            UIHelpers.AddHintCard(root.transform, "preset.hint".i18n(), 40f);
-
-            // Export All Presets — copies the whole collection as a JSON array
-            var (exportAllBtn, _ea) = UIHelpers.Create("ExportAllBtn", root.transform);
-            exportAllBtn.AddComponent<LayoutElement>().preferredHeight = 36;
-            UIHelpers.AddBackground(exportAllBtn, new Color(0.3f, 0.3f, 0.5f, 1f));
-            UIHelpers.AddLabel(exportAllBtn, "preset.button.export_all".i18n(), 15f, TextAlignmentOptions.Midline);
-            exportAllBtn.AddComponent<Button>().onClick.AddListener(() => ExportAllToClipboard());
-
-            // Import Presets — reads directly from clipboard and imports
-            var (importBtn, _imp) = UIHelpers.Create("ImportBtn", root.transform);
-            importBtn.AddComponent<LayoutElement>().preferredHeight = 36;
-            UIHelpers.AddBackground(importBtn, new Color(0.2f, 0.45f, 0.3f, 1f));
-            UIHelpers.AddLabel(importBtn, "preset.button.import".i18n(), 15f, TextAlignmentOptions.Midline);
-            importBtn.AddComponent<Button>().onClick.AddListener(() => ImportFromClipboard());
-
-            // Status line — shows success/error of the last Export or Import click.
-            // Rendered unconditionally, even when empty: SetStatus's save-failure callers
-            // return without a rebuild, so the strip must already exist. The GameObject keeps
-            // the name "IOStatus" and its label child stays "Label" — SetStatus finds it by
-            // that path.
-            UIHelpers.AddSurfaceLabel(root.transform, "IOStatus", lastIOStatus ?? "", 24f, 13f,
-                lastIOStatusColor);
-
-            // New preset button
-            var (newBtn, _n) = UIHelpers.Create("NewPresetBtn", root.transform);
-            newBtn.AddComponent<LayoutElement>().preferredHeight = 40;
-            UIHelpers.AddBackground(newBtn, new Color(0.2f, 0.45f, 0.2f, 1f));
-            UIHelpers.AddLabel(newBtn, "preset.button.new".i18n(), 17f, TextAlignmentOptions.Midline);
-            newBtn.AddComponent<Button>().onClick.AddListener(() => {
+            // One action row: New / Export all / Import as Owlcat buttons, folder as a link.
+            var actions = Widgets.Row(root.transform, "PresetActions", Theme.ControlRowHeight);
+            Widgets.ActionButton(actions.transform, "NewPresetBtn", "preset.button.new".i18n(), 15f, () => {
                 var preset = new TacticsRule {
                     Name = "preset.default_name".i18n(),
                     ConditionGroups = new List<ConditionGroup> {
@@ -105,37 +76,18 @@ namespace WrathTactics.UI {
                     }
                 };
                 if (!PresetRegistry.Save(preset)) {
-                    SetStatus(string.Format("status.save_failed".i18n(), "status.context.new_preset".i18n()), new Color(1f, 0.5f, 0.4f));
+                    SetStatus(string.Format("status.save_failed".i18n(), "status.context.new_preset".i18n()), Theme.StatusError);
                     return;
                 }
                 expandedIds.Add(preset.Id);
                 Rebuild();
-            });
-
-            // Separator
-            var (sep, _s) = UIHelpers.Create("Sep", root.transform);
-            sep.AddComponent<LayoutElement>().preferredHeight = 10;
-
-            var presets = PresetRegistry.All();
-            if (presets.Count == 0) {
-                UIHelpers.AddSurfaceLabel(root.transform, "Empty", "preset.empty".i18n(), 28f, 15f,
-                    new Color(0.75f, 0.75f, 0.75f));
-                // Intentionally bail before emptyMatchLabel setup — nothing to filter,
-                // ApplyFilter would dereference a null label. Rebuild on first preset
-                // creation re-enters BuildUI and wires the filter normally.
-                return;
-            }
-
-            foreach (var preset in presets) {
-                CreatePresetEntry(root.transform, preset);
-            }
-
+            }, 180f);
+            Widgets.ActionButton(actions.transform, "ExportAllBtn", "preset.button.export_all".i18n(), 15f,
+                () => ExportAllToClipboard(), 180f);
+            Widgets.ActionButton(actions.transform, "ImportBtn", "preset.button.import".i18n(), 15f,
+                () => ImportFromClipboard(), 180f);
             // Open Presets folder (manual file-based sharing / backup)
-            var (folderBtn, _folder) = UIHelpers.Create("FolderBtn", root.transform);
-            folderBtn.AddComponent<LayoutElement>().preferredHeight = 32;
-            UIHelpers.AddBackground(folderBtn, new Color(0.25f, 0.25f, 0.3f, 1f));
-            UIHelpers.AddLabel(folderBtn, "preset.button.open_folder".i18n(), 14f, TextAlignmentOptions.Midline);
-            folderBtn.AddComponent<Button>().onClick.AddListener(() => {
+            Widgets.InlineLink(actions.transform, "FolderBtn", "preset.button.open_folder".i18n(), () => {
                 var dir = System.IO.Path.Combine(Main.ModPath, "Presets");
                 try {
                     System.IO.Directory.CreateDirectory(dir);
@@ -147,15 +99,34 @@ namespace WrathTactics.UI {
                 }
             });
 
+            // Status line — shows success/error of the last Export or Import click.
+            // Rendered unconditionally, even when empty: SetStatus's save-failure callers
+            // return without a rebuild, so the strip must already exist. The GameObject keeps
+            // the name "IOStatus" and its label child stays "Label" — SetStatus finds it by
+            // that path.
+            Widgets.StatusLabel(root.transform, "IOStatus", lastIOStatus ?? "", lastIOStatusColor, Theme.StatusHeight);
+            Widgets.FlourishDivider(root.transform);
+
+            var presets = PresetRegistry.All();
+            if (presets.Count == 0) {
+                Widgets.StatusLabel(root.transform, "Empty", "preset.empty".i18n(), Theme.InkMuted,
+                    Theme.StatusHeight + 4f, 15f);
+                // Intentionally bail before emptyMatchLabel setup — nothing to filter,
+                // ApplyFilter would dereference a null label. Rebuild on first preset
+                // creation re-enters BuildUI and wires the filter normally.
+                return;
+            }
+
+            foreach (var preset in presets) {
+                CreatePresetEntry(root.transform, preset);
+            }
+
             // Empty-match label — shown by ApplyFilter when the filter hides every entry.
-            // Built inline rather than via AddSurfaceLabel because the GameObject itself is
-            // kept in emptyMatchLabel for SetActive toggling.
+            // The GameObject itself is kept in emptyMatchLabel for SetActive toggling.
             var (emptyObj, _em) = UIHelpers.Create("EmptyMatch", root.transform);
-            emptyObj.AddComponent<LayoutElement>().preferredHeight = 28;
-            UIHelpers.AddBackground(emptyObj, UIHelpers.PanelSurface);
-            UIHelpers.AddLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
-                TextAlignmentOptions.MidlineLeft, new Color(0.75f, 0.75f, 0.75f))
-                .margin = new Vector4(6, 0, 6, 0);
+            emptyObj.AddComponent<LayoutElement>().preferredHeight = Theme.StatusHeight + 4f;
+            Widgets.InkLabel(emptyObj, "filter.no_matching_presets".i18n(), 15f,
+                TextAlignmentOptions.MidlineLeft, Theme.InkMuted, italic: true).margin = new Vector4(6, 0, 6, 0);
             emptyObj.SetActive(false);
             emptyMatchLabel = emptyObj;
 
@@ -163,31 +134,17 @@ namespace WrathTactics.UI {
         }
 
         void CreatePresetEntry(Transform parent, TacticsRule preset) {
-            var (row, _) = UIHelpers.Create($"Preset_{preset.Id}", parent);
-            row.AddComponent<LayoutElement>().preferredHeight = 40;
-            UIHelpers.AddBackground(row, new Color(0.18f, 0.18f, 0.18f, 1f));
+            var row = Widgets.BandRow(parent, $"Preset_{preset.Id}", BandStyle.Mauve, Theme.HeaderHeight);
             entries.Add((row, preset.Name ?? ""));
 
-            var hlg = row.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 6;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
-            hlg.childControlWidth = true;
-            hlg.childControlHeight = true;
-            hlg.padding = new RectOffset(8, 8, 4, 4);
-            hlg.childAlignment = TextAnchor.MiddleLeft;
-
             // Name — editable inline, renames on end-edit
-            var nameInput = UIHelpers.CreateTMPInputField(row, "Name", 0, 1, preset.Name, 17f);
-            var nameLE = nameInput.gameObject.AddComponent<LayoutElement>();
-            nameLE.flexibleWidth = 1;
-            nameLE.preferredWidth = 200;
+            var nameInput = UIHelpers.CreateTMPInputFieldInRow(row, "Name", 200f, 1f, preset.Name, 17f);
             nameInput.onEndEdit.AddListener(v => {
                 var trimmed = v?.Trim();
                 if (string.IsNullOrEmpty(trimmed) || trimmed == preset.Name) return;
                 preset.Name = trimmed;
                 if (!PresetRegistry.Save(preset)) {
-                    SetStatus(string.Format("status.save_failed".i18n(), "status.context.rename".i18n()), new Color(1f, 0.5f, 0.4f));
+                    SetStatus(string.Format("status.save_failed".i18n(), "status.context.rename".i18n()), Theme.StatusError);
                     return;
                 }
                 // Defer — Rebuild destroys the TMP_InputField and its teardown must not
@@ -197,29 +154,17 @@ namespace WrathTactics.UI {
 
             // Edit toggle
             bool expanded = expandedIds.Contains(preset.Id);
-            var (editBtn, _e) = UIHelpers.Create("EditBtn", row.transform);
-            var editLE = editBtn.AddComponent<LayoutElement>();
-            editLE.preferredWidth = 80;
-            editLE.flexibleWidth = 0;
-            UIHelpers.AddBackground(editBtn, expanded ? new Color(0.4f, 0.35f, 0.2f) : new Color(0.25f, 0.3f, 0.35f));
-            UIHelpers.AddLabel(editBtn, (expanded ? "button.close" : "button.edit").i18n(), 15f, TextAlignmentOptions.Midline);
-            editBtn.AddComponent<Button>().onClick.AddListener(() => {
+            Widgets.InlineLink(row.transform, "EditBtn", (expanded ? "button.close" : "button.edit").i18n(), () => {
                 if (expandedIds.Contains(preset.Id)) expandedIds.Remove(preset.Id);
                 else expandedIds.Add(preset.Id);
                 Rebuild();
-            });
+            }, onBand: true);
 
             // Delete (cascade)
-            var (delBtn, _d) = UIHelpers.Create("DelBtn", row.transform);
-            var delLE = delBtn.AddComponent<LayoutElement>();
-            delLE.preferredWidth = 80;
-            delLE.flexibleWidth = 0;
-            UIHelpers.AddBackground(delBtn, new Color(0.5f, 0.15f, 0.15f));
-            UIHelpers.AddLabel(delBtn, "button.delete".i18n(), 15f, TextAlignmentOptions.Midline);
-            delBtn.AddComponent<Button>().onClick.AddListener(() => {
+            Widgets.IconButton(row.transform, "DelBtn", Icon.Delete, Theme.IconMedium, () => {
                 bool fileRemoved = PresetRegistry.Delete(preset.Id, ConfigManager.Current);
                 ConfigManager.Save();
-                if (!fileRemoved) SetStatus(string.Format("status.save_failed".i18n(), "status.context.delete".i18n()), new Color(1f, 0.5f, 0.4f));
+                if (!fileRemoved) SetStatus(string.Format("status.save_failed".i18n(), "status.context.delete".i18n()), Theme.StatusError);
                 expandedIds.Remove(preset.Id);
                 Rebuild();
             });
@@ -232,7 +177,7 @@ namespace WrathTactics.UI {
                 var solo = new List<TacticsRule> { preset };
                 widget.Init(preset, 0, solo, () => {
                     if (!PresetRegistry.Save(preset))
-                        SetStatus(string.Format("status.save_failed".i18n(), "status.context.edit".i18n()), new Color(1f, 0.5f, 0.4f));
+                        SetStatus(string.Format("status.save_failed".i18n(), "status.context.edit".i18n()), Theme.StatusError);
                 }, unitId: null, hideHeader: true);
             }
         }
@@ -241,14 +186,14 @@ namespace WrathTactics.UI {
             var all = new List<TacticsRule>(PresetRegistry.All());
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(all, Newtonsoft.Json.Formatting.Indented);
             UnityEngine.GUIUtility.systemCopyBuffer = json;
-            SetStatus(string.Format("status.export_copied".i18n(), all.Count), new Color(0.6f, 0.85f, 0.6f));
+            SetStatus(string.Format("status.export_copied".i18n(), all.Count), Theme.StatusOk);
             Log.UI.Info($"Copied {all.Count} preset(s) to clipboard");
         }
 
         void ImportFromClipboard() {
             var text = UnityEngine.GUIUtility.systemCopyBuffer?.Trim() ?? "";
             if (string.IsNullOrEmpty(text)) {
-                SetStatus("status.clipboard_empty".i18n(), new Color(1f, 0.5f, 0.4f));
+                SetStatus("status.clipboard_empty".i18n(), Theme.StatusError);
                 return;
             }
 
@@ -268,11 +213,11 @@ namespace WrathTactics.UI {
             try {
                 parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<List<TacticsRule>>(text);
             } catch (Newtonsoft.Json.JsonException ex) {
-                SetStatus(string.Format("status.clipboard_invalid_json".i18n(), ex.Message), new Color(1f, 0.5f, 0.4f));
+                SetStatus(string.Format("status.clipboard_invalid_json".i18n(), ex.Message), Theme.StatusError);
                 return;
             }
             if (parsed == null) {
-                SetStatus("status.clipboard_not_array".i18n(), new Color(1f, 0.5f, 0.4f));
+                SetStatus("status.clipboard_not_array".i18n(), Theme.StatusError);
                 return;
             }
 
@@ -309,13 +254,13 @@ namespace WrathTactics.UI {
             }
             Log.UI.Info($"Imported {imported} preset(s) ({renamed} renamed, {failed} failed)");
             if (failed > 0) {
-                SetStatus(string.Format("status.import_partial_failure".i18n(), imported, failed), new Color(1f, 0.5f, 0.4f));
+                SetStatus(string.Format("status.import_partial_failure".i18n(), imported, failed), Theme.StatusError);
             } else {
                 SetStatus(
                     renamed > 0
                         ? string.Format("status.import_with_renames".i18n(), imported, renamed)
                         : string.Format("status.import_success".i18n(), imported),
-                    new Color(0.6f, 0.85f, 0.6f));
+                    Theme.StatusOk);
             }
             onPresetsChanged?.Invoke();
             Rebuild();
@@ -332,12 +277,12 @@ namespace WrathTactics.UI {
                 bundle = Newtonsoft.Json.JsonConvert.DeserializeObject<PackPanel.PackBundle>(text);
             } catch (Newtonsoft.Json.JsonException ex) {
                 status = string.Format("status.clipboard_invalid_json".i18n(), ex.Message);
-                color = new Color(1f, 0.5f, 0.4f);
+                color = Theme.StatusError;
                 return false;
             }
             if (bundle?.Pack == null || bundle.Presets == null) {
                 status = "status.clipboard_not_array".i18n();
-                color = new Color(1f, 0.5f, 0.4f);
+                color = Theme.StatusError;
                 return false;
             }
 
@@ -372,7 +317,7 @@ namespace WrathTactics.UI {
             // line rather than reporting a success that isn't durable.
             if (!PackRegistry.Save(pack)) {
                 status = string.Format("status.save_failed".i18n(), pack.Name);
-                color = new Color(1f, 0.5f, 0.4f);
+                color = Theme.StatusError;
                 return true;
             }
 
@@ -381,10 +326,10 @@ namespace WrathTactics.UI {
             // undercounts what actually landed on disk.
             if (failed > 0) {
                 status = string.Format("status.import_partial_failure".i18n(), remapped.Count, failed);
-                color = new Color(1f, 0.5f, 0.4f);
+                color = Theme.StatusError;
             } else {
                 status = string.Format("status.pack_import_success".i18n(), pack.Name, remapped.Count);
-                color = new Color(0.6f, 0.85f, 0.6f);
+                color = Theme.StatusOk;
             }
             return true;
         }
