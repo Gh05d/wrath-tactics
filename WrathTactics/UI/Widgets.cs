@@ -430,7 +430,12 @@ namespace WrathTactics.UI {
                 var b = btn.AddComponent<Button>();
                 ApplyColorTint(b);
             }
-            BandLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
+            var tmp = BandLabel(btn, label, fontSize, TextAlignmentOptions.Midline);
+            // Never narrower than the text plus the sprite's decorative ends (long locale
+            // strings such as "Export All Presets to Clipboard" overflowed a fixed width).
+            if (tmp.font == null) tmp.font = TMP_Settings.defaultFontAsset;
+            float needed = tmp.GetPreferredValues(label).x + Theme.BandPaddingX * 3f;
+            if (needed > preferredWidth) InRow(btn, needed, flexibleWidth);
             btn.GetComponent<Button>().onClick.AddListener(onClick);
             return btn;
         }
