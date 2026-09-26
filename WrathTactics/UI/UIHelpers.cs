@@ -210,7 +210,7 @@ namespace WrathTactics.UI {
             var (obj, rect) = Create(name, parent.transform);
             rect.SetAnchor(xMin, xMax, 0, 1);
             rect.sizeDelta = Vector2.zero;
-            AddBackground(obj, new Color(0.12f, 0.12f, 0.12f, 1f));
+            Widgets.AddInset(obj);
 
             // Text viewport (clip area with small padding)
             var (viewport, viewportRect) = Create("TextArea", obj.transform);
@@ -225,7 +225,7 @@ namespace WrathTactics.UI {
             var textTmp = textObj.AddComponent<TextMeshProUGUI>();
             textTmp.fontSize = fontSize * FontScale;
             textTmp.alignment = TextAlignmentOptions.MidlineLeft;
-            textTmp.color = Color.white;
+            textTmp.color = Theme.Ink;
             textTmp.enableWordWrapping = false;
             textTmp.overflowMode = TextOverflowModes.Ellipsis;
 
@@ -244,7 +244,8 @@ namespace WrathTactics.UI {
                 var phTmp = phObj.AddComponent<TextMeshProUGUI>();
                 phTmp.fontSize = fontSize * FontScale;
                 phTmp.alignment = TextAlignmentOptions.MidlineLeft;
-                phTmp.color = new Color(0.5f, 0.5f, 0.5f);
+                phTmp.color = Theme.InkMuted;
+                phTmp.fontStyle = FontStyles.Italic;
                 phTmp.enableWordWrapping = false;
                 phTmp.overflowMode = TextOverflowModes.Ellipsis;
                 phTmp.raycastTarget = false;  // don't intercept clicks meant for the input
@@ -271,6 +272,16 @@ namespace WrathTactics.UI {
             textTmp.text = initialText;
 
             return inputField;
+        }
+
+        /// <summary>Layout-group flavour of CreateTMPInputField: sized by LayoutElement, not anchors.</summary>
+        public static TMP_InputField CreateTMPInputFieldInRow(GameObject parent, string name,
+            float preferredWidth, float flexibleWidth, string initialText, float fontSize = 16f,
+            TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard,
+            string placeholderText = null) {
+            var field = CreateTMPInputField(parent, name, 0, 1, initialText, fontSize, contentType, placeholderText);
+            Widgets.InRow(field.gameObject, preferredWidth, flexibleWidth);
+            return field;
         }
 
         public static bool StringMatchesFilter(string name, string query) {
@@ -327,7 +338,7 @@ namespace WrathTactics.UI {
             caretText.font = textComponent.font;
             caretText.fontSize = textComponent.fontSize;
             caretText.text = "|";
-            caretText.color = Color.white;
+            caretText.color = Theme.Ink;
             caretText.alignment = TextAlignmentOptions.MidlineLeft;
             caretText.enableWordWrapping = false;
             caretText.raycastTarget = false;

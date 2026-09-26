@@ -22,7 +22,7 @@ namespace WrathTactics.UI {
         string selectedUnitId; // null = Global, "presets" = Presets, "packs" = Packs
         string lastNonPresetUnitId; // last selected character/global tab (skips both "presets" and "packs")
         Transform ruleListContent; // parent for rule cards
-        TextMeshProUGUI toggleLabel;
+        GameObject toggleSlot;
         Transform tabBarTransform; // reference to rebuild tabs
 
         // Filter state
@@ -112,13 +112,13 @@ namespace WrathTactics.UI {
         void CreatePanel() {
             var canvas = Game.Instance.UI.Canvas.transform;
 
-            // Outer backdrop: opaque fullscreen black so the game world does not show
-            // through the book's letterbox margin.
+            // Outer backdrop: dims the game like Owlcat's own modals; the book's letterbox
+            // margin shows the world through instead of hard black bars (spec §3.1).
             var (root, rootRect) = UIHelpers.Create("WrathTacticsPanel", canvas);
             panelRoot = root;
             rootRect.SetAnchor(0, 1, 0, 1);
             rootRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(root, new Color(0, 0, 0, 1f));
+            UIHelpers.AddBackground(root, Theme.DimBackdrop);
 
             // Inner book panel: open-book illustration centered. AspectRatioFitter mode
             // FitInParent enforces native 2:1 aspect — letterbox top/bottom on 16:9.
@@ -129,7 +129,7 @@ namespace WrathTactics.UI {
             if (ThemeProvider.PanelBackground != null) {
                 ThemeProvider.ApplyPanel(book);
             } else {
-                UIHelpers.AddBackground(book, new Color(0.15f, 0.12f, 0.08f, 0.98f));
+                UIHelpers.AddBackground(book, Theme.PaperFallback);
             }
 
             // Inner content area — sits ON the book pages, leaves visible book frame
@@ -150,23 +150,21 @@ namespace WrathTactics.UI {
                 img.color = Color.white;
                 img.raycastTarget = true;
             } else {
-                UIHelpers.AddBackground(titleBar, new Color(0.2f, 0.15f, 0.1f, 1f));
+                UIHelpers.AddBackground(titleBar, Theme.TitleFallback);
             }
-            var titleLabel = UIHelpers.AddLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
-            titleLabel.outlineWidth = 0.25f;
-            titleLabel.outlineColor = new Color32(0, 0, 0, 255);
+            Widgets.InkLabel(titleBar, "panel.title".i18n(), 26f, TextAlignmentOptions.Midline);
 
             // Close button
             var (closeBtn, closeRect) = UIHelpers.Create("CloseButton", titleBar.transform);
             closeRect.SetAnchor(0.95, 1, 0, 1);
             closeRect.sizeDelta = Vector2.zero;
             if (ThemeProvider.CloseButtonNormal != null) {
-                ThemeProvider.ApplyCloseButton(closeBtn);
+                ThemeProvider.ApplyCloseButton(closeBtn);   // the Esc sprite draws its own X
             } else {
-                UIHelpers.AddBackground(closeBtn, new Color(0.6f, 0.2f, 0.2f, 1f));
+                UIHelpers.AddBackground(closeBtn, Theme.BandFallbackMauve);
                 closeBtn.AddComponent<Button>();
+                Widgets.BandLabel(closeBtn, "X", 22f, TextAlignmentOptions.Midline);
             }
-            UIHelpers.AddLabel(closeBtn, "X", 22f, TextAlignmentOptions.Midline);
             closeBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
             // Tab bar
@@ -182,6 +180,17 @@ namespace WrathTactics.UI {
 
             RebuildTabs();
 
+            // One continuous parchment sheet under controls, filter and list: nothing below
+            // the tab bar is drawn on the book illustration itself (spec §3.1).
+            var (sheet, sheetRect) = UIHelpers.Create("PageSheet", bookContent.transform);
+            sheetRect.SetAnchor(0.005, 0.995, 0.01, 0.835);
+            sheetRect.sizeDelta = Vector2.zero;
+            if (ThemeProvider.InnerParchment != null) {
+                ThemeProvider.ApplyInnerParchment(sheet);
+            } else {
+                UIHelpers.AddBackground(sheet, Theme.PaperFallback);
+            }
+
             // Toggle + Add rule row
             CreateControlRow(bookContent.transform);
 
@@ -193,11 +202,6 @@ namespace WrathTactics.UI {
 
             // Empty-state label for the rule list (hidden by default, driven by ApplyFilter)
             CreateRuleFilterEmptyLabel(bookContent.transform);
-
-            // Retrofit hover-feedback on every flat-color Button in the panel tree.
-            // Themed buttons (SpriteSwap) are left untouched because their hover
-            // sprites are already wired.
-            UIHelpers.EnsureAllHoverable(panelRoot);
 
             panelRoot.SetActive(false);
             Log.UI.Info("Panel created");
@@ -229,9 +233,6 @@ namespace WrathTactics.UI {
             AddTab(tabBarTransform.gameObject, "tab.packs".i18n(), "packs", () => SelectTab("packs"));
         }
 
-        static readonly Color TabNormal = new Color(0.25f, 0.2f, 0.15f, 1f);
-        static readonly Color TabSelected = new Color(0.4f, 0.3f, 0.15f, 1f);
-
         void AddTab(GameObject parent, string label, string tabId, UnityEngine.Events.UnityAction onClick) {
             var (btn, _) = UIHelpers.Create($"Tab_{label}", parent.transform);
             bool isSelected = (tabId == null && selectedUnitId == null)
@@ -246,10 +247,10 @@ namespace WrathTactics.UI {
             if (themed != null) {
                 ThemeProvider.ApplyTabHeader(btn, isSelected);
             } else {
-                UIHelpers.AddBackground(btn, isSelected ? TabSelected : TabNormal);
+                UIHelpers.AddBackground(btn, isSelected ? Theme.BandFallbackMauve : Theme.BandFallbackBlue);
             }
 
-            UIHelpers.AddLabel(btn, label, 16f, TextAlignmentOptions.Midline);
+            Widgets.BandLabel(btn, label, 16f, TextAlignmentOptions.Midline);
         }
 
         void SelectTab(string unitId) {
@@ -281,74 +282,54 @@ namespace WrathTactics.UI {
 
         void CreateControlRow(Transform parent) {
             var (row, rowRect) = UIHelpers.Create("ControlRow", parent);
-            rowRect.SetAnchor(0.01, 0.99, 0.77, 0.83);
+            rowRect.SetAnchor(0.02, 0.98, 0.77, 0.83);
             rowRect.sizeDelta = Vector2.zero;
+            var hlg = row.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = Theme.RowGap;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
 
-            // Toggle
-            var (toggleBtn, toggleRect) = UIHelpers.Create("ToggleBtn", row.transform);
-            toggleRect.SetAnchor(0, 0.5, 0, 1);
-            toggleRect.sizeDelta = Vector2.zero;
-            toggleLabel = UIHelpers.AddPageLabel(toggleBtn, "toggle.global_rules".i18n(), 18f,
-                TextAlignmentOptions.MidlineLeft, Color.white);
-            toggleBtn.AddComponent<Button>().onClick.AddListener(ToggleTactics);
+            // Left slot: rebuilt per tab by UpdateToggleLabel (checkbox on character tabs,
+            // plain section label on Global / Presets / Packs).
+            var (slot, _) = UIHelpers.Create("ToggleSlot", row.transform);
+            Widgets.InRow(slot, 300f, 1f);
+            toggleSlot = slot;
 
-            // "+ New Rule" button
-            var (addBtn, addRect) = UIHelpers.Create("AddRuleBtn", row.transform);
-            addRect.SetAnchor(0.55, 0.76, 0, 1);
-            addRect.sizeDelta = Vector2.zero;
-            if (ThemeProvider.ActionButtonNormal != null) {
-                ThemeProvider.ApplyActionButton(addBtn);
-            } else {
-                UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.4f, 0.2f, 1f));
-                addBtn.AddComponent<Button>();
-            }
-            UIHelpers.AddLabel(addBtn, "button.new_rule".i18n(), 18f, TextAlignmentOptions.Midline);
-            addBtn.GetComponent<Button>().onClick.AddListener(AddNewRule);
-
-            // "+ From Preset" button
-            var (fromPresetBtn, fromPresetRect) = UIHelpers.Create("FromPresetBtn", row.transform);
-            fromPresetRect.SetAnchor(0.77, 1, 0, 1);
-            fromPresetRect.sizeDelta = Vector2.zero;
-            if (ThemeProvider.ActionButtonNormal != null) {
-                ThemeProvider.ApplyActionButton(fromPresetBtn);
-            } else {
-                UIHelpers.AddBackground(fromPresetBtn, new Color(0.2f, 0.35f, 0.5f, 1f));
-                fromPresetBtn.AddComponent<Button>();
-            }
-            UIHelpers.AddLabel(fromPresetBtn, "button.from_preset".i18n() + " \u25be", 16f, TextAlignmentOptions.Midline);
-            fromPresetBtn.GetComponent<Button>().onClick.AddListener(AddFromPreset);
+            Widgets.ActionButton(row.transform, "AddRuleBtn", "button.new_rule".i18n(), 17f, AddNewRule, 200f);
+            Widgets.ActionButton(row.transform, "FromPresetBtn", "button.from_preset".i18n() + " \u25be", 16f,
+                AddFromPreset, 200f);
         }
 
         void CreateFilterStrip(Transform parent) {
             var (strip, stripRect) = UIHelpers.Create("FilterStrip", parent);
-            stripRect.SetAnchor(0.01, 0.99, 0.72, 0.76);
+            stripRect.SetAnchor(0.02, 0.98, 0.72, 0.76);
             stripRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(strip, new Color(0.14f, 0.14f, 0.14f, 1f));
+            var hlg = strip.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = Theme.RowGap;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.padding = new RectOffset(0, 0, 3, 3);
 
-            ruleFilterInput = UIHelpers.CreateTMPInputField(strip, "FilterInput",
-                0.02, 0.85, "", 15f,
+            ruleFilterInput = UIHelpers.CreateTMPInputFieldInRow(strip, "FilterInput", 300f, 1f, "", 15f,
                 placeholderText: "filter.rules.placeholder".i18n());
-            var inputRect = ruleFilterInput.GetComponent<RectTransform>();
-            inputRect.SetAnchor(0.02f, 0.85f, 0.1f, 0.9f);
-            inputRect.sizeDelta = Vector2.zero;
             ruleFilterInput.onValueChanged.AddListener(v => {
                 currentRuleFilter = v ?? "";
                 UpdateFilterClearButton();
                 ApplyFilter();
             });
 
-            // Clear (×) button
-            var (clearBtn, clearRect) = UIHelpers.Create("FilterClear", strip.transform);
-            clearRect.SetAnchor(0.87f, 0.98f, 0.15f, 0.85f);
-            clearRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(clearBtn, new Color(0.3f, 0.3f, 0.3f, 1f));
-            UIHelpers.AddLabel(clearBtn, "✕", 16f, TextAlignmentOptions.Midline);
-            ruleFilterClearButton = clearBtn.AddComponent<Button>();
-            ruleFilterClearButton.onClick.AddListener(() => {
+            // Clear (×) — hidden entirely while the filter is empty (a disabled-but-visible
+            // control looks like a UI leftover). Visibility is driven by UpdateFilterClearButton.
+            var clearBtn = Widgets.IconButton(strip.transform, "FilterClear", Icon.X, Theme.IconSmall, () => {
                 ruleFilterInput.text = "";  // triggers onValueChanged -> ApplyFilter
             });
-            // Hide entirely when the filter is empty — a disabled-but-visible grey block
-            // looks like a UI leftover. Visibility is driven by UpdateFilterClearButton.
+            ruleFilterClearButton = clearBtn.GetComponent<Button>();
             clearBtn.SetActive(false);
         }
 
@@ -378,12 +359,8 @@ namespace WrathTactics.UI {
             // Same anchor as the rule scroll so the label overlays its center
             rect.SetAnchor(0.01, 0.99, 0.02, 0.71);
             rect.sizeDelta = Vector2.zero;
-            // Sits directly on the book-page art like the hints — needs the outline
-            // pattern for contrast (see UIHelpers.AddHintCard).
-            var emptyLabel = UIHelpers.AddLabel(obj, "filter.no_matching_rules".i18n(), 16f,
-                TextAlignmentOptions.Midline, new Color(0.75f, 0.75f, 0.75f));
-            emptyLabel.outlineWidth = 0.25f;
-            emptyLabel.outlineColor = new Color32(0, 0, 0, 255);
+            Widgets.InkLabel(obj, "filter.no_matching_rules".i18n(), 16f, TextAlignmentOptions.Midline,
+                Theme.InkMuted, italic: true);
             obj.SetActive(false);
             ruleFilterEmptyLabel = obj;
         }
@@ -943,25 +920,28 @@ namespace WrathTactics.UI {
             (ModSettingsManager.Current.ShowHudButton ? "hud_button.hide" : "hud_button.show").i18n();
 
         void UpdateToggleLabel() {
-            if (toggleLabel == null) return;
+            if (toggleSlot == null) return;
+            for (int i = toggleSlot.transform.childCount - 1; i >= 0; i--)
+                Destroy(toggleSlot.transform.GetChild(i).gameObject);
 
-            if (selectedUnitId == null) {
-                toggleLabel.text = "toggle.global_rules".i18n();
-                toggleLabel.color = Color.white;
-            } else if (selectedUnitId == "presets") {
-                toggleLabel.text = "tab.presets".i18n();
-                toggleLabel.color = Color.white;
-            } else if (selectedUnitId == "packs") {
-                toggleLabel.text = "tab.packs".i18n();
-                toggleLabel.color = Color.white;
-            } else {
-                var config = ConfigManager.Current;
-                bool enabled = config.IsEnabled(selectedUnitId);
-                var charName = GetCharacterName(selectedUnitId);
-                var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
-                toggleLabel.text = string.Format(template, charName);
-                toggleLabel.color = enabled ? Color.white : Color.gray;
+            string plain = selectedUnitId == null ? "toggle.global_rules".i18n()
+                : selectedUnitId == "presets" ? "tab.presets".i18n()
+                : selectedUnitId == "packs" ? "tab.packs".i18n()
+                : null;
+            if (plain != null) {
+                var (lbl, r) = UIHelpers.Create("Label", toggleSlot.transform);
+                r.FillParent();
+                Widgets.SectionLabel(lbl, plain, 17f);
+                return;
             }
+
+            var config = ConfigManager.Current;
+            bool enabled = config.IsEnabled(selectedUnitId);
+            var charName = GetCharacterName(selectedUnitId);
+            var template = (enabled ? "toggle.tactics.enabled" : "toggle.tactics.disabled").i18n();
+            var box = Widgets.Checkbox(toggleSlot.transform, "TacticsToggle", string.Format(template, charName),
+                enabled, _ => ToggleTactics());
+            box.Rect().FillParent();
         }
 
         void ToggleTactics() {
