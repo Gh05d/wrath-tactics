@@ -17,6 +17,11 @@ namespace WrathTactics.UI {
         public static readonly Color InkFrame    = Rgb(0x3C, 0x28, 0x14, 0.55f);
         public static readonly Color InsetPaper  = Rgb(0xFF, 0xFA, 0xEE, 0.55f);
         public static readonly Color CardFill    = Rgb(0xFF, 0xFA, 0xF0, 0.18f);
+        /// <summary>
+        /// Multiplied onto the page sheet (the grey-white tutorial paper) so it warms to the
+        /// book's cream pages; slight translucency lets the page grain show through the edges.
+        /// </summary>
+        public static readonly Color PageSheetTint = Rgb(0xF2, 0xE6, 0xCC, 0.93f);
         public static readonly Color ListRowFill = Rgb(0xFF, 0xFA, 0xEE, 0.35f);
         public static readonly Color BandText    = Rgb(0xF3, 0xE9, 0xD8);
         /// <summary>Soft ink outline under band text so it survives the band's translucent ends.</summary>

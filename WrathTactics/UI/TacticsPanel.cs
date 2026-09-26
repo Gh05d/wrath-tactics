@@ -187,6 +187,7 @@ namespace WrathTactics.UI {
             sheetRect.sizeDelta = Vector2.zero;
             if (ThemeProvider.InnerParchment != null) {
                 ThemeProvider.ApplyInnerParchment(sheet);
+                sheet.GetComponent<Image>().color = Theme.PageSheetTint;
             } else {
                 UIHelpers.AddBackground(sheet, Theme.PaperFallback);
             }

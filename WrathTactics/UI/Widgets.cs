@@ -260,6 +260,9 @@ namespace WrathTactics.UI {
             le.preferredHeight = size;
             le.flexibleWidth = 0;
             var sprite = IconSprite(icon, out var hover, out bool up, out bool down);
+            // The sketched X and arrows are pale glyphs; on paper or a band they read as ink.
+            if (tint == null && (icon == Icon.X || icon == Icon.ArrowUp || icon == Icon.ArrowDown))
+                tint = Theme.Ink;
             Image img;
             if (sprite != null) {
                 img = obj.AddComponent<Image>();
