@@ -12,3 +12,6 @@ deploy.sh
 
 # Mono crash dumps from test runs
 mono_crash.*.json
+
+# brainstorming visual companion sessions
+.superpowers/
