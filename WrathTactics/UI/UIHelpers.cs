@@ -412,10 +412,11 @@ namespace WrathTactics.UI {
             float xMin, float xMax, List<string> options, List<Sprite> icons,
             int initialIndex, Action<int> onSelected) {
 
-            var (obj, rect) = UIHelpers.Create(name, parent.transform);
+            var obj = Widgets.BandDropdownShell(parent.transform, name, "", withIcon: false,
+                out var shellLabel, out _);
+            var rect = obj.Rect();
             rect.SetAnchor(xMin, xMax, 0, 1);
             rect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(obj, new Color(0.22f, 0.22f, 0.22f, 1f));
 
             var selector = obj.AddComponent<PopupSelector>();
             selector.options = options ?? new List<string>();
@@ -423,25 +424,26 @@ namespace WrathTactics.UI {
             selector.selectedIndex = Mathf.Clamp(initialIndex, 0,
                 Mathf.Max(0, (options?.Count ?? 1) - 1));
             selector.onSelected = onSelected;
+            selector.buttonLabel = shellLabel;
+            selector.UpdateLabel();
 
-            // Button label showing current selection. Left margin keeps the text from
-            // touching the rect edge; right margin reserves space for the arrow.
-            string labelText = selector.selectedIndex < selector.options.Count
-                ? selector.options[selector.selectedIndex] : "";
-            selector.buttonLabel = UIHelpers.AddLabel(obj, labelText, 15f,
-                TextAlignmentOptions.MidlineLeft);
-            selector.buttonLabel.margin = new Vector4(8f, 0f, 18f, 0f);
+            var btn = obj.AddComponent<Button>();
+            btn.targetGraphic = obj.GetComponent<Image>();
+            Widgets.ApplyColorTint(btn);
+            btn.onClick.AddListener(selector.TogglePopup);
 
-            // Arrow indicator on the right
-            var (arrow, arrowRect) = UIHelpers.Create("Arrow", obj.transform);
-            arrowRect.SetAnchor(0.88, 1, 0, 1);
-            arrowRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(arrow, "v", 14f, TextAlignmentOptions.Midline,
-                new Color(0.6f, 0.6f, 0.6f));
+            return selector;
+        }
 
-            // Click handler on button
-            obj.AddComponent<Button>().onClick.AddListener(selector.TogglePopup);
+        /// <summary>Layout-group flavour: flexibleWidth replaces the anchor span (pass the old xMax − xMin).</summary>
+        public static PopupSelector CreateInRow(GameObject parent, string name, float flexibleWidth,
+            List<string> options, int initialIndex, Action<int> onSelected) =>
+            CreateWithIconsInRow(parent, name, flexibleWidth, options, null, initialIndex, onSelected);
 
+        public static PopupSelector CreateWithIconsInRow(GameObject parent, string name, float flexibleWidth,
+            List<string> options, List<Sprite> icons, int initialIndex, Action<int> onSelected) {
+            var selector = CreateWithIcons(parent, name, 0f, 1f, options, icons, initialIndex, onSelected);
+            Widgets.InRow(selector.gameObject, 60f, flexibleWidth);
             return selector;
         }
 

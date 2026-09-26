@@ -19,19 +19,16 @@ namespace WrathTactics.UI {
         };
 
         void SetupActionRow(Transform parent) {
-            var (row, rowRect) = UIHelpers.Create("ActionRow", parent);
-            row.AddComponent<LayoutElement>().preferredHeight = 28;
+            var row = Widgets.Row(parent, "ActionRow", Theme.RowHeight);
 
-            // "THEN:" label
-            var (lbl, lblRect) = UIHelpers.Create("ThenLabel", row.transform);
-            lblRect.SetAnchor(0, 0.1, 0, 1);
-            lblRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(lbl, "section.then".i18n(), 16f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.15f, 0.10f, 0.06f));
+            // "THEN" label
+            var (lbl, _) = UIHelpers.Create("ThenLabel", row.transform);
+            Widgets.InRow(lbl, 0f, 0.10f);
+            Widgets.SectionLabel(lbl, "section.then".i18n());
 
             // Action type popup selector
             var actionNames = EnumLabels.NamesFor<ActionType>();
-            PopupSelector.Create(row, "ActionType", 0.11f, 0.38f, actionNames,
+            PopupSelector.CreateInRow(row, "ActionType", 0.27f, actionNames,
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
@@ -63,7 +60,7 @@ namespace WrathTactics.UI {
             // Energy (0.51-0.65), Sources (0.66-0.88).
             if (rule.Action.Type == ActionType.Heal) {
                 var healModeNames = EnumLabels.NamesFor<HealMode>();
-                PopupSelector.Create(row, "HealMode", 0.39f, 0.50f, healModeNames,
+                PopupSelector.CreateInRow(row, "HealMode", 0.11f, healModeNames,
                     (int)rule.Action.HealMode, idx => {
                         rule.Action.HealMode = (HealMode)idx;
                         PersistEdit();
@@ -81,7 +78,7 @@ namespace WrathTactics.UI {
                 };
                 int energyIdx = energyValues.IndexOf(rule.Action.HealEnergy);
                 if (energyIdx < 0) energyIdx = 0;
-                PopupSelector.Create(row, "HealEnergy", 0.51f, 0.65f, energyLabels, energyIdx, idx => {
+                PopupSelector.CreateInRow(row, "HealEnergy", 0.14f, energyLabels, energyIdx, idx => {
                     rule.Action.HealEnergy = energyValues[idx];
                     PersistEdit();
                 });
@@ -102,7 +99,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.HealSources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "HealSources", 0.66f, 0.88f, sourceLabels, srcIdx, idx => {
+                PopupSelector.CreateInRow(row, "HealSources", 0.22f, sourceLabels, srcIdx, idx => {
                     rule.Action.HealSources = sourceValues[idx];
                     PersistEdit();
                 });
@@ -111,7 +108,7 @@ namespace WrathTactics.UI {
 
             if (rule.Action.Type == ActionType.ThrowSplash) {
                 var splashModeNames = EnumLabels.NamesFor<ThrowSplashMode>();
-                PopupSelector.Create(row, "SplashMode", 0.39f, 0.7f, splashModeNames,
+                PopupSelector.CreateInRow(row, "SplashMode", 0.31f, splashModeNames,
                     (int)rule.Action.SplashMode, idx => {
                         rule.Action.SplashMode = (ThrowSplashMode)idx;
                         PersistEdit();
@@ -128,7 +125,7 @@ namespace WrathTactics.UI {
                 for (int i = 0; i < 4; i++) setLabels.Add(Strings.Format("weapon_set.label", i + 1));
                 int selectedIdx = rule.Action.WeaponSetIndex;
                 if (selectedIdx < 0 || selectedIdx >= 4) selectedIdx = 0;
-                PopupSelector.Create(row, "WeaponSet", 0.39f, 0.7f, setLabels, selectedIdx, idx => {
+                PopupSelector.CreateInRow(row, "WeaponSet", 0.31f, setLabels, selectedIdx, idx => {
                     rule.Action.WeaponSetIndex = idx;
                     PersistEdit();
                 });
@@ -143,7 +140,7 @@ namespace WrathTactics.UI {
                 foreach (var b in brackets) bracketLabels.Add(EnumLabels.For(b));
                 int selectedIdx = System.Array.IndexOf(brackets, rule.Action.MoveWithin);
                 if (selectedIdx < 0) selectedIdx = 0;
-                PopupSelector.Create(row, "MoveWithin", 0.39f, 0.7f, bracketLabels, selectedIdx, idx => {
+                PopupSelector.CreateInRow(row, "MoveWithin", 0.31f, bracketLabels, selectedIdx, idx => {
                     rule.Action.MoveWithin = brackets[idx];
                     PersistEdit();
                 });
@@ -153,19 +150,19 @@ namespace WrathTactics.UI {
             // ToggleActivatable: mode dropdown (On/Off) + ability picker side by side
             if (rule.Action.Type == ActionType.ToggleActivatable) {
                 var toggleModeNames = EnumLabels.NamesFor<ToggleMode>();
-                PopupSelector.Create(row, "ToggleMode", 0.39f, 0.52f, toggleModeNames,
+                PopupSelector.CreateInRow(row, "ToggleMode", 0.13f, toggleModeNames,
                     (int)rule.Action.ToggleMode, idx => {
                         rule.Action.ToggleMode = (ToggleMode)idx;
                         PersistEdit();
                     });
 
-                BuildSpellPickerButton(row, 0.53f, 1.0f);
+                BuildSpellPickerButton(row, 0.47f);
                 return;
             }
 
             bool isCastSpell = rule.Action.Type == ActionType.CastSpell;
-            float pickerXMax = isCastSpell ? 0.55f : 1.0f;
-            BuildSpellPickerButton(row, 0.39f, pickerXMax);
+            float pickerFlex = isCastSpell ? 0.16f : 0.61f;
+            BuildSpellPickerButton(row, pickerFlex);
 
             if (isCastSpell) {
                 // Rod dropdown — index 0 = (none) -> Action.MetamagicRod = null,
@@ -175,7 +172,7 @@ namespace WrathTactics.UI {
                     ? 0
                     : System.Array.IndexOf(EnumLabels.MetamagicValues, rule.Action.MetamagicRod.Value) + 1;
                 if (rodIdx < 0) rodIdx = 0;
-                PopupSelector.Create(row, "MetamagicRod", 0.56f, 0.77f, rodLabels, rodIdx, idx => {
+                PopupSelector.CreateInRow(row, "MetamagicRod", 0.21f, rodLabels, rodIdx, idx => {
                     rule.Action.MetamagicRod = idx == 0
                         ? (Kingmaker.UnitLogic.Abilities.Metamagic?)null
                         : EnumLabels.MetamagicValues[idx - 1];
@@ -198,7 +195,7 @@ namespace WrathTactics.UI {
                 };
                 int srcIdx = sourceValues.IndexOf(rule.Action.Sources);
                 if (srcIdx < 0) srcIdx = 0;
-                PopupSelector.Create(row, "SpellSources", 0.78f, 1.0f, sourceLabels, srcIdx, idx => {
+                PopupSelector.CreateInRow(row, "SpellSources", 0.22f, sourceLabels, srcIdx, idx => {
                     rule.Action.Sources = sourceValues[idx];
                     PersistEdit();
                 });
@@ -217,7 +214,7 @@ namespace WrathTactics.UI {
         // Builds the spell-picker button (icon + label + arrow) that opens SpellPickerOverlay
         // on click. Resolves the current SpellEntry list for the rule's ActionType up front,
         // and auto-persists the first entry when no AbilityId is set yet.
-        void BuildSpellPickerButton(GameObject row, float xMin, float xMax) {
+        void BuildSpellPickerButton(GameObject row, float flexibleWidth) {
             var entries = GetSpellEntries(rule.Action.Type);
             currentSpellEntries = entries;
 
@@ -236,36 +233,18 @@ namespace WrathTactics.UI {
                 }
             }
 
-            var (btnObj, btnRect) = UIHelpers.Create("SpellPick", row.transform);
-            btnRect.SetAnchor(xMin, xMax, 0, 1);
-            btnRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(btnObj, new Color(0.22f, 0.22f, 0.22f, 1f));
-
-            // Icon slot (left, 24x24) — added regardless so UpdateSpellPickerButton
-            // can toggle the sprite on/off without re-parenting.
-            var (iconGO, iconRect) = UIHelpers.Create("Icon", btnObj.transform);
-            iconRect.SetAnchor(0, 0, 0.5, 0.5);
-            iconRect.pivot = new Vector2(0, 0.5f);
-            iconRect.anchoredPosition = new Vector2(4, 0);
-            iconRect.sizeDelta = new Vector2(24, 24);
-            spellPickerIcon = iconGO.AddComponent<Image>();
-            spellPickerIcon.raycastTarget = false;
-
-            spellPickerLabel = UIHelpers.AddLabel(btnObj,
+            var btnObj = Widgets.BandDropdownShell(row.transform, "SpellPick",
                 found || entries.Count > 0 ? selected.Name : "placeholder.none_available".i18n(),
-                15f, TextAlignmentOptions.MidlineLeft);
-            spellPickerLabel.margin = new Vector4(32, 0, 20, 0);
-
-            var (arrow, arrowRect) = UIHelpers.Create("Arrow", btnObj.transform);
-            arrowRect.SetAnchor(0.88, 1, 0, 1);
-            arrowRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(arrow, "v", 14f, TextAlignmentOptions.Midline,
-                new Color(0.6f, 0.6f, 0.6f));
+                withIcon: true, out spellPickerLabel, out spellPickerIcon);
+            Widgets.InRow(btnObj, 120f, flexibleWidth);
+            var pickBtn = btnObj.AddComponent<Button>();
+            pickBtn.targetGraphic = btnObj.GetComponent<Image>();
+            Widgets.ApplyColorTint(pickBtn);
 
             spellPickerButton = btnObj;
             UpdateSpellPickerButton(selected, entries.Count > 0);
 
-            btnObj.AddComponent<Button>().onClick.AddListener(() => {
+            pickBtn.onClick.AddListener(() => {
                 if (currentSpellEntries == null || currentSpellEntries.Count == 0) return;
                 SpellPickerOverlay.Open(currentSpellEntries, rule.Action.AbilityId, picked => {
                     rule.Action.AbilityId = picked.Guid;
@@ -299,15 +278,13 @@ namespace WrathTactics.UI {
                 BuildFallbackRow(parent, captured);
             }
 
-            var (addBtn, _) = UIHelpers.Create("AddFallback", parent);
-            addBtn.AddComponent<LayoutElement>().preferredHeight = 22;
-            UIHelpers.AddBackground(addBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
-            UIHelpers.AddLabel(addBtn, "button.add_fallback".i18n(), 14f, TextAlignmentOptions.Midline);
-            addBtn.AddComponent<Button>().onClick.AddListener(() => {
+            var addRow = Widgets.Row(parent, "AddFallback", Theme.InlineRowHeight);
+            addRow.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset((int)(Theme.BandPaddingX * 2), 0, 0, 0);
+            Widgets.InlineLink(addRow.transform, "AddFallbackLink", "button.add_fallback".i18n().TrimStart('+', ' '), () => {
                 rule.Action.FallbackAbilityIds.Add("");
                 PersistEdit();
                 RebuildBody();
-            });
+            }, Icon.Add);
         }
 
         void BuildFallbackRow(Transform parent, int index) {
@@ -328,36 +305,23 @@ namespace WrathTactics.UI {
                 }
             }
 
-            var (row, _) = UIHelpers.Create($"Fallback_{index}", parent);
-            row.AddComponent<LayoutElement>().preferredHeight = 26;
+            var row = Widgets.Row(parent, $"Fallback_{index}", Theme.RowHeight);
 
-            var (arrowLbl, arrowRect) = UIHelpers.Create("ArrowLbl", row.transform);
-            arrowRect.SetAnchor(0.11, 0.17, 0, 1);
-            arrowRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddLabel(arrowLbl, "↳", 18f, TextAlignmentOptions.Midline,
-                new Color(0.6f, 0.6f, 0.5f));
+            var (arrowLbl, _) = UIHelpers.Create("ArrowLbl", row.transform);
+            Widgets.InRow(arrowLbl, 0f, 0.10f);
+            Widgets.InkLabel(arrowLbl, "\u21B3", 18f, TextAlignmentOptions.MidlineRight, Theme.InkMuted);
 
-            var (btn, btnRect) = UIHelpers.Create("FallbackPick", row.transform);
-            btnRect.SetAnchor(0.18, 0.9, 0, 1);
-            btnRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(btn, new Color(0.22f, 0.22f, 0.22f, 1f));
-
-            var (iconGO, iconRect) = UIHelpers.Create("Icon", btn.transform);
-            iconRect.SetAnchor(0, 0, 0.5, 0.5);
-            iconRect.pivot = new Vector2(0, 0.5f);
-            iconRect.anchoredPosition = new Vector2(4, 0);
-            iconRect.sizeDelta = new Vector2(20, 20);
-            var icon = iconGO.AddComponent<Image>();
-            icon.raycastTarget = false;
+            var btn = Widgets.BandDropdownShell(row.transform, "FallbackPick",
+                entries.Count > 0 ? selected.Name : "placeholder.none_available".i18n(),
+                withIcon: true, out var label, out var icon);
+            Widgets.InRow(btn, 120f, 0.72f);
             icon.sprite = entries.Count > 0 ? selected.Icon : null;
             icon.enabled = entries.Count > 0 && selected.Icon != null;
+            var fbBtn = btn.AddComponent<Button>();
+            fbBtn.targetGraphic = btn.GetComponent<Image>();
+            Widgets.ApplyColorTint(fbBtn);
 
-            var label = UIHelpers.AddLabel(btn,
-                entries.Count > 0 ? selected.Name : "placeholder.none_available".i18n(),
-                14f, TextAlignmentOptions.MidlineLeft);
-            label.margin = new Vector4(28, 0, 16, 0);
-
-            btn.AddComponent<Button>().onClick.AddListener(() => {
+            fbBtn.onClick.AddListener(() => {
                 if (entries.Count == 0) return;
                 SpellPickerOverlay.Open(entries, rule.Action.FallbackAbilityIds[index], picked => {
                     rule.Action.FallbackAbilityIds[index] = picked.Guid;
@@ -368,12 +332,7 @@ namespace WrathTactics.UI {
                 });
             });
 
-            var (delBtn, delRect) = UIHelpers.Create("DeleteFallback", row.transform);
-            delRect.SetAnchor(0.92, 1.0, 0, 1);
-            delRect.sizeDelta = Vector2.zero;
-            UIHelpers.AddBackground(delBtn, new Color(0.4f, 0.2f, 0.2f, 1f));
-            UIHelpers.AddLabel(delBtn, "X", 14f, TextAlignmentOptions.Midline);
-            delBtn.AddComponent<Button>().onClick.AddListener(() => {
+            Widgets.IconButton(row.transform, "DeleteFallback", Icon.X, Theme.IconSmall, () => {
                 rule.Action.FallbackAbilityIds.RemoveAt(index);
                 PersistEdit();
                 RebuildBody();

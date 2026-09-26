@@ -115,17 +115,16 @@ namespace WrathTactics.UI {
             }
 
             // IF: label row
-            AddSectionLabel(bodyContainer.transform, "section.if".i18n());
+            Widgets.SectionLabelRow(bodyContainer.transform, "IfLabel", "section.if".i18n());
 
             // Condition groups
             for (int gi = 0; gi < rule.ConditionGroups.Count; gi++) {
                 var group = rule.ConditionGroups[gi];
                 var capturedGi = gi;
 
-                // OR separator (between groups)
-                if (gi > 0) {
-                    AddSectionLabel(bodyContainer.transform, "section.or_separator".i18n());
-                }
+                // OR divider (between groups) — reuses the separator string minus its dashes
+                if (gi > 0)
+                    Widgets.OrDivider(bodyContainer.transform, "section.or_separator".i18n().Trim('-', ' '));
 
                 // Condition rows in this group
                 for (int ci = 0; ci < group.Conditions.Count; ci++) {
@@ -145,44 +144,35 @@ namespace WrathTactics.UI {
                         });
                 }
 
-                // "+ Condition" button for this group
-                var (addCondBtn, _) = UIHelpers.Create($"AddCond_G{gi}", bodyContainer.transform);
-                addCondBtn.AddComponent<LayoutElement>().preferredHeight = 22;
-                UIHelpers.AddBackground(addCondBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addCondBtn, "button.add_condition".i18n(), 15f, TextAlignmentOptions.Midline);
-                addCondBtn.AddComponent<Button>().onClick.AddListener(() => {
+                // "+ Condition" for this group; the last group also carries "+ OR" on the same row.
+                var addRow = Widgets.Row(bodyContainer.transform, $"AddCond_G{gi}", Theme.InlineRowHeight);
+                addRow.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset((int)Theme.BandPaddingX, 0, 0, 0);
+                Widgets.InlineLink(addRow.transform, "AddCondition", "button.add_condition".i18n().TrimStart('+', ' '), () => {
                     group.Conditions.Add(new Condition());
                     PersistEdit();
                     RebuildBody();
-                });
+                }, Icon.Add);
+                if (gi == rule.ConditionGroups.Count - 1)
+                    Widgets.InlineLink(addRow.transform, "AddOr", "button.add_or_group".i18n().TrimStart('+', ' '), () => {
+                        rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
+                        PersistEdit();
+                        RebuildBody();
+                    }, Icon.Add);
             }
 
-            // If no groups exist, show a button to add the first condition
+            // If no groups exist, show a link to add the first condition (creates the first group)
             if (rule.ConditionGroups.Count == 0) {
-                var (addFirstBtn, _) = UIHelpers.Create("AddFirstCond", bodyContainer.transform);
-                addFirstBtn.AddComponent<LayoutElement>().preferredHeight = 26;
-                UIHelpers.AddBackground(addFirstBtn, new Color(0.2f, 0.3f, 0.2f, 1f));
-                UIHelpers.AddLabel(addFirstBtn, "button.add_condition".i18n(), 16f, TextAlignmentOptions.Midline);
-                addFirstBtn.AddComponent<Button>().onClick.AddListener(() => {
+                var addRow = Widgets.Row(bodyContainer.transform, "AddFirstCond", Theme.InlineRowHeight);
+                addRow.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset((int)Theme.BandPaddingX, 0, 0, 0);
+                Widgets.InlineLink(addRow.transform, "AddCondition", "button.add_condition".i18n().TrimStart('+', ' '), () => {
                     rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
                     PersistEdit();
                     RebuildBody();
-                });
+                }, Icon.Add);
             }
 
-            // "+ OR" button (adds a new condition group)
-            var (addOrBtn, _2) = UIHelpers.Create("AddOrBtn", bodyContainer.transform);
-            addOrBtn.AddComponent<LayoutElement>().preferredHeight = 22;
-            UIHelpers.AddBackground(addOrBtn, new Color(0.2f, 0.25f, 0.35f, 1f));
-            UIHelpers.AddLabel(addOrBtn, "button.add_or_group".i18n(), 15f, TextAlignmentOptions.Midline);
-            addOrBtn.AddComponent<Button>().onClick.AddListener(() => {
-                rule.ConditionGroups.Add(new ConditionGroup { Conditions = { new Condition() } });
-                PersistEdit();
-                RebuildBody();
-            });
-
-            // Separator
-            AddSpacer(bodyContainer.transform, 4);
+            // Separator between the IF block and the action block
+            Widgets.FlourishDivider(bodyContainer.transform);
 
             // THEN: action row
             SetupActionRow(bodyContainer.transform);
@@ -198,18 +188,6 @@ namespace WrathTactics.UI {
 
             // Update card height based on content
             UpdateHeight(null);
-        }
-
-        void AddSectionLabel(Transform parent, string text) {
-            var (labelObj, _) = UIHelpers.Create("SectionLabel_" + text, parent);
-            labelObj.AddComponent<LayoutElement>().preferredHeight = 20;
-            UIHelpers.AddLabel(labelObj, text, 15f, TextAlignmentOptions.MidlineLeft,
-                new Color(0.15f, 0.10f, 0.06f));
-        }
-
-        void AddSpacer(Transform parent, float height) {
-            var (spacer, _) = UIHelpers.Create("Spacer", parent);
-            spacer.AddComponent<LayoutElement>().preferredHeight = height;
         }
 
         void UpdateHeight(TacticsRule linkedPreset) {
