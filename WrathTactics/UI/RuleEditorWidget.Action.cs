@@ -469,7 +469,9 @@ namespace WrathTactics.UI {
 
         UnitEntityData GetUnit(string uid) {
             if (string.IsNullOrEmpty(uid)) return null;
-            var party = Game.Instance?.Player?.Party;
+            // PartyAndPets: a pet tab resolved to null via Player.Party and fell back to the
+            // party-wide list, hiding the pet's own quickslot wands (Nexus report, 1.32.1).
+            var party = Game.Instance?.Player?.PartyAndPets;
             if (party == null) return null;
             var unit = party.FirstOrDefault(u => u.UniqueId == uid);
             if (unit == null)
