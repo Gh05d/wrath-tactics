@@ -235,8 +235,9 @@ namespace WrathTactics.UI {
                     condition.Operator = ConditionOperator.Equal;
                     if (isBool) {
                         var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
-                        int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                        // Default before the index: an empty Value showed "No" while storing "true".
                         if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
+                        int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
                         PopupSelector.CreateInRow(root, "CompactBoolValue", 0.30f, yesNo, yIdx, v => {
                             condition.Value = v == 0 ? "true" : "false";
                             onChanged?.Invoke();
@@ -365,9 +366,10 @@ namespace WrathTactics.UI {
                         || condition.Property == ConditionProperty.IsTargetedByAlly;
 
                     var yesNo = new List<string> { "bool.yes".i18n(), "bool.no".i18n() };
+                    // Default before the index: an empty Value showed "No" while storing "true".
+                    if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
                     int yIdx = string.Equals(condition.Value, "true", StringComparison.OrdinalIgnoreCase)
                         ? 0 : 1;
-                    if (string.IsNullOrEmpty(condition.Value)) condition.Value = "true";
 
                     float yesNoEnd = hasAllyFilter ? 0.55f : 0.88f;
                     PopupSelector.CreateInRow(root, "BoolPropertyValue", yesNoEnd - 0.38f, yesNo, yIdx, v => {
