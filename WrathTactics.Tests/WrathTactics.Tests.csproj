@@ -37,6 +37,8 @@
     <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\Assembly-CSharp.dll" Private="false" />
     <!-- UnityEngine.Color / Mathf are plain managed structs: ThemeTests exercises Theme.PackBandTint. -->
     <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\UnityEngine.CoreModule.dll" Private="false" />
+    <!-- Newtonsoft.Json: ReservoirBoostTests round-trips ActionDef the way ConfigManager persists it. -->
+    <Reference Include="$(WrathInstallDir)\Wrath_Data\Managed\Newtonsoft.Json.dll" Private="false" />
   </ItemGroup>
 
   <!--

@@ -227,6 +227,7 @@
   "enum.action.DoNothing": "不行动",
   "enum.action.ThrowSplash": "投掷溅射武器",
   "enum.action.SwitchWeaponSet": "切换武器套装",
+  "enum.action.MoveToTarget": "移动到目标",
   "weapon_set.label": "套装 {0}",
 
   "enum.target.Self": "自身",
@@ -266,6 +267,9 @@
 
   "enum.toggle_mode.On": "开",
   "enum.toggle_mode.Off": "关",
+  "enum.reservoir.None": "奥能源泉: 不用",
+  "enum.reservoir.CasterLevel": "奥能源泉: 施法者等级",
+  "enum.reservoir.DC": "奥能源泉: DC",
 
   "enum.splash_mode.Any": "任意",
   "enum.splash_mode.Strongest": "最强",

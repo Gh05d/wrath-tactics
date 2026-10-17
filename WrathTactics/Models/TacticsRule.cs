@@ -59,6 +59,10 @@ namespace WrathTactics.Models {
         // (legacy behaviour). Falls back silently to a normal cast when no usable rod is
         // equipped+quickslotted.
         [JsonProperty] public Metamagic? MetamagicRod { get; set; }
+        // Optional Arcane Reservoir boost for CastSpell: one reservoir point for +caster level
+        // or +DC on this cast. Skipped silently when the spell is not from an arcanist
+        // spellbook, the reservoir is empty or a boost is already pending. None = legacy.
+        [JsonProperty] public ReservoirBoost Reservoir { get; set; }
         // Target HandsEquipmentSet index for ActionType.SwitchWeaponSet. UnitBody allocates
         // exactly 4 slots, so valid range is 0-3. Stored as plain int (not enum) because the
         // engine uses int indices throughout (UnitSwitchHandEquipmentSet ctor + set_CurrentHandEquipmentSetIndex).

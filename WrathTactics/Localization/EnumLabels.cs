@@ -108,6 +108,7 @@ namespace WrathTactics.Localization {
                 case "ThrowSplashMode":   return "splash_mode";
                 case "RangeBracket":      return "range";
                 case "HealEnergyType":    return "heal_energy";
+                case "ReservoirBoost":    return "reservoir";
                 default:                  return t.Name.ToLowerInvariant();
             }
         }

@@ -152,6 +152,10 @@ namespace WrathTactics.Engine {
                 }
             }
 
+            // Arcane Reservoir boost — after the inventory branch (scrolls/potions don't consume
+            // it); TryApply itself skips wands and class abilities (no arcanist spellbook).
+            ArcaneReservoir.TryApply(owner, ability, action.Reservoir);
+
             // Spellbook / Wand / class ability — animated cast command.
             var command = UnitUseAbility.CreateCastCommand(ability, targetWrapper);
             if (command != null) {

@@ -227,6 +227,7 @@
   "enum.action.DoNothing": "Бездействовать",
   "enum.action.ThrowSplash": "Метнуть",
   "enum.action.SwitchWeaponSet": "Сменить оружие",
+  "enum.action.MoveToTarget": "Подойти к цели",
   "weapon_set.label": "Набор {0}",
 
   "enum.target.Self": "Себя",
@@ -266,6 +267,9 @@
 
   "enum.toggle_mode.On": "Вкл",
   "enum.toggle_mode.Off": "Выкл",
+  "enum.reservoir.None": "Мистический резерв: нет",
+  "enum.reservoir.CasterLevel": "Мистический резерв: уровень заклинателя",
+  "enum.reservoir.DC": "Мистический резерв: СЛ",
 
   "enum.splash_mode.Any": "Любой",
   "enum.splash_mode.Strongest": "Сильнейший",

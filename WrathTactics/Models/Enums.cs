@@ -145,6 +145,13 @@ namespace WrathTactics.Models {
         Off
     }
 
+    // Arcanist Arcane Reservoir boost spent right before a CastSpell (ArcaneReservoir.cs).
+    public enum ReservoirBoost {
+        None,
+        CasterLevel,
+        DC
+    }
+
     public enum TargetType {
         Self,
         AllyLowestHp,

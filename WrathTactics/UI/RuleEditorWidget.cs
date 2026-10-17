@@ -177,6 +177,9 @@ namespace WrathTactics.UI {
             // THEN: action row
             SetupActionRow(bodyContainer.transform);
 
+            // Arcane Reservoir row (CastSpell, arcanists only)
+            SetupReservoirRow(bodyContainer.transform);
+
             // Fallback chain rows (CastSpell / CastAbility)
             SetupFallbackRows(bodyContainer.transform);
 

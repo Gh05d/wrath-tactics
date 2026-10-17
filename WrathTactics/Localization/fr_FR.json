@@ -227,6 +227,7 @@
   "enum.action.DoNothing": "Ne rien faire",
   "enum.action.ThrowSplash": "Projectile éclaboussant",
   "enum.action.SwitchWeaponSet": "Changer d'arme",
+  "enum.action.MoveToTarget": "Se déplacer vers la cible",
   "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Soi",
@@ -266,6 +267,9 @@
 
   "enum.toggle_mode.On": "On",
   "enum.toggle_mode.Off": "Off",
+  "enum.reservoir.None": "Réservoir arcanique : non",
+  "enum.reservoir.CasterLevel": "Réservoir arcanique : niveau de lanceur",
+  "enum.reservoir.DC": "Réservoir arcanique : DD",
 
   "enum.splash_mode.Any": "Au choix",
   "enum.splash_mode.Strongest": "Plus puissant",

@@ -267,6 +267,9 @@
 
   "enum.toggle_mode.On": "On",
   "enum.toggle_mode.Off": "Off",
+  "enum.reservoir.None": "Arcane Reservoir: off",
+  "enum.reservoir.CasterLevel": "Arcane Reservoir: caster level",
+  "enum.reservoir.DC": "Arcane Reservoir: DC",
 
   "enum.splash_mode.Any": "Any",
   "enum.splash_mode.Strongest": "Strongest",

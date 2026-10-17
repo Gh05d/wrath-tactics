@@ -264,6 +264,31 @@ namespace WrathTactics.UI {
             }
         }
 
+        // Arcane Reservoir boost for CastSpell rules, on its own indented row (the action row is
+        // full). Shown only when it can matter: the tab's unit has the reservoir — on global
+        // rules and presets any party member — or a value is already set, so it can be cleared.
+        void SetupReservoirRow(Transform parent) {
+            if (rule.Action.Type != ActionType.CastSpell) return;
+            bool relevant = rule.Action.Reservoir != ReservoirBoost.None;
+            if (!relevant) {
+                var unit = GetUnit(unitId);
+                relevant = unit != null
+                    ? Engine.ArcaneReservoir.HasReservoir(unit)
+                    : Game.Instance?.Player?.PartyAndPets?.Any(Engine.ArcaneReservoir.HasReservoir) == true;
+            }
+            if (!relevant) return;
+
+            var row = Widgets.Row(parent, "ReservoirRow", Theme.RowHeight);
+            var (arrowLbl, _) = UIHelpers.Create("ArrowLbl", row.transform);
+            Widgets.InRow(arrowLbl, 0f, 0.10f);
+            Widgets.InkLabel(arrowLbl, "\u21B3", 18f, TextAlignmentOptions.MidlineRight, Theme.InkMuted);
+            PopupSelector.CreateInRow(row, "Reservoir", 0.37f, EnumLabels.NamesFor<ReservoirBoost>(),
+                (int)rule.Action.Reservoir, idx => {
+                    rule.Action.Reservoir = (ReservoirBoost)idx;
+                    PersistEdit();
+                });
+        }
+
         // Fallback-chain rendering for CastSpell / CastAbility rules. Renders one row per fallback id
         // (indent arrow + picker button + delete X) plus a "+ Fallback" button at the bottom.
         // Rebuilds the entire body on add/delete to keep index-capture semantics simple.

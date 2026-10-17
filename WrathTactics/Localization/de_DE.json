@@ -267,6 +267,9 @@
 
   "enum.toggle_mode.On": "An",
   "enum.toggle_mode.Off": "Aus",
+  "enum.reservoir.None": "Arkanes Reservoir: aus",
+  "enum.reservoir.CasterLevel": "Arkanes Reservoir: Zauberstufe",
+  "enum.reservoir.DC": "Arkanes Reservoir: SG",
 
   "enum.splash_mode.Any": "Beliebig",
   "enum.splash_mode.Strongest": "Stärkste",
