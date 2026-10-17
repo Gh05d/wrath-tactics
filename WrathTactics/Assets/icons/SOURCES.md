@@ -27,7 +27,7 @@ Sprites extracted from Wrath of the Righteous 1.4 via UnityPy
 | icon_delete.png | `UI_CharScreen_IconDelete` (56×61) | Red brush X — delete rule / preset / pack. |
 | icon_x.png / icon_x_hover.png | `UI_EscIcon_Default` / `_Hover` (49×49) | Ink X — delete condition / fallback, close popup, clear filter. |
 | icon_check.png / icon_check_hover.png | `UI_CheckIcon_Default` / `_Hover` (40×43) | Chevron — dropdown arrow (Default, scaled), checkbox tick (Hover). |
-| icon_arrow.png / icon_arrow_hover.png | `UI_RoundButtonNextIcon_Default` / `_Hover` (48×44) | Triangle — move up/down (rotated ∓90°). |
+| icon_arrow.png / icon_arrow_hover.png | `UI_RoundButtonNextIcon_Default` / `_Hover` (48×44) | Triangle pointing LEFT — move up/down (`Widgets.ArrowUpRotation`: up −90°, down +90°; Unity z = counter-clockwise). |
 | toggle_on.png / toggle_off.png | `UI_PointButtonBig_Hover` / `_Default` (40×40) | Round point button — rule ON / OFF dot, pack colour dot. |
 | divider_flourish.png | `UI_CharScreen_Separator2` (1041×46, border 114/0/94/0) | Line with flourish ends — section dividers. |
 | divider_line.png | `UI_WightLine_Simple` (586×7, border 16/0/16/0) | Thin line — OR divider. |

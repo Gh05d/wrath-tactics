@@ -201,6 +201,10 @@ namespace WrathTactics.UI {
         // Controls
         // ====================================================================
 
+        // icon_arrow.png points LEFT and Unity's z rotation runs counter-clockwise, so the up
+        // arrow is -90° (+90° turned it down and swapped the reorder arrows, v1.32.0–1.32.3).
+        const float ArrowUpRotation = -90f;
+
         static Sprite IconSprite(Icon icon, out Sprite hover, out bool rotateUp, out bool rotateDown) {
             hover = null;
             rotateUp = rotateDown = false;
@@ -243,8 +247,8 @@ namespace WrathTactics.UI {
                 img.preserveAspect = true;
                 img.raycastTarget = false;
                 img.color = tint ?? Color.white;
-                if (up) rect.localRotation = Quaternion.Euler(0, 0, 90f);
-                if (down) rect.localRotation = Quaternion.Euler(0, 0, -90f);
+                if (up) rect.localRotation = Quaternion.Euler(0, 0, ArrowUpRotation);
+                if (down) rect.localRotation = Quaternion.Euler(0, 0, -ArrowUpRotation);
             } else {
                 UIHelpers.AddLabel(obj, IconFallbackGlyph(icon), size * 0.7f / UIHelpers.FontScale,
                     TextAlignmentOptions.Midline, tint ?? Theme.Ink);
@@ -271,8 +275,8 @@ namespace WrathTactics.UI {
                 img.preserveAspect = true;
                 img.raycastTarget = true;
                 img.color = tint ?? Color.white;
-                if (up) rect.localRotation = Quaternion.Euler(0, 0, 90f);
-                if (down) rect.localRotation = Quaternion.Euler(0, 0, -90f);
+                if (up) rect.localRotation = Quaternion.Euler(0, 0, ArrowUpRotation);
+                if (down) rect.localRotation = Quaternion.Euler(0, 0, -ArrowUpRotation);
             } else {
                 img = UIHelpers.AddBackground(obj, Theme.InsetPaper);
                 UIHelpers.AddLabel(obj, IconFallbackGlyph(icon), 14f, TextAlignmentOptions.Midline, Theme.Ink);
