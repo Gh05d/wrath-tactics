@@ -131,7 +131,7 @@ namespace WrathTactics.Engine {
                     foreach (var fact in owner.Abilities.RawFacts) {
                         var data = fact.Data;
                         if (data?.SourceItem == null) continue;
-                        if (data.SourceItem.Charges <= 0) continue;
+                        if (IsOutOfCharges(data.SourceItem)) continue;
                         if (fact.Blueprint.AssetGuid.ToString() != parsed.BlueprintGuid) continue;
                         if (!data.IsAvailable) {
                             Log.Engine.Trace($"FindCastSpellSource: {owner.CharacterName} wand {data.Name} engine-unavailable ({data.GetUnavailableReason()})");

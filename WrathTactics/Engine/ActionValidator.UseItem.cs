@@ -7,6 +7,14 @@ using WrathTactics.Logging;
 
 namespace WrathTactics.Engine {
     public static partial class ActionValidator {
+        // True only for an item that spends charges and has none left. The engine sets
+        // `Charges` only when `IsSpendCharges` (ItemEntity ctor, RestoreCharges), so at-will
+        // equipment abilities (rings, amulets with `SpendCharges=false`) sit at `Charges == 0`
+        // forever — a bare `Charges <= 0` gate rejects them on every tick.
+        internal static bool IsOutOfCharges(ItemEntity item) {
+            return item != null && item.IsSpendCharges && item.Charges <= 0;
+        }
+
         // `ability` is assigned only on the success path, so a caller can never read a
         // validator-rejected object.
         static bool CanUseItemAtPoint(string abilityGuid, UnitEntityData owner, out AbilityData ability) {
@@ -14,7 +22,7 @@ namespace WrathTactics.Engine {
             var found = FindUseItemSource(owner, abilityGuid, out _);
             if (found == null) return false;
             if (!found.CanTargetPoint) return false;
-            if (found.SourceItem != null && found.SourceItem.Charges <= 0) return false;
+            if (IsOutOfCharges(found.SourceItem)) return false;
             if (!found.IsAvailable) {
                 Log.Engine.Trace($"CanUseItemAtPoint: {owner.CharacterName} {found.Name} engine-unavailable ({found.GetUnavailableReason()})");
                 return false;
@@ -27,7 +35,7 @@ namespace WrathTactics.Engine {
             ability = null;
             var found = FindUseItemSource(owner, abilityGuid, out _);
             if (found == null) return false;
-            if (found.SourceItem != null && found.SourceItem.Charges <= 0) return false;
+            if (IsOutOfCharges(found.SourceItem)) return false;
             // Inventory-source items rely on stack Count > 0, which FindUseItemSource already enforces.
             if (!found.IsAvailable) {
                 Log.Engine.Trace($"CanUseItem: {owner.CharacterName} {found.Name} engine-unavailable ({found.GetUnavailableReason()})");

@@ -1,38 +1,37 @@
+using Kingmaker.Blueprints;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
-using Kingmaker.UnitLogic.Parts;
+using Kingmaker.UnitLogic.ActivatableAbilities;
 using WrathTactics.Logging;
 
 namespace WrathTactics.Engine {
     /// <summary>
-    /// Finds a metamagic rod on a unit that can apply to a given spell.
-    /// Engine-authoritative: queries `UnitPartSpecialMetamagic` (the same engine-side
-    /// list that vanilla UI uses) and `MetamagicRodMechanics.IsSuitableAbility`.
+    /// Finds a quickslotted metamagic rod on a unit that can apply to a given spell.
+    /// Scans the unit's activatables for a rod toggle whose buff carries
+    /// `MetamagicRodMechanics` and asks that component `IsSuitableAbility` (engine check:
+    /// metamagic flag, MaxSpellLevel, spellbook spell, AvailableMetamagic).
+    /// Not `UnitPartSpecialMetamagic`: the component is a buff component and registers there
+    /// in `OnTurnOn`, i.e. only while the rod is already on — that list is empty for every
+    /// rod we would need to switch on.
     /// Returns null on no match — callers fall back to a normal cast.
     /// </summary>
     public static class MetamagicRodResolver {
         /// <summary>
-        /// First rod on `unit` whose `Metamagic == metamagic` and whose
-        /// `IsSuitableAbility(ability)` returns true. Returns null if no rod is
-        /// equipped+quickslotted, or none match the spell.
-        /// The returned `MetamagicRodMechanics` carries `RodAbility` (the ActivatableAbility blueprint
-        /// the caller activates).
+        /// First rod toggle on `unit` whose `Metamagic == metamagic`, whose
+        /// `IsSuitableAbility(ability)` returns true and that is either already on or still
+        /// has charges. Returns null if no rod is quickslotted, or none match the spell.
         /// </summary>
-        public static MetamagicRodMechanics TryResolve(UnitEntityData unit, AbilityData ability, Metamagic metamagic) {
+        public static ActivatableAbility TryResolve(UnitEntityData unit, AbilityData ability, Metamagic metamagic) {
             if (unit == null || ability == null) return null;
-            var part = unit.Get<UnitPartSpecialMetamagic>();
-            if (part == null) return null;
-            // m_MetamagicRodMechanics is publicizer-accessible (private List<(EntityFact, MetamagicRodMechanics)>).
-            var entries = part.m_MetamagicRodMechanics;
-            if (entries == null || entries.Count == 0) return null;
-            foreach (var entry in entries) {
-                var mech = entry.Item2;
+            foreach (var rod in unit.ActivatableAbilities.RawFacts) {
+                var mech = rod.Blueprint.Buff?.GetComponent<MetamagicRodMechanics>();
                 if (mech == null) continue;
                 if (mech.Metamagic != metamagic) continue;
                 if (!mech.IsSuitableAbility(ability)) continue;
-                Log.Engine.Debug($"MetamagicRodResolver: matched {mech.Metamagic} rod for {ability.Name} on {unit.CharacterName}");
-                return mech;
+                if (!rod.IsOn && !rod.IsAvailable) continue; // out of charges for today
+                Log.Engine.Debug($"MetamagicRodResolver: matched {mech.Metamagic} rod {rod.Blueprint.name} for {ability.Name} on {unit.CharacterName}");
+                return rod;
             }
             return null;
         }

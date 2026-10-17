@@ -178,24 +178,22 @@ namespace WrathTactics.Engine {
 
         /// <summary>
         /// If <paramref name="action"/>.MetamagicRod is set and a matching rod is equipped+quickslotted,
-        /// activates the rod's ActivatableAbility on <paramref name="owner"/> so the next cast picks it up.
-        /// Silent no-op when the field is null or no rod matches — caller proceeds with
+        /// switches the rod's ActivatableAbility on for <paramref name="owner"/> so the next cast picks it up.
+        /// No-op when the field is null or no rod matches — caller proceeds with
         /// a normal cast.
         /// </summary>
         static void MaybeActivateRod(ActionDef action, UnitEntityData owner, AbilityData ability) {
             if (action.MetamagicRod == null) return;
-            var mech = MetamagicRodResolver.TryResolve(owner, ability, action.MetamagicRod.Value);
-            if (mech == null) return;
-            var rodAbilityBp = mech.RodAbility;
-            if (rodAbilityBp == null) return;
-            foreach (var aa in owner.ActivatableAbilities) {
-                if (aa.Blueprint != rodAbilityBp) continue;
-                if (aa.IsOn) return; // already toggled — engine will spend the charge on the upcoming cast
-                aa.TryStart();
-                if (aa.IsOn) {
-                    Log.Engine.Info($"Activated rod {rodAbilityBp.name} for {owner.CharacterName} ({mech.Metamagic} on {ability.Name})");
-                }
+            var rod = MetamagicRodResolver.TryResolve(owner, ability, action.MetamagicRod.Value);
+            if (rod == null) {
+                Log.Engine.Debug($"No {action.MetamagicRod.Value} rod suits {ability.Name} on {owner.CharacterName} — casting without rod");
                 return;
+            }
+            if (rod.IsOn) return; // already toggled — engine will spend the charge on the upcoming cast
+            // Same single setter as ExecuteToggleActivatable (SetIsOn runs CanTurnOn).
+            rod.IsOn = true;
+            if (rod.IsOn) {
+                Log.Engine.Info($"Activated rod {rod.Blueprint.name} for {owner.CharacterName} ({action.MetamagicRod.Value} on {ability.Name})");
             }
         }
 

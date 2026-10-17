@@ -201,7 +201,7 @@ namespace WrathTactics.Engine {
             // Item-backed abilities (wands, staves, equipped healing items)
             if (wantSpell) foreach (var ability in owner.Abilities.RawFacts) {
                 if (ability.Data.SourceItem == null) continue;
-                if (ability.Data.SourceItem.Charges <= 0) continue;
+                if (IsOutOfCharges(ability.Data.SourceItem)) continue;
                 if (!MatchesEnergy(ability.Blueprint)) continue;
                 if (!ability.Data.IsAvailable) {
                     Log.Engine.Trace($"Skipping heal wand {ability.Blueprint.name} for {owner.CharacterName}: engine-unavailable ({ability.Data.GetUnavailableReason()})");
