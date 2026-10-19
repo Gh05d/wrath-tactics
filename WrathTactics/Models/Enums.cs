@@ -60,7 +60,8 @@ namespace WrathTactics.Models {
         NegativeLevels,           // Yes/No — UnitPartNegativeLevels.Count > 0 (temporary + permanent energy drain); for Restoration rules.
         HpFlat,                   // numeric — current hit points, flat (HPLeft = HitPoints.ModifiedValue − Damage; temp HP excluded, same expression as the engine's AbilityTargetHPCondition Power-Word gate)
         WieldsRangedWeapon,       // Yes/No — current weapon is ranged (GetFirstWeapon → Blueprint.IsRanged, i.e. AttackType Ranged/RangedTouch); for "focus the archers" rules
-        EngagedEnemyCount         // numeric — distinct living enemies in UnitCombatState.EngagedUnits ∪ EngagedBy (engine melee engagement: edge-to-edge reach + LOS, so large creatures count); see ConditionEvaluator.CountEngagedEnemies
+        EngagedEnemyCount,        // numeric — distinct living enemies in UnitCombatState.EngagedUnits ∪ EngagedBy (engine melee engagement: edge-to-edge reach + LOS, so large creatures count); see ConditionEvaluator.CountEngagedEnemies
+        HasEnergyResistance       // Value = DamageEnergyType name (Fire/Cold/Electricity/Acid/Sonic) — UnitPartDamageReduction.AllSources AddDamageResistanceEnergy, max GetCurrentValue > 0; =/!=
     }
 
     public enum ConditionOperator {
