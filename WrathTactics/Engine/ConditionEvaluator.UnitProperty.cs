@@ -133,6 +133,13 @@ namespace WrathTactics.Engine {
                     return EqualsBool(match, condition);
                 }
 
+                case ConditionProperty.IsBeingCastOnByAlly: {
+                    // =/!= over the Value ability filter; NOT a Yes/No bool (EqualsBool would read
+                    // the GUID as a bool). Count-path twin lives in MatchesPropertyThreshold.
+                    bool cast = IsBeingCastOnByAlly(unit, condition);
+                    return condition.Operator == ConditionOperator.NotEqual ? !cast : cast;
+                }
+
                 case ConditionProperty.IsTargetedByEnemy: {
                     if (!IsAllyScope(condition.Subject)) {
                         Log.Engine.Trace($"IsTargetedByEnemy: subject {condition.Subject} is not Ally-scope, returning false");
@@ -380,6 +387,11 @@ namespace WrathTactics.Engine {
                     bool wantPet = ParseBoolValue(condition.Value);
                     bool match = isPet == wantPet;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.IsBeingCastOnByAlly: {
+                    bool cast = IsBeingCastOnByAlly(unit, condition);
+                    return condition.Operator == ConditionOperator.NotEqual ? !cast : cast;
                 }
 
                 case ConditionProperty.WieldsRangedWeapon: {

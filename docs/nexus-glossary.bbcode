@@ -65,6 +65,7 @@ Every term in the rule editor, in UI order. All checks are [b]snapshots[/b]: a c
 [*][b]Targeting ally[/b] (Yes/No): This enemy is aiming at a party member (optionally one pinned companion). Enemy subjects only.
 [*][b]Targeted by ally[/b] (Yes/No): A party member (optionally a pinned one) is attacking this enemy. Enemy subjects only.
 [*][b]Targeted by enemy[/b] (Yes/No): Some enemy is attacking this ally. Ally subjects only.
+[*][b]Cast on it by ally[/b] (ability (+ optional ally)): A party member is casting a spell or ability at this unit right now, including a cast waiting in that companion's queue. Leave the picker on [i]any spell or ability[/i] to match every cast, or pick one spell to match only that one (a variant also matches its parent spell). Without a pinned ally the rule owner's own cast is ignored, so a rule can ask "is a companion already healing this ally?". Weapon attacks never count. != means "nobody is casting it on this unit". Ally and Enemy subjects.
 [*][b]IsInCombat[/b] (Yes/No): Whether the party is in combat. Subject Combat only — see Out-of-combat rules.
 [*][b]CombatRounds[/b] (number): 6-second rounds elapsed since the current fight began. Subject Combat only.
 [/list]

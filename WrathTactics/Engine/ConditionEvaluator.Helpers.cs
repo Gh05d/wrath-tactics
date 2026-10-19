@@ -1,6 +1,7 @@
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic;
 using WrathTactics.Logging;
+using WrathTactics.Models;
 using KmAlignment = Kingmaker.Enums.Alignment;
 
 namespace WrathTactics.Engine {
@@ -346,6 +347,35 @@ namespace WrathTactics.Engine {
             foreach (var resource in unit.Resources.PersistantResources) {
                 if (resource.Blueprint.AssetGuid.ToString() == resourceGuid && resource.Amount > 0)
                     return true;
+            }
+            return false;
+        }
+
+        // IsBeingCastOnByAlly: does at least one party member (never a dead / out-of-game one)
+        // currently cast the Value-filtered ability at `unit`? Ally- AND Enemy-scope subjects.
+        // Pin semantics as IsTargetedByAlly: no Value2 pin skips the rule owner (a rule must not
+        // see its own cast as "someone else is already on it"), an explicit pin, even self, is honoured.
+        static bool IsBeingCastOnByAlly(UnitEntityData unit, Condition condition) {
+            if (!IsAllyScope(condition.Subject) && !IsEnemyScope(condition.Subject)) {
+                Log.Engine.Trace($"IsBeingCastOnByAlly: subject {condition.Subject} is not Ally/Enemy-scope, returning false");
+                return false;
+            }
+            // Value2 doubles as the count threshold (AllyCount/EnemyCount) and the named ally
+            // (AllyByName), so a pin only exists on the single-unit subjects.
+            bool pinnable = condition.Subject != ConditionSubject.AllyCount
+                && condition.Subject != ConditionSubject.EnemyCount
+                && condition.Subject != ConditionSubject.AllyByName;
+            var pinned = pinnable ? AllyProvider.Resolve(condition.Value2) : null;
+            foreach (var ally in GetAllPartyMembers(CurrentOwner)) {
+                if (ally == null) continue;
+                if (pinned == null && ally == CurrentOwner) continue;
+                if (!ally.IsInGame) continue;
+                if (ally.Descriptor?.State?.IsFinallyDead ?? false) continue;
+                if (pinned != null && ally != pinned) continue;
+                if (TargetingRelations.HasCast(ally, unit, condition.Value)) {
+                    Log.Engine.Trace($"IsBeingCastOnByAlly: {ally.CharacterName} casts {(string.IsNullOrEmpty(condition.Value) ? "any ability" : condition.Value)} on {unit?.CharacterName}");
+                    return true;
+                }
             }
             return false;
         }

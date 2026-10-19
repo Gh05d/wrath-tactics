@@ -188,11 +188,15 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.HasCondition
                     || condition.Property == ConditionProperty.HasDescriptorEffect
                     || condition.Property == ConditionProperty.ImmuneToEnergy
+                    || condition.Property == ConditionProperty.IsBeingCastOnByAlly
                     || condition.Property == ConditionProperty.HasClass) {
                     CreateEqOperator(root, 0.06f, "CountEqOp");
 
                     if (condition.Property == ConditionProperty.HasBuff) {
                         CreateBuffSelector(root, 0.23f);
+                    } else if (condition.Property == ConditionProperty.IsBeingCastOnByAlly) {
+                        // No ally pin here: Value2 holds the count threshold / named ally.
+                        CreateAbilityFilterSelector(root, 0.23f);
                     } else if (condition.Property == ConditionProperty.HasClass) {
                         var entries = ClassProvider.GetAll();
                         var labels = entries.Select(e => e.Label).ToList();
@@ -264,7 +268,9 @@ namespace WrathTactics.UI {
                 bool isWithinRange = condition.Property == ConditionProperty.WithinRange;
                 bool isDescOrEnergy = condition.Property == ConditionProperty.HasDescriptorEffect
                     || condition.Property == ConditionProperty.ImmuneToEnergy;
-                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass || isDescOrEnergy;
+                bool isCastOnByAlly = condition.Property == ConditionProperty.IsBeingCastOnByAlly;
+                bool usesEqOp = isHasCondition || isCreatureType || isBuffProp || isAlignment || isHasClass || isDescOrEnergy
+                    || isCastOnByAlly;
                 bool isBoolProperty = condition.Property == ConditionProperty.IsDead
                     || condition.Property == ConditionProperty.IsInCombat
                     || condition.Property == ConditionProperty.IsTargetingSelf
@@ -356,6 +362,13 @@ namespace WrathTactics.UI {
                     }
                 } else if (condition.Property == ConditionProperty.HasBuff) {
                     CreateBuffSelector(root, 0.43f);
+                } else if (isCastOnByAlly) {
+                    // Value = ability filter (empty = any), Value2 = optional ally pin
+                    // (empty = any ally except the rule owner), same as IsTargetedByAlly.
+                    CreateAbilityFilterSelector(root, 0.28f);
+                    CreateAllyPicker(root, 0.15f, "CastOnByAllyPin",
+                        allowAny: true, condition.Value2,
+                        v => { condition.Value2 = v; onChanged?.Invoke(); });
                 } else if (isWithinRange) {
                     var bracketNames = RangeBracketNames;
                     var bracketLabels = GetRangeBracketLabels(condition.Operator);
@@ -556,6 +569,43 @@ namespace WrathTactics.UI {
             });
         }
 
+        // Ability filter for IsBeingCastOnByAlly. Reuses SpellPickerOverlay (search-first, takes a
+        // plain entry list) fed with the whole party's spells + class abilities, because the caster
+        // is another companion, not the rule owner. An "any" entry (empty GUID) comes first.
+        void CreateAbilityFilterSelector(GameObject root, float flexibleWidth) {
+            // A property switch can leave a stale "true"/"false" (or other non-GUID text) in
+            // Value; as a filter it would match nothing. Blueprint GUIDs are 32 hex chars.
+            if (!string.IsNullOrEmpty(condition.Value) && condition.Value.Length != 32)
+                condition.Value = "";
+            var btnObj = Widgets.BandDropdownShell(root.transform, "AbilityFilterButton",
+                AbilityFilterLabel(condition.Value), withIcon: false, out var label, out _);
+            Widgets.InRow(btnObj, 120f, flexibleWidth);
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            var btn = btnObj.AddComponent<Button>();
+            btn.targetGraphic = btnObj.GetComponent<Image>();
+            Widgets.ApplyColorTint(btn);
+
+            btn.onClick.AddListener(() => {
+                var entries = new List<SpellDropdownProvider.SpellEntry> {
+                    new SpellDropdownProvider.SpellEntry("placeholder.any_ability".i18n(), "")
+                };
+                entries.AddRange(SpellDropdownProvider.GetPartyFilterEntries(
+                    Kingmaker.Game.Instance.Player.PartyAndPets));
+                SpellPickerOverlay.Open(entries, condition.Value, picked => {
+                    condition.Value = picked.Guid;
+                    onChanged?.Invoke();
+                    label.text = AbilityFilterLabel(picked.Guid);
+                });
+            });
+        }
+
+        static string AbilityFilterLabel(string guid) {
+            if (string.IsNullOrEmpty(guid)) return "placeholder.any_ability".i18n();
+            var name = Kingmaker.Blueprints.ResourcesLibrary
+                .TryGetBlueprint<Kingmaker.UnitLogic.Abilities.Blueprints.BlueprintAbility>(guid)?.Name;
+            return string.IsNullOrEmpty(name) ? guid : name;
+        }
+
         static List<ConditionProperty> GetPropertiesForSubject(ConditionSubject subject) {
             switch (subject) {
                 case ConditionSubject.Self:
@@ -587,6 +637,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
                         ConditionProperty.IsTargetedByEnemy,
+                        ConditionProperty.IsBeingCastOnByAlly,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.WieldsRangedWeapon,
@@ -605,6 +656,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.Alignment,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
+                        ConditionProperty.IsBeingCastOnByAlly,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.WieldsRangedWeapon,
@@ -647,6 +699,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.IsTargetingSelf,
                         ConditionProperty.IsTargetingAlly,
                         ConditionProperty.IsTargetedByAlly,
+                        ConditionProperty.IsBeingCastOnByAlly,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.WieldsRangedWeapon,
@@ -666,6 +719,7 @@ namespace WrathTactics.UI {
                         ConditionProperty.EnemyHDMinusPartyLevel,
                         ConditionProperty.HasClass,
                         ConditionProperty.WithinRange,
+                        ConditionProperty.IsBeingCastOnByAlly,
                         ConditionProperty.IsSummon,
                         ConditionProperty.IsPet,
                         ConditionProperty.WieldsRangedWeapon,
