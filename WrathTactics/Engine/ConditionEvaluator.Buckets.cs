@@ -181,13 +181,29 @@ namespace WrathTactics.Engine {
         internal static float ResolveCountThreshold(List<Condition> countConds) {
             float? threshold = null;
             foreach (var cc in countConds) {
-                if (float.TryParse(cc.Value2, System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture, out float v)
-                    && v >= 0f && !float.IsInfinity(v)) {
+                if (TryParseCountThreshold(cc.Value2, out float v)) {
                     threshold = threshold.HasValue ? System.Math.Max(threshold.Value, v) : v;
                 }
             }
             return threshold ?? 1f;
+        }
+
+        // Shared Value2 count parser: finite and >= 0 (rejects empty, garbage,
+        // negative, NaN, +/-Infinity). Callers decide their own fallback —
+        // ResolveCountThreshold defaults to 1, SpellSlots falls back to legacy ">0".
+        internal static bool TryParseCountThreshold(string raw, out float value) {
+            return float.TryParse(raw, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out value)
+                && value >= 0f && !float.IsInfinity(value);
+        }
+
+        // SpellSlotsAtLevel/AboveLevel: Value2 = optional minimum COUNT compared with
+        // the Operator. Unusable Value2 (empty = every legacy rule) keeps the legacy
+        // "at least one free slot" check and deliberately ignores the Operator.
+        internal static bool MatchesSlotCount(int available, Condition c) {
+            if (TryParseCountThreshold(c.Value2, out float count))
+                return CompareFloat(available, c.Operator, count);
+            return available > 0;
         }
     }
 }

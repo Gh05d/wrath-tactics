@@ -68,11 +68,13 @@ namespace WrathTactics.UI {
             var subjectNames = EnumLabels.NamesFor<ConditionSubject>();
             PopupSelector.CreateInRow(root, "Subject", 0.15f, subjectNames,
                 (int)condition.Subject, v => {
+                    var oldProperty = condition.Property;
                     condition.Subject = (ConditionSubject)v;
                     // Reset property to first valid for new subject
                     var validProps = GetPropertiesForSubject(condition.Subject);
                     if (!validProps.Contains(condition.Property) && validProps.Count > 0)
                         condition.Property = validProps[0];
+                    ClearValue2OnSlotCountSwitch(oldProperty);
                     onChanged?.Invoke();
                     Rebuild();
                 });
@@ -85,7 +87,9 @@ namespace WrathTactics.UI {
             propertySelector = PopupSelector.CreateInRow(root, "Property", 0.21f,
                 propNames, propIdx, v => {
                     var currentProps = GetPropertiesForSubject(condition.Subject);
+                    var oldProperty = condition.Property;
                     if (v < currentProps.Count) condition.Property = currentProps[v];
+                    ClearValue2OnSlotCountSwitch(oldProperty);
                     onChanged?.Invoke();
                     Rebuild();
                 });
@@ -387,14 +391,28 @@ namespace WrathTactics.UI {
                     // Value2 ally-pin: empty = use party-best AB (legacy), set = compute
                     // margin against THIS ally's AB ("Wenduag struggles to hit → buff her").
                     bool hasAbAllyPin = condition.Property == ConditionProperty.ABMinusAC;
-                    float valFlex = hasAbAllyPin ? 0.14f : 0.37f;   // old spans 0.51–0.65 / 0.51–0.88
+                    // SpellSlots* additionally expose Value2 = optional minimum slot count
+                    // (empty = legacy "any free slot", operator ignored).
+                    bool hasSlotCount = IsSpellSlotsProperty(condition.Property);
+                    float valFlex = hasAbAllyPin || hasSlotCount ? 0.14f : 0.37f;   // old spans 0.51–0.65 / 0.51–0.88
 
                     var valueInput = UIHelpers.CreateTMPInputFieldInRow(root, "Value",
-                        60f, valFlex, condition.Value ?? "", 16f);
+                        60f, valFlex, condition.Value ?? "", 16f,
+                        placeholderText: hasSlotCount ? "condition.slotLevel".i18n() : null);
                     valueInput.onEndEdit.AddListener(v => {
                         condition.Value = v;
                         onChanged?.Invoke();
                     });
+
+                    if (hasSlotCount) {
+                        var slotCountInput = UIHelpers.CreateTMPInputFieldInRow(root, "SlotMinCount",
+                            60f, 0.22f, condition.Value2 ?? "", 16f,
+                            TMP_InputField.ContentType.IntegerNumber, "condition.slotMinCount".i18n());
+                        slotCountInput.onEndEdit.AddListener(v => {
+                            condition.Value2 = v;   // empty allowed: returns to legacy ">0"
+                            onChanged?.Invoke();
+                        });
+                    }
 
                     if (hasAbAllyPin) {
                         CreateAllyPicker(root, 0.22f, "ABAllyPin",
@@ -406,6 +424,18 @@ namespace WrathTactics.UI {
 
             // Delete button
             Widgets.IconButton(root.transform, "DelBtn", Icon.X, Theme.IconSmall, () => onDelete?.Invoke());
+        }
+
+        static bool IsSpellSlotsProperty(ConditionProperty p) =>
+            p == ConditionProperty.SpellSlotsAtLevel || p == ConditionProperty.SpellSlotsAboveLevel;
+
+        // Value2 means different things per property (SpellSlots min count vs. ally pin
+        // vs. count threshold). A value typed under one meaning must not leak into
+        // another, so entering or leaving a SpellSlots property drops it.
+        void ClearValue2OnSlotCountSwitch(ConditionProperty oldProperty) {
+            if (oldProperty == condition.Property) return;
+            if (IsSpellSlotsProperty(oldProperty) || IsSpellSlotsProperty(condition.Property))
+                condition.Value2 = "";
         }
 
         void CreateEqOperator(GameObject root, float flexibleWidth, string name) {
