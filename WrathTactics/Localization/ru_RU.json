@@ -258,6 +258,8 @@
   "enum.target.SpecificAlly": "Конкретный союзник",
   "enum.target.EnemyMostEnemyNeighbors": "Враг: самая плотная группа (5 м)",
   "enum.target.AllyMostAllyNeighbors": "Союзник: самая плотная группа (5 м)",
+  "enum.target.ConditionTargetAlly": "Цель условия (союзник)",
+  "enum.target.PointAtConditionTargetAlly": "Точка у цели условия (союзник)",
 
   "enum.heal_mode.Any": "Любой",
   "enum.heal_mode.Strongest": "Сильнейший",

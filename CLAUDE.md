@@ -75,7 +75,7 @@ WrathTactics/
     BuffIndexCache     # Persisted buff metadata index, game-version+locale stamped
     BuffPackScanner    # Full blueprint enumeration → buff metadata (main-thread, persisted)
     AssetLoader        # Loads PNGs as 9-slice Sprites for UI
-  Models/              # TacticsRule, TacticsConfig, TacticsPack, Enums, TargetDefaults (action-dependent index-0 defaults)
+  Models/              # TacticsRule, TacticsConfig, TacticsPack, Enums, TargetDefaults (action-dependent index-0 defaults), TargetTypeTraits (IsPoint / IsAllyConditionOnly)
   Persistence/         # ConfigManager (per-save JSON), PresetManager, PackManager,
                        # ModSettingsManager, SafeConditionConverter
   UI/                  # TacticsPanel, RuleEditorWidget (+ partials .Action/.Cooldown/.Header/.Target),
