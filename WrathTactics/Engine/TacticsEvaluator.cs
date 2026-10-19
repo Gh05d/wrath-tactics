@@ -307,6 +307,11 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
+                // Diagnostic only: remember which own commands this Standard rule may replace.
+                // Looked up before Execute (afterwards they are finished), written after it
+                // succeeds, because Execute may veto, merge or bypass Commands.Run.
+                var preempted = slot == UnitCommand.CommandType.Standard ? CaptureOwnPreemption(unit) : null;
+
                 if (CommandExecutor.Execute(rule.Action, unit, target, out var issuedCmd)) {
                     cooldowns[cooldownKey] = gameTimeSec;
                     if (issuedCmd != null) RememberIssued(unit, issuedCmd, cooldownKey, $"Rule {i} \"{rule.Name}\" ({source})");
@@ -328,6 +333,7 @@ namespace WrathTactics.Engine {
                         tick.WalkHold = $"Rule {i} \"{rule.Name}\" ({source})";
                     }
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED [{SlotLabel(slot)}] -> {FormatTarget(target)}");
+                    if (preempted != null && issuedCmd != null) LogPreemption(unit, i, rule.Name, source, issuedCmd, preempted);
 
                     // DoNothing is the only hard stop: it means "this unit does nothing else
                     // this tick", which is exactly the pre-change semantics.
@@ -484,6 +490,56 @@ namespace WrathTactics.Engine {
                 }
             }
             return false;
+        }
+
+        struct OwnCommand {
+            public UnitCommand Command;
+            public string Issuer;
+            public bool Started;
+        }
+
+        // Own unfinished commands in the Standard slot and in Commands.Queue (Run() clears
+        // both). "Own" = tracked in `issued` by reference. Returns null, without
+        // allocating, when there are none.
+        static List<OwnCommand> CaptureOwnPreemption(UnitEntityData unit) {
+            var commands = unit.Commands;
+            if (commands == null) return null;
+            List<OwnCommand> found = null;
+            var raw = commands.Raw;
+            int standard = (int)UnitCommand.CommandType.Standard;
+            if (raw != null && standard < raw.Length) CaptureIfOwn(unit, raw[standard], ref found);
+            var queue = commands.Queue;
+            if (queue == null || queue.Count == 0) return found;
+            foreach (var queued in queue) CaptureIfOwn(unit, queued, ref found);
+            return found;
+        }
+
+        static void CaptureIfOwn(UnitEntityData unit, UnitCommand cmd, ref List<OwnCommand> found) {
+            if (cmd == null || cmd.IsFinished) return;
+            var issuer = IssuerLabel(unit, cmd);
+            if (issuer == null) return;
+            if (found == null) found = new List<OwnCommand>();
+            found.Add(new OwnCommand { Command = cmd, Issuer = issuer, Started = cmd.IsStarted });
+        }
+
+        // Skips the command Execute just returned (same-ability merge keeps the old occupant).
+        static void LogPreemption(UnitEntityData unit, int ruleIndex, string ruleName, RuleListSource source,
+                UnitCommand issuedCmd, List<OwnCommand> preempted) {
+            foreach (var old in preempted) {
+                if (ReferenceEquals(old.Command, issuedCmd)) continue;
+                string what = old.Command is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack";
+                Log.Engine.Info($"{unit.CharacterName} Rule {ruleIndex} \"{ruleName}\" ({source}) preempts own {what} [Standard] by {old.Issuer}, {(old.Started ? "started" : "pending")}");
+            }
+        }
+
+        // Rule label of the rule that issued `cmd`, matched by reference; null when the
+        // command is not one of ours.
+        static string IssuerLabel(UnitEntityData unit, UnitCommand cmd) {
+            for (int i = issued.Count - 1; i >= 0; i--) {
+                var e = issued[i];
+                if (ReferenceEquals(e.Command, cmd) && ReferenceEquals(e.Unit, unit)) return e.Label;
+            }
+            return null;
         }
 
         static string SlotLabel(UnitCommand.CommandType? slot) {
