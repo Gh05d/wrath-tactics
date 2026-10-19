@@ -126,6 +126,15 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// Slots an own walk in progress holds against lower rules. Standard and Move
+        /// commands remove the Move slot through the paired-slot rule, which would cancel
+        /// the walk; Swift and Free commands and slot-less toggles leave it alone.
+        /// </summary>
+        internal static bool HeldByWalk(UnitCommand.CommandType? slot) {
+            return slot == UnitCommand.CommandType.Standard || slot == UnitCommand.CommandType.Move;
+        }
+
+        /// <summary>
         /// A running Swift does NOT hold a pending Standard back (the engine's Standard start
         /// check only looks at a running Move). So a Swift may overlap a pending Standard only
         /// when the Standard is guaranteed to still be cooling down after the swift animation

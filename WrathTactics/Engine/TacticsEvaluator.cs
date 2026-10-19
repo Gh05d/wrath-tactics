@@ -251,8 +251,7 @@ namespace WrathTactics.Engine {
 
                 // A higher rule's walk is under way: a Standard or Move command from a lower
                 // rule would cancel it (paired slots). Swift/Free commands leave it alone.
-                if (tick.WalkHold != null && slot.HasValue
-                    && (slot.Value == UnitCommand.CommandType.Standard || slot.Value == UnitCommand.CommandType.Move)) {
+                if (tick.WalkHold != null && ActionSlots.HeldByWalk(slot)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): waiting for walk to finish ({tick.WalkHold})");
                     continue;
                 }
@@ -320,6 +319,13 @@ namespace WrathTactics.Engine {
                     // exactly their present meaning and ActiveRuleTracker stays untouched.
                     if (issuedCmd != null && ActionSlots.IsGated(slot)) {
                         ActiveRuleTracker.Record(unit, source, entry.Id, issuedCmd);
+                    }
+                    // The walk holds its priority from the tick it is issued in. Without this
+                    // a lower Standard rule fired in the same tick and cancelled the fresh walk
+                    // (paired slots); the hold above only started on the next tick, when the
+                    // validator declines the rule with "walk in progress".
+                    if (ActionValidator.IsWalkAction(rule.Action.Type) && issuedCmd != null && tick.WalkHold == null) {
+                        tick.WalkHold = $"Rule {i} \"{rule.Name}\" ({source})";
                     }
                     Log.Engine.Info($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): EXECUTED [{SlotLabel(slot)}] -> {FormatTarget(target)}");
 
