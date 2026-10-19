@@ -222,6 +222,13 @@ namespace WrathTactics.Engine {
 
                 var target = TargetResolver.Resolve(rule.Target, unit);
 
+                // Heal/Toggle/etc. are exempt from RequiresValidTarget and CommandExecutor falls
+                // back to the owner, so an empty ally-only condition target must skip the rule here.
+                if (TargetTypeTraits.SkipsWhenUnresolved(rule.Target.Type, target.IsValid)) {
+                    Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): no ally condition target — skipped");
+                    continue;
+                }
+
                 // The slot is only known once the AbilityData is resolved, so validation
                 // must run before the gate and budget checks.
                 if (!ActionValidator.CanExecute(rule.Action, unit, target, out var abilitySlot)) {
