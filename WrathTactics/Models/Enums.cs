@@ -62,7 +62,8 @@ namespace WrathTactics.Models {
         WieldsRangedWeapon,       // Yes/No — current weapon is ranged (GetFirstWeapon → Blueprint.IsRanged, i.e. AttackType Ranged/RangedTouch); for "focus the archers" rules
         EngagedEnemyCount,        // numeric — distinct living enemies in UnitCombatState.EngagedUnits ∪ EngagedBy (engine melee engagement: edge-to-edge reach + LOS, so large creatures count); see ConditionEvaluator.CountEngagedEnemies
         HasEnergyResistance,      // Value = DamageEnergyType name (Fire/Cold/Electricity/Acid/Sonic) — UnitPartDamageReduction.AllSources AddDamageResistanceEnergy, max GetCurrentValue > 0; =/!=
-        IsBeingCastOnByAlly       // Ally/Enemy-scope, =/!= : a non-owner ally is currently casting (Standard slot or queue) a UnitUseAbility at this unit; Value = ability GUID filter (empty = any; variant parent/ConvertedFrom also matches), Value2 = optional ally pin; melee attacks never count
+        IsBeingCastOnByAlly,      // Ally/Enemy-scope, =/!= : a non-owner ally is currently casting (Standard slot or queue) a UnitUseAbility at this unit; Value = ability GUID filter (empty = any; variant parent/ConvertedFrom also matches), Value2 = optional ally pin; melee attacks never count
+        IsDowned                  // Yes/No — felled in combat but not finally dead (LifeState==Dead && !IsFinallyDead; red portrait, auto-revives after combat); Unconscious/Death's Door not counted. IsDead stays IsFinallyDead.
     }
 
     public enum ConditionOperator {

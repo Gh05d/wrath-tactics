@@ -344,6 +344,14 @@ namespace WrathTactics.Engine {
                 System.Linq.Enumerable.Where(units, IsLivingCombatEnemy), e => e.CharacterName));
         }
 
+        // "Downed" = felled in combat, not finally dead: UnitState.IsDead is LifeState==Dead
+        // (IL-verified), which the engine sets once HP drops past -CON; IsFinallyDead is the
+        // persisted greyed-portrait flag. Unconscious (Death's Door) is deliberately not
+        // downed — add `|| lifeState == UnitLifeState.Unconscious` here to count it.
+        internal static bool IsDownedState(UnitLifeState lifeState, bool isFinallyDead) {
+            return lifeState == UnitLifeState.Dead && !isFinallyDead;
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {

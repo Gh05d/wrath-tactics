@@ -213,6 +213,7 @@
   "enum.property.IsSummon": "Is summon",
   "enum.property.IsPet": "Is pet",
   "enum.property.WieldsRangedWeapon": "Wields ranged weapon",
+  "enum.property.IsDowned": "Downed",
   "enum.property.IsFlanked": "Is flanked",
   "enum.property.AbilityDamage": "Ability damage",
   "enum.property.NegativeLevels": "Negative levels",

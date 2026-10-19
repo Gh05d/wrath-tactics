@@ -168,6 +168,15 @@ namespace WrathTactics.Engine {
                     return EqualsBool(isDead, condition);
                 }
 
+                case ConditionProperty.IsDowned: {
+                    // In-combat counterpart of IsDead: LifeState==Dead but not yet finally dead
+                    // (red portrait, stands up after combat). Keep in sync with
+                    // MatchesPropertyThreshold.IsDowned.
+                    var state = unit.Descriptor?.State;
+                    bool downed = state != null && IsDownedState(state.LifeState, state.IsFinallyDead);
+                    return EqualsBool(downed, condition);
+                }
+
                 case ConditionProperty.IsSummon: {
                     // UnitPartSummonedMonster is engine-added (Ensure<>+Init) on every Summon
                     // Monster / Animate Dead / Create Undead / etc. cast. Pets, animal companions,
@@ -377,6 +386,15 @@ namespace WrathTactics.Engine {
                     bool dead = unit.Descriptor?.State?.IsFinallyDead ?? false;
                     bool wantDead = ParseBoolValue(condition.Value);
                     bool match = dead == wantDead;
+                    return condition.Operator == ConditionOperator.NotEqual ? !match : match;
+                }
+
+                case ConditionProperty.IsDowned: {
+                    // See note in EvaluateUnitProperty.IsDowned; keep both sites in sync.
+                    var state = unit.Descriptor?.State;
+                    bool downed = state != null && IsDownedState(state.LifeState, state.IsFinallyDead);
+                    bool wantDowned = ParseBoolValue(condition.Value);
+                    bool match = downed == wantDowned;
                     return condition.Operator == ConditionOperator.NotEqual ? !match : match;
                 }
 

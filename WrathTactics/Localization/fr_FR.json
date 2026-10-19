@@ -213,6 +213,7 @@
   "enum.property.IsSummon": "Est une invocation",
   "enum.property.IsPet": "Est un familier",
   "enum.property.WieldsRangedWeapon": "Manie une arme à distance",
+  "enum.property.IsDowned": "Tombé",
   "enum.property.IsFlanked": "Est flanqué",
   "enum.property.AbilityDamage": "Dégâts de caractéristique",
   "enum.property.NegativeLevels": "Niveaux négatifs",

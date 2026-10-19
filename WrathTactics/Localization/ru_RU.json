@@ -213,6 +213,7 @@
   "enum.property.IsSummon": "Призванное существо",
   "enum.property.IsPet": "Питомец",
   "enum.property.WieldsRangedWeapon": "Дальнобойное оружие",
+  "enum.property.IsDowned": "Повержен",
   "enum.property.IsFlanked": "Окружён (атакован с двух сторон)",
   "enum.property.AbilityDamage": "Урон характеристик",
   "enum.property.NegativeLevels": "Отрицательные уровни",

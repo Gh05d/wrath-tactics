@@ -226,7 +226,7 @@ namespace WrathTactics.Engine {
         }
 
         // Compares an actual boolean against the condition's Yes/No value, honoring the
-        // Equal/NotEqual operator. Used by all bool-valued properties (IsDead, IsInCombat,
+        // Equal/NotEqual operator. Used by all bool-valued properties (IsDead, IsDowned, IsInCombat,
         // IsTargetingSelf/Ally, IsTargetedByAlly/Enemy).
         static bool EqualsBool(bool actual, Condition c) {
             bool wanted = ParseBoolValue(c.Value);
