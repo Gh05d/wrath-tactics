@@ -214,6 +214,7 @@
   "enum.property.AbilityDamage": "Dégâts de caractéristique",
   "enum.property.NegativeLevels": "Niveaux négatifs",
   "enum.property.AdjacentEnemyCount": "Ennemis adjacents",
+  "enum.property.EngagedEnemyCount": "Ennemis au corps à corps",
   "enum.property.HasDescriptorEffect": "Affecté par",
   "enum.property.ImmuneToEnergy": "Immunisé à l'énergie",
   "enum.property.EnemyHDMinusPartyLevel": "DV − GroupeMax",

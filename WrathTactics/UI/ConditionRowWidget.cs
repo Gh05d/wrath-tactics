@@ -145,7 +145,8 @@ namespace WrathTactics.UI {
                     || condition.Property == ConditionProperty.SpellDCMinusSave
                     || condition.Property == ConditionProperty.ABMinusAC
                     || condition.Property == ConditionProperty.EnemyHDMinusPartyLevel
-                    || condition.Property == ConditionProperty.WithinRange;
+                    || condition.Property == ConditionProperty.WithinRange
+                    || condition.Property == ConditionProperty.EngagedEnemyCount;
 
                 if (propNeedsOperator) {
                     // Operator selector where the "<" label was
@@ -541,7 +542,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
-                        ConditionProperty.AdjacentEnemyCount
+                        ConditionProperty.AdjacentEnemyCount,
+                        ConditionProperty.EngagedEnemyCount
                     };
                 case ConditionSubject.Ally:
                 case ConditionSubject.AllyByName:
@@ -560,7 +562,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
-                        ConditionProperty.AdjacentEnemyCount
+                        ConditionProperty.AdjacentEnemyCount,
+                        ConditionProperty.EngagedEnemyCount
                     };
                 case ConditionSubject.AllyCount:
                     return new List<ConditionProperty> {
@@ -577,7 +580,8 @@ namespace WrathTactics.UI {
                         ConditionProperty.AbilityDamage,
                         ConditionProperty.NegativeLevels,
                         ConditionProperty.IsFlanked,
-                        ConditionProperty.AdjacentEnemyCount
+                        ConditionProperty.AdjacentEnemyCount,
+                        ConditionProperty.EngagedEnemyCount
                     };
                 case ConditionSubject.Enemy:
                 case ConditionSubject.EnemyBiggestThreat:
