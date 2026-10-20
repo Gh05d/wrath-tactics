@@ -159,6 +159,8 @@
   "condition.with": "with",
   "condition.slotLevel": "Level",
   "condition.slotMinCount": "Min. count",
+  "condition.resourceGuid": "Resource GUID",
+  "condition.resourceAmount": "Amount",
   "bool.yes": "Yes",
   "bool.no": "No",
 
