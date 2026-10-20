@@ -149,7 +149,9 @@ namespace WrathTactics.Engine {
         /// and the occupant is animated and not finished; <paramref name="occupantApproaching"/>
         /// is <c>!occupant.IsStarted &amp;&amp; !occupant.IsUnitCloseEnough()</c>,
         /// <paramref name="occupantOwn"/> is <c>PlayerCommandGuard.IsOurs(occupant)</c>,
-        /// <paramref name="occupantIsCast"/> is <c>occupant is UnitUseAbility</c>.
+        /// <paramref name="occupantIsCast"/> is <c>occupant is UnitUseAbility</c>,
+        /// <paramref name="occupantIsOwnHeal"/> is true for an own cast of a usable item or a
+        /// healing spell (the caller classifies from game types).
         /// Same-slot conflicts are the budget's and the priority gate's business.
         ///
         /// Two engine facts drive this (both IL-verified, both learnt the hard way in 1.29.0):
@@ -179,7 +181,8 @@ namespace WrathTactics.Engine {
             bool occupantOwn,
             bool occupantIsCast,
             bool issuingSlotOnCooldown,
-            float standardCooldownRemaining) {
+            float standardCooldownRemaining,
+            bool occupantIsOwnHeal = false) {
             // Fact 1: Run(Move) removes the Standard command outright.
             if (issuing == UnitCommand.CommandType.Move && occupied == UnitCommand.CommandType.Standard) {
                 if (occupantOwn) return SlotConflict.PairedOwn;
@@ -205,6 +208,18 @@ namespace WrathTactics.Engine {
             // !IsUnitCloseEnough() whenever cmd is Standard or Move (Swift/Free only when cmd
             // itself is out of reach), so issuing now cancels that approach.
             if (occupantApproaching) return SlotConflict.Approaching;
+
+            // Pending OWN heal (potion / usable item / healing spell) in Standard, Swift issuing:
+            // never overlap, whatever the cooldown says. If the Standard command starts while
+            // the Swift animation is still alive, the newer animation releases the older one and
+            // the heal ends Interrupt (a healing potion lost to a Swift buff such as Spirit Weapon, and
+            // the unit died). A lost heal is the one failure that kills; the Swift can wait a tick.
+            if (issuing == UnitCommand.CommandType.Swift
+                && occupied == UnitCommand.CommandType.Standard
+                && occupantOwn
+                && occupantIsOwnHeal) {
+                return SlotConflict.Pending;
+            }
 
             // Pending Standard occupant, Swift issuing: Swift is not paired with Standard,
             // but nothing holds Standard back from a running Swift either, so the Standard

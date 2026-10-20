@@ -151,6 +151,26 @@ namespace WrathTactics.Tests {
         }
 
         [Theory]
+        [InlineData(1f)]
+        [InlineData(3f)]
+        [InlineData(5f)]
+        public void swift_never_overlaps_an_own_pending_heal(float standardCooldown) {
+            Assert.Equal(SlotConflict.Pending,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: standardCooldown, occupantIsOwnHeal: true));
+        }
+
+        [Theory]
+        [InlineData(1f, false)]
+        [InlineData(3f, true)]
+        [InlineData(5f, true)]
+        public void swift_over_a_pending_non_heal_keeps_the_cooldown_rule(float standardCooldown, bool overlaps) {
+            Assert.Equal(overlaps ? SlotConflict.None : SlotConflict.Pending,
+                ActionSlots.CheckConflict(Swf, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: standardCooldown, occupantIsOwnHeal: false));
+        }
+
+        [Theory]
         [InlineData(Std, Mov)]   // pending Move ignores a running Standard → would cut our cast
         [InlineData(Std, Swf)]
         [InlineData(Mov, Swf)]

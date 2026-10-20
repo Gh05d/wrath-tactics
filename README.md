@@ -165,7 +165,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 
 - Every tick the **Global** list is checked first, then the companion's own list, each **top to bottom**. Priority is the list position; there is no separate priority number.
 - A rule fires when its conditions pass, its target can be resolved and its action is possible right now. If any of those fail, the rule is skipped *for this tick* and the next rule is tried.
-- Each tick a companion may issue at most **one command per action slot** (standard, move, swift, free). So a cast from a higher rule and a swift action from a lower rule can both fire in one tick; two rules that need the same slot: the upper one wins.
+- Each tick a companion may issue at most **one command per action slot** (standard, move, swift, free). So a cast from a higher rule and a swift action from a lower rule can both fire in one tick, with one exception: a swift action waits while the companion's own heal (potion, usable item, healing spell) is still pending in the standard slot, because the swift animation would interrupt the heal. Two rules that need the same slot: the upper one wins.
 - While a standard-action command (cast, attack, item) is still running, lower rules wait; only rules *above* it may pre-empt it.
 - **DoNothing** is the one hard stop: everything below it is ignored while its conditions hold.
 - In combat the lists are re-evaluated every ~3 s (configurable), out of combat every ~2 s — but out of combat only for rules carrying `Combat → IsInCombat → No`.

@@ -309,6 +309,16 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// True when <paramref name="ability"/> is a usable-item ability (potion, scroll, wand:
+        /// <c>SourceItem != null</c>) or a positive-energy healing spell. Used by the cross-slot
+        /// guard to keep a Swift rule from overlapping an own pending heal.
+        /// </summary>
+        internal static bool IsHealCast(AbilityData ability) {
+            if (ability == null) return false;
+            return ability.SourceItem != null || ClassifyHeal(ability.Blueprint) == HealEnergyType.Positive;
+        }
+
+        /// <summary>
         /// Order-preserving filter: keeps the items the predicate accepts. Pure so the
         /// heal-candidate filtering can be unit-tested without game objects.
         /// </summary>
