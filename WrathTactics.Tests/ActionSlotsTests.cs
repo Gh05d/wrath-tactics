@@ -137,6 +137,50 @@ namespace WrathTactics.Tests {
                     issuingSlotOnCooldown: false, standardCooldownRemaining: 0f));
         }
 
+        [Theory]
+        [InlineData(Swf, Std, true, false)]    // running auto-attack
+        [InlineData(Swf, Std, false, false)]   // pending auto-attack
+        [InlineData(Swf, Std, false, true)]    // pending, still walking to its target
+        [InlineData(Fre, Std, true, false)]
+        [InlineData(Fre, Std, false, false)]
+        [InlineData(Fre, Std, false, true)]
+        [InlineData(Std, Swf, true, false)]    // every issuing slot, not just Move
+        [InlineData(Std, Swf, false, false)]
+        [InlineData(Std, Mov, false, true)]
+        public void any_slot_may_interrupt_a_foreign_auto_attack_in_every_state(
+            UnitCommand.CommandType issuing, UnitCommand.CommandType occupied, bool started, bool approaching) {
+            // The party AI re-issues its attack after our command, exactly as after a click.
+            // Neither a spent issuing slot nor a fresh Standard cooldown changes that.
+            Assert.Equal(SlotConflict.None,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: started, occupantApproaching: approaching, occupantOwn: false, occupantIsCast: false,
+                    issuingSlotOnCooldown: true, standardCooldownRemaining: 0f));
+        }
+
+        [Theory]
+        [InlineData(Swf, Std)]
+        [InlineData(Fre, Std)]
+        [InlineData(Std, Swf)]
+        public void a_running_foreign_cast_still_blocks_every_slot(UnitCommand.CommandType issuing, UnitCommand.CommandType occupied) {
+            Assert.Equal(SlotConflict.Running,
+                ActionSlots.CheckConflict(issuing, occupied, occupantStarted: true, occupantApproaching: false, occupantOwn: false, occupantIsCast: true,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 5f));
+        }
+
+        [Theory]
+        [InlineData(Swf)]
+        [InlineData(Fre)]
+        public void an_own_attack_blocks_like_any_own_command(UnitCommand.CommandType issuing) {
+            Assert.Equal(SlotConflict.Running,
+                ActionSlots.CheckConflict(issuing, Std, occupantStarted: true, occupantApproaching: false, occupantOwn: true, occupantIsCast: false,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 0f));
+            Assert.Equal(SlotConflict.Pending,
+                ActionSlots.CheckConflict(issuing, Std, occupantStarted: false, occupantApproaching: false, occupantOwn: true, occupantIsCast: false,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 0f));
+            Assert.Equal(SlotConflict.Approaching,
+                ActionSlots.CheckConflict(issuing, Std, occupantStarted: false, occupantApproaching: true, occupantOwn: true, occupantIsCast: false,
+                    issuingSlotOnCooldown: false, standardCooldownRemaining: 0f));
+        }
+
         [Fact]
         public void swift_needs_the_standard_cooldown_to_outlast_its_animation() {
             Assert.Equal(SlotConflict.None,
