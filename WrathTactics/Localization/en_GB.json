@@ -228,6 +228,9 @@
   "enum.action.ThrowSplash": "ThrowSplash",
   "enum.action.SwitchWeaponSet": "Switch weapon set",
   "enum.action.MoveToTarget": "Move to target",
+  "enum.action.MoveAwayFromTarget": "Move away from target",
+  "action.move.within": "stop within",
+  "action.move.beyond": "until beyond",
   "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Self",

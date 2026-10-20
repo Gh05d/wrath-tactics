@@ -228,6 +228,9 @@
   "enum.action.ThrowSplash": "Spritzwaffe werfen",
   "enum.action.SwitchWeaponSet": "Waffenset wechseln",
   "enum.action.MoveToTarget": "Zum Ziel bewegen",
+  "enum.action.MoveAwayFromTarget": "Vom Ziel entfernen",
+  "action.move.within": "bis innerhalb",
+  "action.move.beyond": "bis außerhalb",
   "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Selbst",

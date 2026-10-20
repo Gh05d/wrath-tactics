@@ -41,6 +41,8 @@ namespace WrathTactics.Engine {
                     }
                     case ActionType.MoveToTarget:
                         return CanMoveToTarget(owner, target, action.MoveWithin);
+                    case ActionType.MoveAwayFromTarget:
+                        return CanMoveAway(owner, target, action.MoveWithin, out _);
                     default:
                         return false;
                 }
@@ -91,11 +93,33 @@ namespace WrathTactics.Engine {
                     return CanSwitchWeaponSet(owner, action.WeaponSetIndex);
                 case ActionType.MoveToTarget:
                     return CanMoveToTarget(owner, target, action.MoveWithin);
+                case ActionType.MoveAwayFromTarget:
+                    return CanMoveAway(owner, target, action.MoveWithin, out _);
                 case ActionType.DoNothing:
                     return true;
                 default:
                     return false;
             }
+        }
+
+        /// <summary>Rule types that issue a UnitMoveTo walk (MoveToTarget / MoveAwayFromTarget).</summary>
+        public static bool IsWalkAction(ActionType type) {
+            return type == ActionType.MoveToTarget || type == ActionType.MoveAwayFromTarget;
+        }
+
+        /// <summary>True when an own walk issued by this rule is still under way — the
+        /// evaluator then holds lower Standard/Move rules (paired slots would cancel it).</summary>
+        public static bool WalkInProgress(UnitEntityData owner, ResolvedTarget target, ActionDef action) {
+            bool walking = false;
+            switch (action.Type) {
+                case ActionType.MoveToTarget:
+                    CanMoveToTarget(owner, target, action.MoveWithin, out walking);
+                    break;
+                case ActionType.MoveAwayFromTarget:
+                    CanMoveAway(owner, target, action.MoveWithin, out walking);
+                    break;
+            }
+            return walking;
         }
 
         static bool RequiresValidTarget(ActionType type) {

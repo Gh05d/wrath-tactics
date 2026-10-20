@@ -14,10 +14,21 @@ namespace WrathTactics.Models {
                 case ActionType.ThrowSplash:
                     return TargetType.EnemyHighestThreat;
                 case ActionType.MoveToTarget:
+                case ActionType.MoveAwayFromTarget:
                     return TargetType.EnemyNearest;
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// Bracket for the move actions. ActionDef.MoveWithin starts on Melee (enum index 0),
+        /// which is right for "walk up to" but useless for "get away" — 2 m is still in
+        /// reach. Only ever replaces the index-0 value; an explicit choice is kept.
+        /// </summary>
+        public static RangeBracket? MoveBracketForAction(ActionType action, RangeBracket current) {
+            if (current != RangeBracket.Melee) return null;
+            return action == ActionType.MoveAwayFromTarget ? RangeBracket.Short : (RangeBracket?)null;
         }
 
         /// <summary>

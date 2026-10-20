@@ -239,6 +239,9 @@ namespace WrathTactics.Engine {
             return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame);
         }
 
+        /// <summary>Living enemies in combat with the party — the pool every Enemy selector draws from.</summary>
+        internal static IEnumerable<UnitEntityData> VisibleEnemies(UnitEntityData owner) => GetVisibleEnemies(owner);
+
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
             return Game.Instance.State.Units
                 .Where(u => u.IsInGame && u.HPLeft > 0 && u.IsPlayersEnemy && u.IsInCombat);

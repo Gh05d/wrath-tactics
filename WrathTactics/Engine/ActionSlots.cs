@@ -42,6 +42,7 @@ namespace WrathTactics.Engine {
                 // UnitMoveTo lives in the Move slot. Not animated, but Run(Move) removes the
                 // paired Standard command, so it goes through the cross-slot check.
                 case ActionType.MoveToTarget:
+                case ActionType.MoveAwayFromTarget:
                     return UnitCommand.CommandType.Move;
 
                 // Sets ActivatableAbility.IsOn — issues no command, so it claims nothing and
@@ -92,7 +93,7 @@ namespace WrathTactics.Engine {
         /// pending or running Standard command through the paired-slot rule.
         /// </summary>
         internal static bool NeedsCrossSlotCheck(ActionType type) {
-            return IssuesAnimatedCommand(type) || type == ActionType.MoveToTarget;
+            return IssuesAnimatedCommand(type) || ActionValidator.IsWalkAction(type);
         }
 
         /// <summary>
@@ -121,7 +122,7 @@ namespace WrathTactics.Engine {
         /// action made it wait up to 3 s for nothing (Nexus, 1.31.0 follow-up).
         /// </summary>
         internal static bool UsesActionBudget(ActionType type) {
-            return type != ActionType.MoveToTarget;
+            return !ActionValidator.IsWalkAction(type);
         }
 
         /// <summary>

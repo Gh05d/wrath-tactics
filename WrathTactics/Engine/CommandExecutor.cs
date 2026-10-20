@@ -36,6 +36,8 @@ namespace WrathTactics.Engine {
                         return ExecuteSwitchWeaponSet(action.WeaponSetIndex, owner, out issuedCommand);
                     case ActionType.MoveToTarget:
                         return ExecuteMoveToTarget(action.MoveWithin, owner, target, out issuedCommand);
+                    case ActionType.MoveAwayFromTarget:
+                        return ExecuteMoveAway(action.MoveWithin, owner, target, out issuedCommand);
                     case ActionType.DoNothing:
                         return true;
                     default:
@@ -402,6 +404,22 @@ namespace WrathTactics.Engine {
             if (issuedCommand == null) return false;
             string where = target.Unit != null ? target.Unit.CharacterName : $"point({destination.x:F1},{destination.z:F1})";
             Log.Engine.Info($"MoveToTarget: {owner.CharacterName} -> {where}, {distance:F1} m, stop within {within}");
+            return true;
+        }
+
+        static bool ExecuteMoveAway(RangeBracket beyond, UnitEntityData owner, ResolvedTarget target, out UnitCommand issuedCommand) {
+            issuedCommand = null;
+            if (!ActionValidator.TryGetFleeAnchor(owner, target, out var anchor, out float distance)) return false;
+            if (!ActionValidator.TryGetFleeDestination(owner, anchor, distance, RangeBrackets.MaxMeters(beyond), out var destination)) return false;
+            // Small approach radius: the point was picked for its distance from the anchor,
+            // the engine must walk (almost) all of it. Re-evaluated every tick, so a pursuing
+            // enemy triggers the next step once the current walk no longer gains distance.
+            var command = new UnitMoveTo(destination, 1f, true);
+            issuedCommand = RunVerified(owner, command);
+            if (issuedCommand == null) return false;
+            string from = target.Unit != null && target.Unit != owner ? target.Unit.CharacterName
+                : target.IsPoint ? $"point({anchor.x:F1},{anchor.z:F1})" : "nearby enemies";
+            Log.Engine.Info($"MoveAway: {owner.CharacterName} <- {from}, {distance:F1} m, until beyond {beyond}, to ({destination.x:F1},{destination.z:F1})");
             return true;
         }
 

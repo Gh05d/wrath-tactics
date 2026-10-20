@@ -9,6 +9,7 @@ namespace WrathTactics.Tests {
         [InlineData(ActionType.AttackTarget, TargetType.EnemyHighestThreat)]
         [InlineData(ActionType.ThrowSplash,  TargetType.EnemyHighestThreat)]
         [InlineData(ActionType.MoveToTarget, TargetType.EnemyNearest)]
+        [InlineData(ActionType.MoveAwayFromTarget, TargetType.EnemyNearest)]
         public void ForAction_replaces_Self_for_offensive_actions(ActionType action, TargetType expected) {
             Assert.Equal(expected, TargetDefaults.ForAction(action, TargetType.Self));
         }
@@ -31,6 +32,13 @@ namespace WrathTactics.Tests {
         [InlineData(TargetType.ConditionTarget)]
         public void ForAction_never_overrides_an_explicit_choice(TargetType current) {
             Assert.Null(TargetDefaults.ForAction(ActionType.AttackTarget, current));
+        }
+
+        [Fact]
+        public void MoveBracket_flee_starts_on_Short_approach_keeps_Melee() {
+            Assert.Equal(RangeBracket.Short, TargetDefaults.MoveBracketForAction(ActionType.MoveAwayFromTarget, RangeBracket.Melee));
+            Assert.Null(TargetDefaults.MoveBracketForAction(ActionType.MoveToTarget, RangeBracket.Melee));
+            Assert.Null(TargetDefaults.MoveBracketForAction(ActionType.MoveAwayFromTarget, RangeBracket.Long));
         }
 
         [Fact]

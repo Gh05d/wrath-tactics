@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using WrathTactics.Localization;
 using WrathTactics.Logging;
+using WrathTactics.Engine;
 using WrathTactics.Models;
 
 namespace WrathTactics.UI {
@@ -32,6 +33,8 @@ namespace WrathTactics.UI {
                 (int)rule.Action.Type, idx => {
                     rule.Action.Type = (ActionType)idx;
                     rule.Action.AbilityId = "";
+                    var defaultBracket = TargetDefaults.MoveBracketForAction((ActionType)idx, rule.Action.MoveWithin);
+                    if (defaultBracket.HasValue) rule.Action.MoveWithin = defaultBracket.Value;
                     if ((ActionType)idx != ActionType.CastSpell
                         && (ActionType)idx != ActionType.CastAbility) {
                         rule.Action.Sources = SpellSourceMask.All;
@@ -132,15 +135,19 @@ namespace WrathTactics.UI {
                 return;
             }
 
-            // MoveToTarget: bracket dropdown ("stop within ..."), same display order as the
-            // range conditions (Far sits between Medium and Long by distance).
-            if (rule.Action.Type == ActionType.MoveToTarget) {
+            // MoveToTarget / MoveAwayFromTarget: "within" / "beyond" label + bracket dropdown,
+            // same display order as the range conditions (Far sits between Medium and Long).
+            if (ActionValidator.IsWalkAction(rule.Action.Type)) {
+                var (moveLbl, _) = UIHelpers.Create("MoveLabel", row.transform);
+                Widgets.InRow(moveLbl, 0f, 0.09f);
+                Widgets.SectionLabel(moveLbl, (rule.Action.Type == ActionType.MoveAwayFromTarget
+                    ? "action.move.beyond" : "action.move.within").i18n());
                 var brackets = MoveWithinBrackets;
                 var bracketLabels = new List<string>(brackets.Length);
                 foreach (var b in brackets) bracketLabels.Add(EnumLabels.For(b));
                 int selectedIdx = System.Array.IndexOf(brackets, rule.Action.MoveWithin);
                 if (selectedIdx < 0) selectedIdx = 0;
-                PopupSelector.CreateInRow(row, "MoveWithin", 0.31f, bracketLabels, selectedIdx, idx => {
+                PopupSelector.CreateInRow(row, "MoveWithin", 0.22f, bracketLabels, selectedIdx, idx => {
                     rule.Action.MoveWithin = brackets[idx];
                     PersistEdit();
                 });
@@ -206,7 +213,7 @@ namespace WrathTactics.UI {
                                 rule.Action.Type != ActionType.DoNothing &&
                                 rule.Action.Type != ActionType.ThrowSplash &&
                                 rule.Action.Type != ActionType.SwitchWeaponSet &&
-                                rule.Action.Type != ActionType.MoveToTarget;
+                                !ActionValidator.IsWalkAction(rule.Action.Type);
             if (spellPickerButton != null)
                 spellPickerButton.SetActive(showSelector);
         }
@@ -372,7 +379,7 @@ namespace WrathTactics.UI {
             if (actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
                 || actionType == ActionType.ToggleActivatable
                 || actionType == ActionType.CastSpell || actionType == ActionType.CastAbility
-                || actionType == ActionType.SwitchWeaponSet || actionType == ActionType.MoveToTarget) {
+                || actionType == ActionType.SwitchWeaponSet || ActionValidator.IsWalkAction(actionType)) {
                 RebuildBody();
                 return;
             }
@@ -383,7 +390,7 @@ namespace WrathTactics.UI {
                              actionType != ActionType.DoNothing &&
                              actionType != ActionType.ThrowSplash &&
                              actionType != ActionType.SwitchWeaponSet &&
-                             actionType != ActionType.MoveToTarget;
+                             !ActionValidator.IsWalkAction(actionType);
             spellPickerButton.SetActive(showSpell);
 
             if (!showSpell) return;
@@ -424,7 +431,7 @@ namespace WrathTactics.UI {
         List<SpellDropdownProvider.SpellEntry> GetSpellEntries(ActionType actionType) {
             if (actionType == ActionType.AttackTarget || actionType == ActionType.DoNothing
                 || actionType == ActionType.Heal || actionType == ActionType.ThrowSplash
-                || actionType == ActionType.SwitchWeaponSet || actionType == ActionType.MoveToTarget)
+                || actionType == ActionType.SwitchWeaponSet || ActionValidator.IsWalkAction(actionType))
                 return new List<SpellDropdownProvider.SpellEntry>();
 
             var unit = GetUnit(unitId);

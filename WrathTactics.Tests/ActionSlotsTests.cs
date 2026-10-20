@@ -191,6 +191,17 @@ namespace WrathTactics.Tests {
             Assert.False(ActionSlots.IsGated(ActionSlots.Classify(ActionType.MoveToTarget, null)));
         }
 
+        [Fact]
+        public void move_away_is_a_move_slot_walk_like_move_to_target() {
+            Assert.Equal(UnitCommand.CommandType.Move, ActionSlots.Classify(ActionType.MoveAwayFromTarget, null));
+            Assert.True(ActionSlots.NeedsCrossSlotCheck(ActionType.MoveAwayFromTarget));
+            Assert.False(ActionSlots.IssuesAnimatedCommand(ActionType.MoveAwayFromTarget));
+            Assert.False(ActionSlots.IsGated(ActionSlots.Classify(ActionType.MoveAwayFromTarget, null)));
+            Assert.False(ActionSlots.UsesActionBudget(ActionType.MoveAwayFromTarget));
+            Assert.True(ActionValidator.IsWalkAction(ActionType.MoveAwayFromTarget));
+            Assert.False(ActionValidator.IsWalkAction(ActionType.AttackTarget));
+        }
+
         [Theory]
         [InlineData(2.5f, RangeBracket.Melee, true)]
         [InlineData(2.0f, RangeBracket.Melee, false)]

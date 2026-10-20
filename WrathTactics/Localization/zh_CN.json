@@ -228,6 +228,9 @@
   "enum.action.ThrowSplash": "投掷溅射武器",
   "enum.action.SwitchWeaponSet": "切换武器套装",
   "enum.action.MoveToTarget": "移动到目标",
+  "enum.action.MoveAwayFromTarget": "远离目标",
+  "action.move.within": "直到进入",
+  "action.move.beyond": "直到超出",
   "weapon_set.label": "套装 {0}",
 
   "enum.target.Self": "自身",

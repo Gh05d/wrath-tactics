@@ -70,6 +70,7 @@ WrathTactics/
     AllyProvider       # Party-and-pet list for ally pickers; resolves pinned ally
     MetamagicRodResolver # First suitable metamagic rod on a unit (null → normal cast)
     UnitClusterMetrics # Positional cluster metrics (FindMostClustered for AoE targeting)
+    FleeGeometry       # Pure XZ geometry for MoveAwayFromTarget (candidate fan, farthest reachable pick)
     RuleListSource     # Enum: Global vs. Character rule-list origin (priority gate)
     BuffIndexCache     # Persisted buff metadata index, game-version+locale stamped
     BuffPackScanner    # Full blueprint enumeration → buff metadata (main-thread, persisted)
@@ -156,5 +157,5 @@ IL evidence, version history, and incident reports: `docs/wrath-api-deep-dive.md
 ## Code Style
 
 - Shared style (K&R braces, 4-space indent, `var` when apparent): → parent §Code Style.
-- **`ActionValidator` is `partial`**: `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.MoveToTarget/.Find.cs` — one Action-type per file; new Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back (`incidents.md`).
+- **`ActionValidator` is `partial`**: `ActionValidator.cs` (dispatcher) + `.Cast/.UseItem/.Toggle/.Heal/.SwitchWeaponSet/.MoveToTarget/.MoveAway/.Find.cs` — one Action-type per file; new Action-type ⇒ new `ActionValidator.<Type>.cs`. Don't merge back (`incidents.md`).
 - **`catch (Exception ex)` is reserved for three patterns**: per-tick/per-frame guards, user-surface persistence, static/sentinel blueprint init. Everything else narrows. (`docs/wrath-api-deep-dive.md#catch-discipline`)

@@ -23,7 +23,7 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 - **Compound conditions** — AND within groups, OR between groups
 - **Rich condition subjects**: Self, Ally, AllyCount, a specific ally, Enemy, EnemyCount, Enemy sorted by threat / HP / AC / saves / HD / distance, Combat
 - **Properties**: HP%, AC, Fortitude/Reflex/Will saves, buffs, debuffs (Evil Eye variants, curses, etc.), game conditions (Paralyzed, Stunned, ...), creature type, spell slots, combat rounds, range, flanking, who is targeting whom — full list in the [Glossary](#glossary)
-- **Action types**: Cast Spell, Cast Ability, Use Item, Toggle Activatable, Attack, Heal (auto-picks best available heal across spells/scrolls/potions/wands), Throw Splash, Switch weapon set, Move to target, Do Nothing
+- **Action types**: Cast Spell, Cast Ability, Use Item, Toggle Activatable, Attack, Heal (auto-picks best available heal across spells/scrolls/potions/wands), Throw Splash, Switch weapon set, Move to target, Move away from target, Do Nothing
 - **Target selectors**: Self, Ally with lowest HP, Enemy with highest AC / biggest threat / specific creature type, the specific entity that matched the condition, or a ground point for summons and AoE
 - **Ability variants supported** — Evil Eye – AC / Evil Eye – Attack / Channel Positive Energy – Damage Undead, etc., with full cast animations
 - **BubbleBuffs compatible** — Wrath Tactics handles in-combat reactions while BubbleBuffs handles pre-combat buffing. No conflicts.
@@ -240,6 +240,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **ThrowSplash** | Throws a splash weapon (Alchemist's Fire, Acid Flask, Holy Water …). Any = first in inventory, Strongest = highest damage, Cheapest = lowest value. |
 | **Switch weapon set** | Switches to weapon set 1–4. |
 | **Move to target** | Walks toward the target until within the chosen bracket ("stop within Melee / Cone / Short …"). Re-checked every tick, so a moving target is followed. Does nothing when already within that distance — which is why **Target: Self** never moves. While the walk is running, lower rules that would need the move or standard action are held back. |
+| **Move away from target** | Walks away from the target until farther than the chosen bracket ("until beyond Short" = more than 10 m). Tries straight away first, then sideways and diagonal directions, and takes the reachable point that gains the most distance — a wall behind the unit yields a sideways escape; a cornered unit stays put. **Target: Self** means "away from the enemies around me" (those within 10 m, else the nearest). Re-checked every tick, so a pursuing enemy triggers the next step, and lower move/standard rules are held while the walk runs, same as Move to target. Pair it with a condition such as `Self → Is flanked → Yes` or `Self → Enemies adjacent → >= 2`. |
 | **DoNothing** | Issues no command and stops every rule below it for this tick. Use it as a blocker, e.g. "if Self HP% < 20 do nothing" above a charge rule. |
 
 ### Targets (whom the action is aimed at)

@@ -228,6 +228,9 @@
   "enum.action.ThrowSplash": "Projectile éclaboussant",
   "enum.action.SwitchWeaponSet": "Changer d'arme",
   "enum.action.MoveToTarget": "Se déplacer vers la cible",
+  "enum.action.MoveAwayFromTarget": "S'éloigner de la cible",
+  "action.move.within": "jusqu'à moins de",
+  "action.move.beyond": "jusqu'à plus de",
   "weapon_set.label": "Set {0}",
 
   "enum.target.Self": "Soi",

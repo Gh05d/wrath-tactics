@@ -177,7 +177,7 @@ namespace WrathTactics.Engine {
             /// <summary>One command per slot per tick, indexed by (int)UnitCommand.CommandType.</summary>
             public readonly bool[] SlotUsed = new bool[4];
             public readonly HashSet<string> TogglesUsed = new HashSet<string>();
-            /// <summary>Set when a MoveToTarget rule matched and its own walk is still under
+            /// <summary>Set when a MoveToTarget / MoveAwayFromTarget rule matched and its own walk is still under
             /// way: label of that rule. Lower rules must not issue a Standard or Move command —
             /// either would cancel the walk (paired slots), inverting the list priority
             /// (Nexus, 1.31.0: Cackle below the walk rule stopped the walk every tick).</summary>
@@ -228,10 +228,8 @@ namespace WrathTactics.Engine {
                     // MoveToTarget falls through by design once the unit is inside its
                     // bracket (validator traced "already within"); that is not a WARN. A walk
                     // still under way keeps this rule's priority: hold the paired slots.
-                    if (rule.Action.Type == ActionType.MoveToTarget) {
-                        if (tick.WalkHold == null
-                            && ActionValidator.CanMoveToTarget(unit, target, rule.Action.MoveWithin, out bool walking) == false
-                            && walking) {
+                    if (ActionValidator.IsWalkAction(rule.Action.Type)) {
+                        if (tick.WalkHold == null && ActionValidator.WalkInProgress(unit, target, rule.Action)) {
                             tick.WalkHold = $"Rule {i} \"{rule.Name}\" ({source})";
                         }
                         Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): move not needed or not possible");

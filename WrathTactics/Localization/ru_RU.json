@@ -228,6 +228,9 @@
   "enum.action.ThrowSplash": "Метнуть",
   "enum.action.SwitchWeaponSet": "Сменить оружие",
   "enum.action.MoveToTarget": "Подойти к цели",
+  "enum.action.MoveAwayFromTarget": "Отойти от цели",
+  "action.move.within": "пока не ближе",
+  "action.move.beyond": "пока не дальше",
   "weapon_set.label": "Набор {0}",
 
   "enum.target.Self": "Себя",

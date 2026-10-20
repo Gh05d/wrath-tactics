@@ -81,7 +81,8 @@ namespace WrathTactics.Models {
         DoNothing,
         ThrowSplash,    // throw a splash weapon (Alchemist's Fire, Acid Flask, Holy Water)
         SwitchWeaponSet, // swap to a specific HandsEquipmentSet (engine allocates 4 slots, index 0-3)
-        MoveToTarget    // walk towards the target until within ActionDef.MoveWithin (UnitMoveTo, Move slot)
+        MoveToTarget,   // walk towards the target until within ActionDef.MoveWithin (UnitMoveTo, Move slot)
+        MoveAwayFromTarget // walk away from the target until beyond ActionDef.MoveWithin (UnitMoveTo, Move slot; FleeGeometry)
     }
 
     public enum HealMode {
