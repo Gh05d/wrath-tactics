@@ -466,7 +466,8 @@ namespace WrathTactics.Engine {
                 bool approaching = !cmd.IsStarted && !cmd.IsUnitCloseEnough();
                 bool own = PlayerCommandGuard.IsOurs(unit, cmd);
                 bool isCast = cmd is UnitUseAbility;
-                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, isCast, issuingOnCooldown, standardRemaining);
+                bool ownHeal = own && cmd is UnitUseAbility healCast && ActionValidator.IsHealCast(healCast.Ability);
+                var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, isCast, issuingOnCooldown, standardRemaining, ownHeal);
                 string what = (own ? "own " : "foreign ") + (cmd is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack");
                 switch (verdict) {
                     case SlotConflict.Running:
@@ -479,6 +480,10 @@ namespace WrathTactics.Engine {
                         reason = $"{what} {(cmd.IsStarted ? "running" : "pending")} in {occupied} — a {issuing} command would cancel it (paired slot)";
                         return true;
                     case SlotConflict.Pending:
+                        if (ownHeal && issuing == UnitCommand.CommandType.Swift && occupied == UnitCommand.CommandType.Standard) {
+                            reason = $"Swift waits for {what} pending in Standard (heal, Standard cooldown {standardRemaining:F1}s)";
+                            return true;
+                        }
                         reason = $"{what} pending in {occupied} (Standard cooldown {standardRemaining:F1}s, {issuing} on cooldown={issuingOnCooldown})";
                         return true;
                     default:
