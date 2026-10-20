@@ -145,7 +145,7 @@ IL evidence, version history, and incident reports: `docs/wrath-api-deep-dive.md
 
 ## Release Process
 
-→ parent §Release Process / §Nexus Mods. Remote is `origin`. `/release` (`.claude/commands/release.md`): bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto). Mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005.
+→ parent §Release Process / §Nexus Mods. **Nexus-Beschreibung**: das Glossar (README §Glossary) liegt als BBCode in `docs/nexus-glossary.bbcode`, nach README-Änderung neu rendern mit `python3 tools/gen_nexus_glossary.py README.md docs/nexus-glossary.bbcode` und auf der Mod-Seite ersetzen (kein API-Weg, nur Browser). Remote is `origin`. `/release` (`.claude/commands/release.md`): bump → build → user-confirm gate → push → tag → GitHub Release → Nexus upload (auto). Mod-page: https://www.nexusmods.com/pathfinderwrathoftherighteous/mods/1005.
 
 ## Logs
 

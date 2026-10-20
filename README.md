@@ -21,10 +21,10 @@ You set the rules once, the mod handles the rest while you focus on positioning 
 
 - **Priority-ordered rule list** per companion plus global rules
 - **Compound conditions** — AND within groups, OR between groups
-- **Rich condition subjects**: Self, Ally, AllyCount, Enemy, EnemyCount, EnemyBiggestThreat, EnemyLowestThreat, Combat
-- **Properties**: HP%, AC, Fortitude/Reflex/Will saves, buffs, debuffs (Evil Eye variants, curses, etc.), game conditions (Paralyzed, Stunned, ...), creature type, spell slots, combat rounds
-- **Action types**: Cast Spell, Cast Ability, Use Item, Toggle Activatable, Attack, Heal (auto-picks best available heal across spells/scrolls/potions/wands), Do Nothing
-- **Target selectors**: Self, Ally with lowest HP, Enemy with highest AC / biggest threat / specific creature type, or the specific entity that matched the condition
+- **Rich condition subjects**: Self, Ally, AllyCount, a specific ally, Enemy, EnemyCount, Enemy sorted by threat / HP / AC / saves / HD / distance, Combat
+- **Properties**: HP%, AC, Fortitude/Reflex/Will saves, buffs, debuffs (Evil Eye variants, curses, etc.), game conditions (Paralyzed, Stunned, ...), creature type, spell slots, combat rounds, range, flanking, who is targeting whom — full list in the [Glossary](#glossary)
+- **Action types**: Cast Spell, Cast Ability, Use Item, Toggle Activatable, Attack, Heal (auto-picks best available heal across spells/scrolls/potions/wands), Throw Splash, Switch weapon set, Move to target, Do Nothing
+- **Target selectors**: Self, Ally with lowest HP, Enemy with highest AC / biggest threat / specific creature type, the specific entity that matched the condition, or a ground point for summons and AoE
 - **Ability variants supported** — Evil Eye – AC / Evil Eye – Attack / Channel Positive Energy – Damage Undead, etc., with full cast animations
 - **BubbleBuffs compatible** — Wrath Tactics handles in-combat reactions while BubbleBuffs handles pre-combat buffing. No conflicts.
 - **Per-session debug logging** to its own file (`Mods/WrathTactics/Logs/wrath-tactics-YYYY-MM-DD-HHmmss.log`) with levels (Trace/Debug/Info/Warn/Error) and categories (Engine/UI/Persistence/Compat/Game)
@@ -44,7 +44,7 @@ You set the rules once, the mod handles the rest while you focus on positioning 
    - **\<Character name\>** — rules specific to one companion
    - **Presets** — save/load rule collections (savegame-independent)
    - **Packs** — bundle presets into reusable, colour-coded loadouts you can apply to any companion (see [Rule Packs](#rule-packs) below)
-3. Click **+ New Rule**, configure conditions and action, arrange priority with the ↑/↓ buttons
+3. Click **+ New Rule**, configure conditions and action, arrange priority with the ↑/↓ buttons — every term is explained in the [Glossary](#glossary)
 4. Start combat — the mod evaluates rules every ~3 seconds (configurable). Rules only run **in combat** unless you explicitly opt them in for out-of-combat use — see [Out-of-combat rules](#out-of-combat-rules)
 
 ### Example: a "healer bot" rule set for Daeran
@@ -156,6 +156,111 @@ A **positive** margin means you hit easily — it's how many points of slack you
 ### Range brackets
 
 **WithinRange** uses brackets, not raw meters: Melee (≤2 m), Cone (≤5 m), Short (≤10 m), Medium (≤20 m), Far (≤30 m), Long (≤40 m). Use **`<= Short`** for "within 10 m or closer" — `= Short` means *only* the 5–10 m band and excludes anything nearer. Note: Far (20–30 m) overlaps Long (20–40 m) — Long kept its original band so rules created before Far existed behave unchanged.
+
+## Glossary
+
+Every term in the rule editor, in UI order. All checks are **snapshots**: a condition says whether something is true *right now* when the rule is evaluated, never "keep doing X until it changes".
+
+### How a rule is evaluated
+
+- Every tick the **Global** list is checked first, then the companion's own list, each **top to bottom**. Priority is the list position; there is no separate priority number.
+- A rule fires when its conditions pass, its target can be resolved and its action is possible right now. If any of those fail, the rule is skipped *for this tick* and the next rule is tried.
+- Each tick a companion may issue at most **one command per action slot** (standard, move, swift, free). So a cast from a higher rule and a swift action from a lower rule can both fire in one tick; two rules that need the same slot: the upper one wins.
+- While a standard-action command (cast, attack, item) is still running, lower rules wait; only rules *above* it may pre-empt it.
+- **DoNothing** is the one hard stop: everything below it is ignored while its conditions hold.
+- In combat the lists are re-evaluated every ~3 s (configurable), out of combat every ~2 s — but out of combat only for rules carrying `Combat → IsInCombat → No`.
+- **Cooldown (rounds)**: after the rule fires, it stays quiet for that many 6-second rounds. `0` = may fire every tick.
+- **Enabled**: unticked rules are skipped entirely.
+
+### Condition subjects (who is checked)
+
+| Subject | Meaning |
+|---|---|
+| **Self** | The companion this rule belongs to. |
+| **Ally** | *Any one* party member or pet other than Self. Several Ally rows in the same group must all be true for the **same** ally. |
+| **AllyCount** | Counts allies other than Self that satisfy the property; the count is compared with the number on the right (`>= 1`, `< 3`, …). |
+| **Enemy** | *Any one* visible, living enemy currently in combat with the party. Several Enemy rows in a group must all be true for the **same** enemy. |
+| **EnemyCount** | Counts those enemies; `EnemyCount = 0` is a valid gate ("no enemy in combat"). |
+| **Enemy: biggest / lowest threat** | Scans enemies in that order (threat ≈ attack bonus + expected damage per hit) and takes the first one that passes the row's property. Also decides which enemy **Condition target** points at. |
+| **Enemy: highest / lowest HP%, AC, Fort, Reflex, Will, HD** | Same as above, sorted by that stat. Only the *first* sorted subject in a group sets the order — a second one does not add a "must also be lowest X" test. |
+| **Enemy: nearest** | Same, sorted by distance to Self. |
+| **Specific ally** | One pinned companion or pet, picked by name. |
+| **Combat** | The fight as a whole: `IsInCombat` (Yes/No) and `CombatRounds` (6-second rounds since combat started). |
+
+### Properties (what is checked)
+
+| Property | Value | Meaning |
+|---|---|---|
+| **HP%** | number | Current HP as a percentage of max HP. Downed units count as 0. |
+| **Current HP** | number | Current hit points, flat; temporary HP not included. |
+| **AC** | number | Current Armor Class with every active buff and debuff. |
+| **SaveFortitude / SaveReflex / SaveWill** | number | Current saving-throw bonus. |
+| **HitDice** | number | Hit dice (character level without mythic ranks). |
+| **HasBuff** | buff | The unit carries exactly that buff (picked from the buff list). `!=` means "is missing it". |
+| **HasCondition** | condition | The unit has that game condition (Paralyzed, Stunned, Frightened, Nauseated, Confused, Blinded, Prone, Entangled, Exhausted, Fatigued, Shaken, Sickened, Sleeping, Petrified, Slowed, Staggered, Dazed, Dazzled, Helpless, Cowering, Death's Door). |
+| **Affected by** | Poison / Disease / Bleed | Any active effect of that kind, no matter which spell or monster caused it. |
+| **Immune to energy** | Fire / Cold / Electricity / Acid / Sonic | The unit is fully immune to that energy type. |
+| **CreatureType** | type | Aberration, Animal, Construct, Dragon, Fey, Humanoid, Magical Beast, Monstrous Humanoid, Ooze, Outsider, Plant, Swarm, Undead, Vermin, Incorporeal. Uses the same type facts the game's own spells use; "Humanoid" means "none of the other types". |
+| **Alignment** | Good / Evil / Lawful / Chaotic / Neutral | Alignment axis. "Neutral" = neither Good nor Evil (LN, N, CN). |
+| **HasClass** | class or group | The unit has at least one level in that class, or belongs to the group: Spellcaster (has any spellbook), Arcane, Divine, Martial (a class that is neither arcane nor divine). |
+| **IsDead** | Yes/No | Truly dead — needs Raise Dead / Breath of Life. A companion who is down but will get up after the fight does **not** count. |
+| **Is summon** | Yes/No | A summoned monster (Summon Monster, Animate Dead, …). Pets and companions are not summons. |
+| **Is pet** | Yes/No | Animal companion, Aivu, skeletal champion, eidolon, clone or similar. |
+| **Wields ranged weapon** | Yes/No | The unit's current weapon is a bow, crossbow, firearm, sling or thrown weapon. Re-checked every tick, so a weapon swap changes it. |
+| **Is flanked** | Yes/No | The game's own flanking state: at least two enemies are engaging the unit in melee (and it has no "cannot be flanked" feature). This is about attackers, not about being surrounded geometrically. |
+| **Enemies adjacent** | number | How many living enemies in combat stand within 2 m of the unit. |
+| **Ability damage** | Yes/No | One of the six ability scores carries temporary damage (what Lesser Restoration cures). Drain is not counted. |
+| **Negative levels** | Yes/No | The unit has negative levels (energy drain), temporary or permanent. |
+| **SpellSlotsAtLevel** | spell level | The unit still has at least one unused spell slot of exactly that level (any spellbook). |
+| **SpellSlotsAboveLevel** | spell level | At least one unused slot of that level *or higher*. |
+| **Resource** | resource | The unit has at least one use left of that class resource (Ki, Lay on Hands, Arcane Reservoir, …). |
+| **WithinRange** | bracket | Distance between Self and the checked unit — see [Range brackets](#range-brackets). Self → WithinRange is meaningless (always 0 m). |
+| **DC − Save** | number | Save DC of the spell this rule will cast minus the target's matching save — see [DC − Save](#dc--save). Enemy subjects only. |
+| **Hit margin (AB − AC)** | number | An ally's attack bonus minus the enemy's AC — see [Hit Margin](#hit-margin-ab--ac). Enemy subjects only. |
+| **HD − PartyMax** | number | Enemy hit dice minus the party's highest character + mythic level. Positive = the enemy outlevels you. Enemy subjects only. |
+| **Targeting me** | Yes/No | This enemy's current attack or spell is aimed at Self. Enemy subjects only. |
+| **Targeting ally** | Yes/No | This enemy is aiming at a party member (optionally one pinned companion). Enemy subjects only. |
+| **Targeted by ally** | Yes/No | A party member (optionally a pinned one) is attacking this enemy. Enemy subjects only. |
+| **Targeted by enemy** | Yes/No | Some enemy is attacking this ally. Ally subjects only. |
+| **IsInCombat** | Yes/No | Whether the party is in combat. Subject Combat only — see [Out-of-combat rules](#out-of-combat-rules). |
+| **CombatRounds** | number | 6-second rounds elapsed since the current fight began. Subject Combat only. |
+
+**Operators:** `<`, `>`, `<=`, `>=`, `=`, `!=`. Yes/No properties only use `=` and `!=`. For **WithinRange** the operator compares *brackets*, not meters: `<= Short` = within 10 m, `< Short` = within 5 m, `= Short` = the 5–10 m band only.
+
+### Actions (what the companion does)
+
+| Action | Meaning |
+|---|---|
+| **CastSpell** | Casts the chosen spell. *Sources* chooses where it may come from: spellbook (also wands in quickslots), scrolls, potions. Optional fallbacks are tried in order when the first spell is unavailable. Optional metamagic rod and Arcane Reservoir boost. |
+| **CastAbility** | Uses a class or racial ability that is not a spell (Lay on Hands, Kinetic Blast, Evil Eye, …). |
+| **UseItem** | Uses a specific usable item: an equipped wand/scroll/trinket first, otherwise from the shared inventory (potion, then scroll, then wand, then rods and other devices). |
+| **ToggleActivatable** | Switches a toggle ability (Power Attack, Fighting Defensively, stances, Smite …) **On** or **Off**. Fires only when the toggle is not already in that state. |
+| **AttackTarget** | Makes a normal weapon attack on the target. |
+| **Heal** | Picks a heal automatically. *Mode* Strongest/Any = highest-ranked (spellbook spell by level > class feature > scroll > potion), Weakest = lowest-ranked. *Sources* can exclude scrolls or potions. *Energy* Auto heals living with Cure and undead with Inflict; Positive/Negative force one. Scrolls that would need a risky Use Magic Device check are only used as a last resort. |
+| **ThrowSplash** | Throws a splash weapon (Alchemist's Fire, Acid Flask, Holy Water …). Any = first in inventory, Strongest = highest damage, Cheapest = lowest value. |
+| **Switch weapon set** | Switches to weapon set 1–4. |
+| **Move to target** | Walks toward the target until within the chosen bracket ("stop within Melee / Cone / Short …"). Re-checked every tick, so a moving target is followed. Does nothing when already within that distance — which is why **Target: Self** never moves. While the walk is running, lower rules that would need the move or standard action are held back. |
+| **DoNothing** | Issues no command and stops every rule below it for this tick. Use it as a blocker, e.g. "if Self HP% < 20 do nothing" above a charge rule. |
+
+### Targets (whom the action is aimed at)
+
+| Target | Meaning |
+|---|---|
+| **Self** | The companion itself. |
+| **Ally: lowest HP** | Party member or pet (not Self) with the lowest HP%. |
+| **Ally with condition** | First ally (not Self) with the chosen condition. |
+| **Ally missing buff** | First ally (not Self) without the chosen buff. |
+| **Specific ally** | One pinned companion or pet. |
+| **Ally: most clustered (5 m)** | The ally with the most other living allies within 5 m — for area buffs. |
+| **Enemy: nearest / lowest HP / highest HP / highest AC / lowest AC / … / highest HD / lowest HD** | Sorts the visible enemies in combat by that stat and takes the first. |
+| **Enemy: highest threat** | Enemy with the highest threat score (attack bonus + expected damage). Default target for attack rules. |
+| **Enemy: creature type** | First enemy of the chosen creature type. |
+| **Enemy: most clustered (5 m)** | The enemy with the most other enemies within 5 m — for Fireball-style spells. |
+| **Condition target** | The unit that made the conditions pass: the enemy matched by an Enemy row, else the ally matched by an Ally row, else Self when only Self rows matched. |
+| **Point at self** | A ground point ~1.5 m in front of the companion — for summons and ground-targeted spells. |
+| **Point at condition target** | A ground point ~1.5 m from the condition target, on the side facing the companion. Same enemy > ally > self preference as **Condition target**. |
+
+If the target cannot be resolved (no enemy of that type, no ally missing the buff, …), the rule is skipped for this tick and the next rule is tried.
 
 ## BubbleBuffs compatibility
 
