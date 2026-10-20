@@ -98,8 +98,19 @@ namespace WrathTactics.Engine {
 
             int dc = ability.CalculateParams().DC;
             int save = UnitExtensions.GetSave(target, saveType);
-            Log.Engine.Trace($"SpellDCMinusSave: '{ability.Name}' vs {target.CharacterName}: DC {dc} - {saveType} {save} = {dc - save} (source={saveTypeSource})");
-            return dc - save;
+            // The game adds situational save bonuses (vs mind-affecting, fear, school,
+            // arcane spells, ...) only inside RuleSavingThrow, so the stat's
+            // ModifiedValue alone overstates the margin. The probe re-reads those
+            // components off the target's facts; it never rolls.
+            var probe = SpellSaveBonusProbe.Probe(CurrentOwner, target, ability, saveType);
+            int margin = SpellDcMargin.Margin(dc, probe.CasterDcBonus, save, probe.SituationalBonus);
+            Log.Engine.Trace($"SpellDCMinusSave: '{ability.Name}' vs {target.CharacterName}: DC {dc}"
+                + (probe.CasterDcBonus != 0 ? $" +{probe.CasterDcBonus} caster" : "")
+                + $" - {saveType} base {save}"
+                + (probe.SituationalBonus != 0 ? $" - situational {probe.SituationalBonus}" : "")
+                + $" = {margin} (source={saveTypeSource})"
+                + (string.IsNullOrEmpty(probe.Breakdown) ? "" : $" [{probe.Breakdown.TrimStart()}]"));
+            return margin;
         }
 
         // Engine-authoritative best attack bonus across all living party members.
