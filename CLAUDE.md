@@ -138,6 +138,7 @@ IL evidence, version history, and incident reports: `docs/wrath-api-deep-dive.md
 - **Blueprint-Matching ist exact-only (GUID oder voller Name), nie `Contains`** — Substring matcht versteckte Item-/Aura-Facts; traf HasBuff UND CreatureType (`incidents.md`). Details `gotchas-conditions.md`.
 - **Move und Standard sind gepaarte Slots**: `UnitCommands.Run` eines Move-Kommandos löscht das Standard-Kommando (pending oder laufend) und umgekehrt; nur Swift/Free sind unabhängig. Eine Move-Regel darf nie über einem eigenen Cast feuern (`ActionSlots.CheckConflict`, `gotchas-engine.md`).
 - **KI-Kommando vs. Spielerklick = `UnitCommand.AiAction`**: `AiBrainController.SelectAction` stempelt jedes eigene Kommando, ein Klick nie. Nie über Blueprint (`Brain.AutoUseAbility`) unterscheiden — der Spieler castet denselben Zauber auch explizit (`gotchas-engine.md`).
+- **Fremdsprachige Nexus-Reports nennen Rückübersetzungen der UI**: Begriff zuerst in `WrathTactics/Localization/*.json` greppen (`grep -i '<wort>'`), das Label führt zum Enum — ru „Окружён“ („Surrounded“) ist `IsFlanked`, „Approach target“ ist `MoveToTarget`. Nie aus dem englischen Wort raten.
 - **Rule priority = array position** — no `Priority` field; log "Rule N" = array index.
 - No per-round EventBus events in RTWP — use `Game.Instance.Player.GameTime` in `Update()`.
 - New i18n keys need en_GB at minimum; locale JSONs are EmbeddedResources → rebuild + redeploy (`i18n.md`).
