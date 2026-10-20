@@ -205,5 +205,14 @@ namespace WrathTactics.Engine {
                 return CompareFloat(available, c.Operator, count);
             return available > 0;
         }
+
+        // Logs the counted slots next to the verdict; the rule's own log line only
+        // says "conditions not met", so the count is otherwise invisible.
+        static bool TraceSlotCount(string property, UnitEntityData unit, int level, int available, Condition c) {
+            bool match = MatchesSlotCount(available, c);
+            string need = TryParseCountThreshold(c.Value2, out float count) ? $"{c.Operator} {count}" : "> 0";
+            Log.Engine.Trace($"{property}: {unit.CharacterName} level {level} available={available}, need {need} -> {match}");
+            return match;
+        }
     }
 }
