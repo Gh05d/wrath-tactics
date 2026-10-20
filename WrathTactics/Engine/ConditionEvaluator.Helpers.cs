@@ -380,7 +380,12 @@ namespace WrathTactics.Engine {
             var blueprint = Kingmaker.Blueprints.ResourcesLibrary
                 .TryGetBlueprint<Kingmaker.Blueprints.BlueprintAbilityResource>(condition.Value);
             if (blueprint == null) return false;
-            return MatchesResourceAmount(unit.Resources.GetResourceAmount(blueprint), condition);
+            int remaining = unit.Resources.GetResourceAmount(blueprint);
+            bool match = MatchesResourceAmount(remaining, condition);
+            // The rule's own log line only says "conditions not met"; log the amount it saw.
+            string need = string.IsNullOrEmpty(condition.Value2) ? "> 0" : $"{condition.Operator} {condition.Value2}";
+            Log.Engine.Trace($"Resource: {unit.CharacterName} {blueprint.name} remaining={remaining}, need {need} -> {match}");
+            return match;
         }
 
         // Pure decision (no game types). Usable Value2 (finite, >= 0) => CompareFloat(remaining, Operator, amount).
