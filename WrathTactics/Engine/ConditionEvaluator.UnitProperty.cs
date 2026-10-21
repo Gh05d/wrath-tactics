@@ -208,11 +208,13 @@ namespace WrathTactics.Engine {
 
                 case ConditionProperty.SpellSlotsAtLevel:
                     int level = (int)threshold;
-                    return CountAvailableSlotsAtLevel(unit, level) > 0;
+                    return TraceSlotCount("SpellSlotsAtLevel", unit, level,
+                        CountAvailableSlotsAtLevel(unit, level), condition);
 
                 case ConditionProperty.SpellSlotsAboveLevel:
                     int minLevel = (int)threshold;
-                    return CountAvailableSlotsAboveLevel(unit, minLevel) > 0;
+                    return TraceSlotCount("SpellSlotsAboveLevel", unit, minLevel,
+                        CountAvailableSlotsAboveLevel(unit, minLevel), condition);
 
                 case ConditionProperty.Resource:
                     return HasResource(unit, condition.Value);

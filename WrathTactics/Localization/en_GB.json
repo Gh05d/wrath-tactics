@@ -156,6 +156,8 @@
   "preset.default.smite_evil": "Smite Evil",
 
   "condition.with": "with",
+  "condition.slotLevel": "Level",
+  "condition.slotMinCount": "Min. count",
   "bool.yes": "Yes",
   "bool.no": "No",
 
