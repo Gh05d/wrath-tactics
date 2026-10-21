@@ -155,6 +155,10 @@ namespace WrathTactics.UI {
                 phTmp.raycastTarget = false;  // don't intercept clicks meant for the input
                 phTmp.text = placeholderText;
                 inputField.placeholder = phTmp;
+                // TMP toggles the placeholder only when the text changes, and the text was set
+                // above before the placeholder existed: sync it for pre-filled fields and edits.
+                phTmp.enabled = string.IsNullOrEmpty(initialText);
+                inputField.onValueChanged.AddListener(t => phTmp.enabled = string.IsNullOrEmpty(t));
             }
 
             // Clicking into a field should place the cursor at the click point,
