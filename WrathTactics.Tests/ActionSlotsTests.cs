@@ -239,6 +239,15 @@ namespace WrathTactics.Tests {
         }
 
         [Fact]
+        public void walk_hold_blocks_standard_and_move_only() {
+            Assert.True(ActionSlots.HeldByWalk(UnitCommand.CommandType.Standard));
+            Assert.True(ActionSlots.HeldByWalk(UnitCommand.CommandType.Move));
+            Assert.False(ActionSlots.HeldByWalk(UnitCommand.CommandType.Swift));
+            Assert.False(ActionSlots.HeldByWalk(UnitCommand.CommandType.Free));
+            Assert.False(ActionSlots.HeldByWalk(null));
+        }
+
+        [Fact]
         public void a_slot_not_on_cooldown_is_never_spent_whatever_the_number_says() {
             // HasCooldownForCommand is the engine's verdict; the float is only used for the
             // buffering tolerance.
