@@ -260,6 +260,58 @@ namespace WrathTactics.Engine {
             return unit?.GetFirstWeapon()?.Blueprint?.IsRanged == true;
         }
 
+        // Distinct entries across both engagement sides that pass `keep`. Pure seam for
+        // CountEngagedEnemies: the engine's two sides are not symmetric (a unit can threaten
+        // an enemy that does not threaten it back), so the union is counted once per enemy.
+        internal static int CountDistinct<T>(System.Collections.Generic.IEnumerable<T> engaged,
+            System.Collections.Generic.IEnumerable<T> engagedBy, System.Func<T, bool> keep) where T : class {
+            var seen = new System.Collections.Generic.HashSet<T>();
+            foreach (var e in engaged ?? System.Linq.Enumerable.Empty<T>())
+                if (keep(e)) seen.Add(e);
+            foreach (var e in engagedBy ?? System.Linq.Enumerable.Empty<T>())
+                if (keep(e)) seen.Add(e);
+            return seen.Count;
+        }
+
+        // Same filter as GetVisibleEnemies (alive, in combat, player's enemy) so the count agrees
+        // with AdjacentEnemyCount: an unconscious enemy does not threaten, and the engine skips it
+        // when engaging. Deliberately NOT visibility-filtered; the engine already requires LOS.
+        static bool IsLivingCombatEnemy(UnitEntityData e) {
+            return e != null && e.IsInGame && e.HPLeft > 0 && e.IsPlayersEnemy && e.IsInCombat;
+        }
+
+        // Last traced count per unit, so the Trace line only appears when the value changes
+        // (this runs per condition, per unit, per tick). Cleared with the other per-unit
+        // statics via ResetEngagedTraceCache (TacticsEvaluator.Reset).
+        static readonly System.Collections.Generic.Dictionary<string, int> lastEngagedCount =
+            new System.Collections.Generic.Dictionary<string, int>();
+
+        internal static void ResetEngagedTraceCache() {
+            lastEngagedCount.Clear();
+        }
+
+        // Living enemies in melee engagement with the unit, per the engine's own combat state
+        // (UnitCombatState.EngagedUnits = enemies this unit threatens, EngagedBy = enemies
+        // threatening it). The engine measures edge-to-edge (Corpulence + weapon reach) with
+        // line of sight, so large creatures count at centre distances AdjacentEnemyCount misses.
+        internal static int CountEngagedEnemies(UnitEntityData unit) {
+            var state = unit?.CombatState;
+            if (state == null) return 0;
+            int count = CountDistinct(state.EngagedUnits, state.EngagedBy, IsLivingCombatEnemy);
+            string id = unit.UniqueId;
+            if (lastEngagedCount.TryGetValue(id, out var last) && last == count) return count;
+            lastEngagedCount[id] = count;
+            Log.Engine.Trace($"EngagedEnemyCount {unit.CharacterName}={count} " +
+                $"[engages: {NamesOf(state.EngagedUnits)}] [engagedBy: {NamesOf(state.EngagedBy)}]");
+            return count;
+        }
+
+        static string NamesOf(System.Collections.Generic.IEnumerable<UnitEntityData> units) {
+            if (units == null) return "";
+            return string.Join(", ", System.Linq.Enumerable.Select(
+                System.Linq.Enumerable.Where(units, IsLivingCombatEnemy), e => e.CharacterName));
+        }
+
         static int CountAvailableSlotsAtLevel(UnitEntityData unit, int level) {
             int total = 0;
             foreach (var book in unit.Spellbooks) {

@@ -214,6 +214,7 @@
   "enum.property.AbilityDamage": "Урон характеристик",
   "enum.property.NegativeLevels": "Отрицательные уровни",
   "enum.property.AdjacentEnemyCount": "Соседних врагов",
+  "enum.property.EngagedEnemyCount": "Врагов в ближнем бою",
   "enum.property.HasDescriptorEffect": "Подвержен",
   "enum.property.ImmuneToEnergy": "Иммунитет к энергии",
   "enum.property.EnemyHDMinusPartyLevel": "КЗ − МаксГруппы",
