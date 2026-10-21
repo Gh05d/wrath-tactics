@@ -30,6 +30,7 @@ namespace WrathTactics.Tests {
         [InlineData(TargetType.EnemyNearest)]
         [InlineData(TargetType.AllyLowestHp)]
         [InlineData(TargetType.ConditionTarget)]
+        [InlineData(TargetType.ConditionTargetAlly)]
         public void ForAction_never_overrides_an_explicit_choice(TargetType current) {
             Assert.Null(TargetDefaults.ForAction(ActionType.AttackTarget, current));
         }

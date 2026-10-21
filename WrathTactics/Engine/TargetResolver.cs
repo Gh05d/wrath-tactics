@@ -14,8 +14,7 @@ namespace WrathTactics.Engine {
         const float SummonOffsetDistance = 1.5f;
 
         public static ResolvedTarget Resolve(TargetDef target, UnitEntityData owner) {
-            if (target.Type == TargetType.PointAtSelf
-                || target.Type == TargetType.PointAtConditionTarget) {
+            if (TargetTypeTraits.IsPoint(target.Type)) {
                 var resolved = ResolvePoint(target.Type, owner);
                 if (resolved.IsValid) {
                     var p = resolved.Point.Value;
@@ -43,22 +42,28 @@ namespace WrathTactics.Engine {
                     var forward = owner.OrientationDirection;
                     return new ResolvedTarget(owner.Position + forward * SummonOffsetDistance);
                 }
-                case TargetType.PointAtConditionTarget: {
-                    var anchor = ConditionEvaluator.LastMatchedEnemy?.Position
-                               ?? ConditionEvaluator.LastMatchedAlly?.Position
-                               ?? ConditionEvaluator.LastMatchedSelf?.Position;
-                    if (!anchor.HasValue) return ResolvedTarget.None;
-
-                    var delta = owner.Position - anchor.Value;
-                    delta.y = 0;
-                    var offsetDir = delta.sqrMagnitude < 0.01f
-                        ? owner.OrientationDirection
-                        : delta.normalized;
-                    return new ResolvedTarget(anchor.Value + offsetDir * SummonOffsetDistance);
-                }
+                case TargetType.PointAtConditionTarget:
+                    return OffsetTowardOwner(
+                        ConditionEvaluator.LastMatchedEnemy?.Position
+                        ?? ConditionEvaluator.LastMatchedAlly?.Position
+                        ?? ConditionEvaluator.LastMatchedSelf?.Position,
+                        owner);
+                case TargetType.PointAtConditionTargetAlly:
+                    return OffsetTowardOwner(GetConditionTargetAlly(owner)?.Position, owner);
                 default:
                     return ResolvedTarget.None;
             }
+        }
+
+        static ResolvedTarget OffsetTowardOwner(Vector3? anchor, UnitEntityData owner) {
+            if (!anchor.HasValue) return ResolvedTarget.None;
+
+            var delta = owner.Position - anchor.Value;
+            delta.y = 0;
+            var offsetDir = delta.sqrMagnitude < 0.01f
+                ? owner.OrientationDirection
+                : delta.normalized;
+            return new ResolvedTarget(anchor.Value + offsetDir * SummonOffsetDistance);
         }
 
         static UnitEntityData ResolveInternal(TargetDef target, UnitEntityData owner) {
@@ -82,6 +87,7 @@ namespace WrathTactics.Engine {
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
                 case TargetType.ConditionTarget:    return GetConditionTarget(owner);
+                case TargetType.ConditionTargetAlly: return GetConditionTargetAlly(owner);
                 case TargetType.EnemyHighestHD:     return GetEnemyHighestHD(owner);
                 case TargetType.EnemyLowestHD:      return GetEnemyLowestHD(owner);
                 case TargetType.EnemyMostEnemyNeighbors: return GetEnemyMostEnemyNeighbors(owner);
@@ -233,6 +239,11 @@ namespace WrathTactics.Engine {
             if (ConditionEvaluator.LastMatchedSelf != null)
                 return ConditionEvaluator.LastMatchedSelf;
             return null;
+        }
+
+        static UnitEntityData GetConditionTargetAlly(UnitEntityData owner) {
+            // Never falls back to enemy/self: no ally row matched means no target.
+            return TargetTypeTraits.AllyConditionTarget(ConditionEvaluator.LastMatchedAlly, owner);
         }
 
         static IEnumerable<UnitEntityData> GetAllies(UnitEntityData owner) {

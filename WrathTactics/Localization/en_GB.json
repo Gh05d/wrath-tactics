@@ -258,6 +258,8 @@
   "enum.target.SpecificAlly": "Specific ally",
   "enum.target.EnemyMostEnemyNeighbors": "Enemy: most clustered (5 m)",
   "enum.target.AllyMostAllyNeighbors": "Ally: most clustered (5 m)",
+  "enum.target.ConditionTargetAlly": "Condition target (ally)",
+  "enum.target.PointAtConditionTargetAlly": "Point at condition target (ally)",
 
   "enum.heal_mode.Any": "Any",
   "enum.heal_mode.Strongest": "Strongest",
