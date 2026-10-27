@@ -143,6 +143,8 @@ DC − Save = margin
 
 A **positive** margin means the enemy is *likely to fail* the save; negative means they'll probably make it. Use it to fire save-or-die / save-or-suck spells only at worthwhile targets, e.g. *cast Phantasmal Killer if Enemy DC − Save ≥ 0*. It only produces a value for spells that actually force a saving throw — spells with no save (Magic Missile) and non-save effects like Demoralize can't be measured this way.
 
+The margin also counts situational save bonuses the target carries against this spell: bonuses against the spell's descriptor (for example mind-affecting or fear), against its school, and against arcane or divine spells, plus any extra save DC your caster gets for that save type. Bonuses of the same non-stacking type count once, and only the part above what the save already includes. Bonuses tied to specific spells or ability types, and Mythic halving, are not counted.
+
 ### Hit Margin (AB − AC)
 
 Your **ally's attack bonus** minus the **enemy's AC**:
@@ -217,7 +219,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **SpellSlotsAboveLevel** | spell level (+ optional count) | At least one unused slot of that level *or higher*; with *Min. count*, the number of such slots is compared with the operator. |
 | **Resource** | resource | The unit has at least one use left of that class resource (Ki, Lay on Hands, Arcane Reservoir, …). |
 | **WithinRange** | bracket | Distance between Self and the checked unit — see [Range brackets](#range-brackets). Self → WithinRange is meaningless (always 0 m). |
-| **DC − Save** | number | Save DC of the spell this rule will cast minus the target's matching save — see [DC − Save](#dc--save). Enemy subjects only. |
+| **DC − Save** | number | Save DC of the spell this rule will cast minus the target's matching save, including its situational save bonuses against that spell (descriptor, school, arcane/divine) — see [DC − Save](#dc--save). Enemy subjects only. |
 | **Hit margin (AB − AC)** | number | An ally's attack bonus minus the enemy's AC — see [Hit Margin](#hit-margin-ab--ac). Enemy subjects only. |
 | **HD − PartyMax** | number | Enemy hit dice minus the party's highest character + mythic level. Positive = the enemy outlevels you. Enemy subjects only. |
 | **Targeting me** | Yes/No | This enemy's current attack or spell is aimed at Self. Enemy subjects only. |
