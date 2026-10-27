@@ -52,6 +52,7 @@
 
   "placeholder.none_available": "(none available)",
   "placeholder.pick_buff": "(pick a buff)",
+  "placeholder.any_ability": "(any spell or ability)",
 
   "target.filter.condition": "Condition:",
   "target.filter.buff_guid": "Buff GUID:",
@@ -217,6 +218,7 @@
   "enum.property.NegativeLevels": "Negative levels",
   "enum.property.AdjacentEnemyCount": "Enemies adjacent",
   "enum.property.EngagedEnemyCount": "Enemies in melee (engaged)",
+  "enum.property.IsBeingCastOnByAlly": "Cast on it by ally",
   "enum.property.HasDescriptorEffect": "Affected by",
   "enum.property.ImmuneToEnergy": "Immune to energy",
   "enum.property.EnemyHDMinusPartyLevel": "HD − PartyMax",

@@ -52,6 +52,7 @@
 
   "placeholder.none_available": "(aucun disponible)",
   "placeholder.pick_buff": "(choisir un buff)",
+  "placeholder.any_ability": "(tout sort ou capacité)",
 
   "target.filter.condition": "État :",
   "target.filter.buff_guid": "GUID buff :",
@@ -217,6 +218,7 @@
   "enum.property.NegativeLevels": "Niveaux négatifs",
   "enum.property.AdjacentEnemyCount": "Ennemis adjacents",
   "enum.property.EngagedEnemyCount": "Ennemis au corps à corps",
+  "enum.property.IsBeingCastOnByAlly": "Ciblé par un sort allié",
   "enum.property.HasDescriptorEffect": "Affecté par",
   "enum.property.ImmuneToEnergy": "Immunisé à l'énergie",
   "enum.property.EnemyHDMinusPartyLevel": "DV − GroupeMax",

@@ -21,6 +21,7 @@ Read the matching checklist COMPLETELY before adding a new enum member — every
 ## New value-list `ConditionProperty` (NINE sites)
 
 - **Value-list `ConditionProperty` checklist** (property + value-from-list + =/≠, the HasCondition/CreatureType/Alignment family): NINE sites — enum entry; BOTH evaluator switches (`EvaluateUnitProperty` + `MatchesPropertyThreshold` in `ConditionEvaluator.UnitProperty.cs`); `ConditionRowWidget` (count-path eq-op group + `usesEqOp` + a render branch + `GetValueKeysForProperty` + `GetValueLabelsForProperty` + `GetPropertiesForSubject` per scope); `EnumLabels` Keys/Labels; i18n × 5. Mirror `HasDescriptorEffect` / `ImmuneToEnergy` (1.17.3).
+- **Ability-filter property** (`IsBeingCastOnByAlly`, value = ability GUID picked from a list): same eq-op sites, but the render branch is a picker button (`CreateAbilityFilterSelector` → `SpellPickerOverlay` fed by `SpellDropdownProvider.GetPartyFilterEntries`), NOT the `GetValueKeysForProperty`/`GetValueLabelsForProperty` dropdown, and it must stay OUT of both `isBool` chains (that dropdown writes "true"/"false" into `Value` and would clobber the GUID). It sits in `GetPropertiesForSubject` for Ally, AllyByName, AllyCount, Enemy + all pick subjects and EnemyCount; the Value2 ally pin exists only on the single-unit subjects (Value2 is the count / named ally on the others).
 
 ## New `ActionType`
 

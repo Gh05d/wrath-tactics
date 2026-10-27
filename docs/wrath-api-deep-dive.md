@@ -692,6 +692,8 @@ Two engine signals behind `IsTargetingSelf` / `IsTargetingAlly` / `IsTargetedByA
 
 Centralized in `Engine/TargetingRelations.Has(attacker, victim)`.
 
+**Cast detection (`IsBeingCastOnByAlly`)**: `TargetingRelations.HasCast(caster, victim, abilityGuid)` checks `Commands.Standard` and every entry of `Commands.Queue` for an unfinished `UnitUseAbility` whose `TargetUnit` is the victim. Engagement is deliberately not consulted, so plain `UnitAttack` never counts. The cast's `Ability.Blueprint.AssetGuid` or `Ability.ConvertedFrom.Blueprint.AssetGuid` must equal the filter (`MatchesAbilityFilter`, exact, case-insensitive; empty filter matches any ability). `ConvertedFrom` is the public property (see [variant-ctor-bug](#variant-ctor-bug)); the picker (`SpellDropdownProvider.GetPartyFilterEntries`) offers the variant GUID when a key carries one, because `Ability.Blueprint` is the variant during a variant cast.
+
 **Approach-phase blind spot**: units running toward a target but not yet swinging or melee-locked match neither signal — accepted blind spot, latency until first attack-frame is ≤1 tick interval. AI-plan inspection would close the gap but is fragile and out of scope.
 
 ### Summon detection

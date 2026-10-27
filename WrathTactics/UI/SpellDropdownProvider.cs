@@ -94,6 +94,42 @@ namespace WrathTactics.UI {
             return result;
         }
 
+        /// <summary>
+        /// Bare cast-blueprint GUID of a compound key: the variant when the key names one (that
+        /// is <c>Ability.Blueprint</c> while a variant is cast), else the spell blueprint.
+        /// Level and metamagic segments are dropped. Used by the IsBeingCastOnByAlly picker.
+        /// </summary>
+        public static string ToFilterGuid(string key) {
+            var parsed = ParseKey(key);
+            return string.IsNullOrEmpty(parsed.VariantGuid) ? parsed.BlueprintGuid : parsed.VariantGuid;
+        }
+
+        /// <summary>
+        /// Picker entries for the IsBeingCastOnByAlly ability filter: the spells and class
+        /// abilities of every party member (the caster is "another companion", not the rule
+        /// owner), keyed by bare cast GUID and deduplicated across units, levels and metamagic.
+        /// </summary>
+        public static List<SpellEntry> GetPartyFilterEntries(IEnumerable<UnitEntityData> units) {
+            var byGuid = new Dictionary<string, SpellEntry>();
+            foreach (var unit in units) {
+                if (unit == null) continue;
+                foreach (var entry in GetSpells(unit).Concat(GetAbilities(unit))) {
+                    var guid = ToFilterGuid(entry.Guid);
+                    if (string.IsNullOrEmpty(guid) || byGuid.ContainsKey(guid)) continue;
+                    byGuid[guid] = new SpellEntry(StripLevelPrefix(entry.Name), guid, entry.Icon);
+                }
+            }
+            return byGuid.Values.OrderBy(e => e.Name).ToList();
+        }
+
+        // "[L3] Breath of Life (BreathOfLife)" -> "Breath of Life (BreathOfLife)": the level is
+        // per-spellbook noise once entries are merged across units.
+        static string StripLevelPrefix(string name) {
+            if (string.IsNullOrEmpty(name) || !name.StartsWith("[L")) return name;
+            int close = name.IndexOf("] ", StringComparison.Ordinal);
+            return close > 0 ? name.Substring(close + 2) : name;
+        }
+
         static string BuildMetamagicTag(AbilityData spell) {
             if (spell.MetamagicData == null || !spell.MetamagicData.NotEmpty)
                 return "";

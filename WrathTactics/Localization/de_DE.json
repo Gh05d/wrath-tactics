@@ -52,6 +52,7 @@
 
   "placeholder.none_available": "(keine verfügbar)",
   "placeholder.pick_buff": "(Buff wählen)",
+  "placeholder.any_ability": "(beliebiger Zauber oder Fähigkeit)",
 
   "target.filter.condition": "Zustand:",
   "target.filter.buff_guid": "Buff-GUID:",
@@ -217,6 +218,7 @@
   "enum.property.NegativeLevels": "Negative Stufen",
   "enum.property.AdjacentEnemyCount": "Gegner angrenzend",
   "enum.property.EngagedEnemyCount": "Gegner im Nahkampf (gebunden)",
+  "enum.property.IsBeingCastOnByAlly": "Von Verbündetem gewirkt",
   "enum.property.HasDescriptorEffect": "Betroffen von",
   "enum.property.ImmuneToEnergy": "Immun gegen Energie",
   "enum.property.EnemyHDMinusPartyLevel": "TW − GruppenMax",

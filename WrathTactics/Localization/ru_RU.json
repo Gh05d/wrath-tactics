@@ -52,6 +52,7 @@
 
   "placeholder.none_available": "(нет доступных)",
   "placeholder.pick_buff": "(выберите бафф)",
+  "placeholder.any_ability": "(любое заклинание или способность)",
 
   "target.filter.condition": "Состояние:",
   "target.filter.buff_guid": "GUID баффа:",
@@ -217,6 +218,7 @@
   "enum.property.NegativeLevels": "Отрицательные уровни",
   "enum.property.AdjacentEnemyCount": "Соседних врагов",
   "enum.property.EngagedEnemyCount": "Врагов в ближнем бою",
+  "enum.property.IsBeingCastOnByAlly": "Колдует союзник",
   "enum.property.HasDescriptorEffect": "Подвержен",
   "enum.property.ImmuneToEnergy": "Иммунитет к энергии",
   "enum.property.EnemyHDMinusPartyLevel": "КЗ − МаксГруппы",
