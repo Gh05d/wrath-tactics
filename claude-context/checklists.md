@@ -16,7 +16,7 @@ Read the matching checklist COMPLETELY before adding a new enum member — every
 
 ## New positional `ConditionProperty` (SIX sites)
 
-- **Position-Conditions checklist**: a new positional `ConditionProperty` (e.g. `IsFlanked`, `AdjacentEnemyCount`) needs SIX sites: enum entry, `EvaluateUnitProperty`, `MatchesPropertyThreshold`, both `isBool` chains in `ConditionRowWidget` (bool props only), `GetPropertiesForSubject` (per scope it should appear in — mirror `IsSummon`/`IsPet`, NOT `IsFlanked`), i18n × 5. **The `GetPropertiesForSubject` site was missing from this checklist through 1.19.0** — both `IsFlanked` and `AdjacentEnemyCount` shipped wired everywhere EXCEPT the subject lists, so they were never selectable in the dropdown (JSON-only) until 1.19.x backfilled them. ([deep-dive](../docs/wrath-api-deep-dive.md#position-conditions))
+- **Position-Conditions checklist**: a new positional `ConditionProperty` (e.g. `IsFlanked`, `AdjacentEnemyCount`) needs SIX sites: enum entry, `EvaluateUnitProperty`, `MatchesPropertyThreshold`, both `isBool` chains in `ConditionRowWidget` (bool props only), `GetPropertiesForSubject` (per scope it should appear in — mirror `IsSummon`/`IsPet`, NOT `IsFlanked`), i18n × 5. Numeric props also go into `propNeedsOperator` in `ConditionRowWidget`, else the AllyCount path forces `=`. **The `GetPropertiesForSubject` site was missing from this checklist through 1.19.0** — both `IsFlanked` and `AdjacentEnemyCount` shipped wired everywhere EXCEPT the subject lists, so they were never selectable in the dropdown (JSON-only) until 1.19.x backfilled them. ([deep-dive](../docs/wrath-api-deep-dive.md#position-conditions))
 
 ## New value-list `ConditionProperty` (NINE sites)
 

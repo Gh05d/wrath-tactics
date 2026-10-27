@@ -214,6 +214,7 @@
   "enum.property.AbilityDamage": "Ability damage",
   "enum.property.NegativeLevels": "Negative levels",
   "enum.property.AdjacentEnemyCount": "Enemies adjacent",
+  "enum.property.EngagedEnemyCount": "Enemies in melee (engaged)",
   "enum.property.HasDescriptorEffect": "Affected by",
   "enum.property.ImmuneToEnergy": "Immune to energy",
   "enum.property.EnemyHDMinusPartyLevel": "HD − PartyMax",

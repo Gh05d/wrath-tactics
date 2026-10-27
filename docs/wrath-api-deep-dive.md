@@ -182,17 +182,21 @@ The chain is **type-homogeneous**: entries share the rule's `Action.Type` becaus
 
 ### `position-conditions`
 
-A new positional `ConditionProperty` (e.g. `IsFlanked`, `AdjacentEnemyCount`) needs FIVE sites synced:
+A new positional `ConditionProperty` (e.g. `IsFlanked`, `AdjacentEnemyCount`) needs SIX sites synced:
 
 1. **Enum entry** in `Models/Enums.cs`
 2. **`EvaluateUnitProperty` switch case** in `Engine/ConditionEvaluator.UnitProperty.cs`
 3. **`MatchesPropertyThreshold` switch case** in the same file (count-subject path)
 4. **For bool properties**: add to BOTH `isBool` chains in `UI/ConditionRowWidget.cs` — count-path + non-count-path. They have different indentation; easy to miss one.
-5. **One i18n entry per locale** — `enum.property.<PascalCase>` × 5 locale files
+5. **`GetPropertiesForSubject`** in `UI/ConditionRowWidget.cs` — one entry per subject scope the property should appear in
+6. **One i18n entry per locale** — `enum.property.<PascalCase>` × 5 locale files
+
+**Numeric properties** (`AdjacentEnemyCount`, `EngagedEnemyCount`, `HpFlat`, …) must also be added to `propNeedsOperator` in `ConditionRowWidget`; otherwise the AllyCount path forces `Operator = Equal`.
 
 **Implementation notes**:
 - `IsFlanked` reads `unit.CombatState.IsFlanked` (engine-authoritative)
-- `AdjacentEnemyCount` re-uses `RangeBrackets.MaxMeters(Melee)` (= 2 m) for the radius. Keep that constant if a future `AdjacentAllyCount` lands.
+- `AdjacentEnemyCount` re-uses `RangeBrackets.MaxMeters(Melee)` (= 2 m) for the radius. Keep that constant if a future `AdjacentAllyCount` lands. It measures centre to centre, so a large enemy whose centre sits beyond 2 m is not counted even while a melee unit hits it.
+- `EngagedEnemyCount` counts distinct living enemies in `CombatState.EngagedUnits` ∪ `CombatState.EngagedBy` (`ConditionEvaluator.CountEngagedEnemies`, pure seam `CountDistinct`). It trusts the engine's engagement test, so size and reach are already included. The enemy filter matches `GetVisibleEnemies` (`IsInGame && HPLeft > 0 && IsPlayersEnemy && IsInCombat`); it is deliberately not visibility-filtered because the engine already requires LOS. The Trace line is logged only when a unit's count changes. Not offered for the Enemy subject.
 
 ### `abminusac-condition`
 
@@ -603,6 +607,8 @@ On Normal difficulty, `LifeState==Dead` fires whenever a companion's HP drops pa
 `unit.CombatState.EngagedUnits` returns `Dictionary<UnitEntityData, TimeSpan>.KeyCollection`, **NOT a Dictionary**. Query via LINQ `.Contains(victim)` since `KeyCollection` has no `ContainsKey`.
 
 For O(1) lookups, the backing `m_EngagedUnits` is publicizer-accessible.
+
+`EngagedBy` is the reverse view: enemies that threaten this unit. The two sets are not symmetric. `UnitCombatEngagementController` fills them from edge-to-edge distance (`Corpulence` + `Corpulence` + the weapon's threat range, reach included) plus line of sight, so a unit with a long weapon can threaten an enemy that cannot threaten it back. `EngagedEnemyCount` therefore counts the union.
 
 ### `Spellbook` storage layout
 

@@ -214,6 +214,7 @@
   "enum.property.AbilityDamage": "Attributsschaden",
   "enum.property.NegativeLevels": "Negative Stufen",
   "enum.property.AdjacentEnemyCount": "Gegner angrenzend",
+  "enum.property.EngagedEnemyCount": "Gegner im Nahkampf (gebunden)",
   "enum.property.HasDescriptorEffect": "Betroffen von",
   "enum.property.ImmuneToEnergy": "Immun gegen Energie",
   "enum.property.EnemyHDMinusPartyLevel": "TW − GruppenMax",
