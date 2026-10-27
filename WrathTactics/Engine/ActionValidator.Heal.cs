@@ -10,6 +10,7 @@ using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.Utility;
 using WrathTactics.Logging;
 using WrathTactics.Models;
 
@@ -270,9 +271,23 @@ namespace WrathTactics.Engine {
                 }
             }
 
+            // Engine legality for THIS target, same check CastSpell runs. ExecuteHeal issues every
+            // candidate (spell, class ability, wand, scroll, potion) at `target ?? owner` and
+            // we are called with that same unit, so no per-candidate redirect to account for.
+            // Without the filter the game rejects heals on dead or out-of-reach allies ("cannot
+            // target") and the rule still counts as fired, blocking lower rules. Filtered before
+            // the UMD fallback so risky scrolls still get a turn when every safe heal is rejected.
+            var targetWrapper = new TargetWrapper(target);
+            Func<(AbilityData ability, int priority, ItemEntity source, HealSourceMask category), bool> canTarget = h => {
+                bool ok = h.ability.CanTarget(targetWrapper);
+                if (!ok) Log.Engine.Trace($"Skipping heal {h.ability.Blueprint.name} on {target.CharacterName}: cannot target (engine CanTarget)");
+                return ok;
+            };
+            heals = KeepTargetable(heals, canTarget);
+
             if (heals.Count == 0 && fallbackScrolls.Count > 0) {
                 Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: no safe heal — falling back to {fallbackScrolls.Count} UMD-risky scroll(s)");
-                heals.AddRange(fallbackScrolls);
+                heals.AddRange(KeepTargetable(fallbackScrolls, canTarget));
             }
 
             Log.Engine.Debug($"FindBestHeal for {owner.CharacterName}: total inventory items={invTotal}, usable={invUsable}, healing={invHealing}, heals candidates total={heals.Count}");
@@ -291,6 +306,14 @@ namespace WrathTactics.Engine {
             }
             inventorySource = pick.source;
             return pick.ability;
+        }
+
+        /// <summary>
+        /// Order-preserving filter: keeps the items the predicate accepts. Pure so the
+        /// heal-candidate filtering can be unit-tested without game objects.
+        /// </summary>
+        internal static List<T> KeepTargetable<T>(IEnumerable<T> items, Func<T, bool> canTarget) {
+            return items.Where(canTarget).ToList();
         }
 
         /// <summary>
