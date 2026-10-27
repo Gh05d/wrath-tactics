@@ -294,6 +294,16 @@ namespace WrathTactics.Engine {
         }
 
         /// <summary>
+        /// True when <paramref name="ability"/> is a usable-item ability (potion, scroll, wand:
+        /// <c>SourceItem != null</c>) or a positive-energy healing spell. Used by the cross-slot
+        /// guard to keep a Swift rule from overlapping an own pending heal.
+        /// </summary>
+        internal static bool IsHealCast(AbilityData ability) {
+            if (ability == null) return false;
+            return ability.SourceItem != null || ClassifyHeal(ability.Blueprint) == HealEnergyType.Positive;
+        }
+
+        /// <summary>
         /// Classifies a heal blueprint by energy type. Returns None for non-heal spells.
         /// Keyword-based; matches both internal (English, stable) name and localised display
         /// name. The German tables disambiguate "Wunden heilen" (Cure) vs "Wunden zufügen"
