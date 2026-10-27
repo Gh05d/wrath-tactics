@@ -234,7 +234,9 @@ namespace WrathTactics.UI {
             }
             if (!found && entries.Count > 0) {
                 selected = entries[0];
-                if (string.IsNullOrEmpty(rule.Action.AbilityId)) {
+                // The "(none available)" placeholder has an empty Guid: adopting it changes
+                // nothing, and persisting it on every build re-triggered the rebuild forever.
+                if (string.IsNullOrEmpty(rule.Action.AbilityId) && !string.IsNullOrEmpty(selected.Guid)) {
                     rule.Action.AbilityId = selected.Guid;
                     PersistEdit();
                 }

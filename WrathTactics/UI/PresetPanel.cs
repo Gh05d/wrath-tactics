@@ -178,7 +178,7 @@ namespace WrathTactics.UI {
                 widget.Init(preset, 0, solo, () => {
                     if (!PresetRegistry.Save(preset))
                         SetStatus(string.Format("status.save_failed".i18n(), "status.context.edit".i18n()), Theme.StatusError);
-                }, unitId: null, hideHeader: true);
+                }, unitId: null, hideHeader: true, editsPreset: true);
             }
         }
 
