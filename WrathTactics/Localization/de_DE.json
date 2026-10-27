@@ -219,6 +219,7 @@
   "enum.property.EngagedEnemyCount": "Gegner im Nahkampf (gebunden)",
   "enum.property.HasDescriptorEffect": "Betroffen von",
   "enum.property.ImmuneToEnergy": "Immun gegen Energie",
+  "enum.property.HasEnergyResistance": "Resistenz gegen Energie",
   "enum.property.EnemyHDMinusPartyLevel": "TW − GruppenMax",
 
   "enum.action.CastSpell": "Zauber wirken",
