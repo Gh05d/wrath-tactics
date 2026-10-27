@@ -206,11 +206,25 @@ namespace WrathTactics.Engine {
             return available > 0;
         }
 
+        // Last traced line per unit/property/level/need, so the Trace only appears when the
+        // count or verdict changes (this runs per condition, per unit, per tick). Cleared
+        // with the other per-unit trace caches (TacticsEvaluator.Reset).
+        static readonly System.Collections.Generic.Dictionary<string, string> lastSlotTrace =
+            new System.Collections.Generic.Dictionary<string, string>();
+
+        internal static void ResetSlotTraceCache() {
+            lastSlotTrace.Clear();
+        }
+
         // Logs the counted slots next to the verdict; the rule's own log line only
         // says "conditions not met", so the count is otherwise invisible.
         static bool TraceSlotCount(string property, UnitEntityData unit, int level, int available, Condition c) {
             bool match = MatchesSlotCount(available, c);
             string need = TryParseCountThreshold(c.Value2, out float count) ? $"{c.Operator} {count}" : "> 0";
+            string key = $"{unit.UniqueId}|{property}|{level}|{need}";
+            string state = $"{available}|{match}";
+            if (lastSlotTrace.TryGetValue(key, out var last) && last == state) return match;
+            lastSlotTrace[key] = state;
             Log.Engine.Trace($"{property}: {unit.CharacterName} level {level} available={available}, need {need} -> {match}");
             return match;
         }

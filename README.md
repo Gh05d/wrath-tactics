@@ -208,11 +208,12 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **Is pet** | Yes/No | Animal companion, Aivu, skeletal champion, eidolon, clone or similar. |
 | **Wields ranged weapon** | Yes/No | The unit's current weapon is a bow, crossbow, firearm, sling or thrown weapon. Re-checked every tick, so a weapon swap changes it. |
 | **Is flanked** | Yes/No | The game's own flanking state: at least two enemies are engaging the unit in melee (and it has no "cannot be flanked" feature). This is about attackers, not about being surrounded geometrically. |
-| **Enemies adjacent** | number | How many living enemies in combat stand within 2 m of the unit. |
+| **Enemies adjacent** | number | How many living enemies in combat stand within 2 m of the unit (centre to centre, so a large creature next to the unit can count as 0 — use **Enemies in melee (engaged)** for "is this unit in melee"). |
+| **Enemies in melee (engaged)** | number | How many living enemies the game itself treats as in melee with the unit: enemies it threatens plus enemies threatening it, each counted once. Uses the game's own reach (creature size + weapon reach, line of sight), so large creatures and reach weapons count. Self / Ally / AllyCount only. |
 | **Ability damage** | Yes/No | One of the six ability scores carries temporary damage (what Lesser Restoration cures). Drain is not counted. |
 | **Negative levels** | Yes/No | The unit has negative levels (energy drain), temporary or permanent. |
-| **SpellSlotsAtLevel** | spell level | The unit still has at least one unused spell slot of exactly that level (any spellbook). |
-| **SpellSlotsAboveLevel** | spell level | At least one unused slot of that level *or higher*. |
+| **SpellSlotsAtLevel** | spell level (+ optional count) | The unit still has at least one unused spell slot of exactly that level (any spellbook). Fill in the *Min. count* field to compare the number of free slots with the operator instead, e.g. `>= 2` keeps the last slot in reserve. |
+| **SpellSlotsAboveLevel** | spell level (+ optional count) | At least one unused slot of that level *or higher*; with *Min. count*, the number of such slots is compared with the operator. |
 | **Resource** | resource | The unit has at least one use left of that class resource (Ki, Lay on Hands, Arcane Reservoir, …). |
 | **WithinRange** | bracket | Distance between Self and the checked unit — see [Range brackets](#range-brackets). Self → WithinRange is meaningless (always 0 m). |
 | **DC − Save** | number | Save DC of the spell this rule will cast minus the target's matching save — see [DC − Save](#dc--save). Enemy subjects only. |

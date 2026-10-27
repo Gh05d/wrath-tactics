@@ -506,6 +506,7 @@ namespace WrathTactics.Engine {
             lastReactiveTickTime = 0;
             ActiveRuleTracker.Reset();
             ConditionEvaluator.ResetEngagedTraceCache();
+            ConditionEvaluator.ResetSlotTraceCache();
         }
 
         static string FormatTarget(ResolvedTarget target) {
