@@ -27,6 +27,7 @@ Pure-logic xUnit suite in `WrathTactics.Tests/` (net481; mono hosts the runner o
 ```
 
 - **Flaky mono runner — loop until green before believing failures** (`for i in 1 2 3; do … test --no-build …; done`; mass-failures with varying counts = flake, not regression). Test-csproj facts (game DLLs copied to output by `AfterTargets="Build"`, compile reference to non-publicized `Assembly-CSharp.dll` + `UnityEngine.CoreModule.dll`, `InternalsVisibleTo` → `internal static`, no CI by design) and the Deck smoke-test pack (`docs/testing/deck-smoke/`): `claude-context/testing.md`.
+- **Smoke-test rule via Dev-Bridge**: out of combat a rule is only evaluated with `Combat → IsInCombat = No` (`RuleEnabledOutOfCombat`) and an executable action (`DoNothing` will do). Without either, no `Rule N` line appears in the log.
 - **UI-Layout ist nur am Deck verifizierbar** — jede Schicht UI-Arbeit endet mit einem Screenshot vom User; ohne den gilt sie als ungetestet (`testing.md`).
 
 ## Deploy
