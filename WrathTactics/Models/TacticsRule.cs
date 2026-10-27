@@ -34,7 +34,7 @@ namespace WrathTactics.Models {
         // Defaults to GreaterOrEqual so legacy saves without this field keep their original behavior.
         [JsonProperty] public ConditionOperator CountOperator { get; set; } = ConditionOperator.GreaterOrEqual;
         [JsonProperty] public string Value { get; set; } = "";
-        [JsonProperty] public string Value2 { get; set; } = "";  // For AllyCount/EnemyCount: the count threshold
+        [JsonProperty] public string Value2 { get; set; } = "";  // AllyCount/EnemyCount: count threshold; SpellSlots*: optional min slot count (empty = legacy ">0")
     }
 
     public class ActionDef {

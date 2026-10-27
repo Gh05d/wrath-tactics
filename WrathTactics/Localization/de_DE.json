@@ -156,6 +156,8 @@
   "preset.default.smite_evil": "Niederschmettern: Böse",
 
   "condition.with": "mit",
+  "condition.slotLevel": "Grad",
+  "condition.slotMinCount": "min. Anzahl",
   "bool.yes": "Ja",
   "bool.no": "Nein",
 

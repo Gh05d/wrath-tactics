@@ -156,6 +156,8 @@
   "preset.default.smite_evil": "Châtiment du Mal",
 
   "condition.with": "avec",
+  "condition.slotLevel": "Niveau",
+  "condition.slotMinCount": "Nb min.",
   "bool.yes": "Oui",
   "bool.no": "Non",
 

@@ -156,6 +156,8 @@
   "preset.default.smite_evil": "Кара зла",
 
   "condition.with": "с",
+  "condition.slotLevel": "Круг",
+  "condition.slotMinCount": "мин. кол-во",
   "bool.yes": "Да",
   "bool.no": "Нет",
 
