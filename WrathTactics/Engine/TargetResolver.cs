@@ -82,6 +82,7 @@ namespace WrathTactics.Engine {
                 case TargetType.EnemyHighestThreat: return GetEnemyHighestThreat(owner);
                 case TargetType.EnemyCreatureType:  return GetEnemyByCreatureType(owner, target.Filter);
                 case TargetType.ConditionTarget:    return GetConditionTarget(owner);
+                case TargetType.ConditionTargetAlly: return GetConditionTargetAlly(owner);
                 case TargetType.EnemyHighestHD:     return GetEnemyHighestHD(owner);
                 case TargetType.EnemyLowestHD:      return GetEnemyLowestHD(owner);
                 case TargetType.EnemyMostEnemyNeighbors: return GetEnemyMostEnemyNeighbors(owner);
@@ -233,6 +234,11 @@ namespace WrathTactics.Engine {
             if (ConditionEvaluator.LastMatchedSelf != null)
                 return ConditionEvaluator.LastMatchedSelf;
             return null;
+        }
+
+        static UnitEntityData GetConditionTargetAlly(UnitEntityData owner) {
+            // Never falls back to enemy/self: no ally row matched means no target.
+            return TargetTypeTraits.AllyConditionTarget(ConditionEvaluator.LastMatchedAlly, owner);
         }
 
         static IEnumerable<UnitEntityData> GetAllies(UnitEntityData owner) {

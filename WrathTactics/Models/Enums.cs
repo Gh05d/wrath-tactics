@@ -180,6 +180,7 @@ namespace WrathTactics.Models {
         SpecificAlly,           // ally pinned by UniqueId stored in TargetDef.Filter
         EnemyMostEnemyNeighbors,// enemy with the most other living enemies within ~5 m (fireball / AoE damage)
         AllyMostAllyNeighbors,  // ally with the most other living allies within ~5 m (area buffs)
+        ConditionTargetAlly,    // the ally that matched the triggering condition
     }
 
     // Far sits between Medium and Long by distance but is appended last:

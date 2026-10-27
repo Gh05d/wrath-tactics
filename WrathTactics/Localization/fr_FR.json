@@ -261,6 +261,7 @@
   "enum.target.SpecificAlly": "Allié précis",
   "enum.target.EnemyMostEnemyNeighbors": "Ennemi : le plus regroupé (5 m)",
   "enum.target.AllyMostAllyNeighbors": "Allié : le plus regroupé (5 m)",
+  "enum.target.ConditionTargetAlly": "Cible de la condition (allié)",
 
   "enum.heal_mode.Any": "Au choix",
   "enum.heal_mode.Strongest": "Plus puissant",

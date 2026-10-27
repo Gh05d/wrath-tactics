@@ -259,6 +259,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **Enemy: creature type** | First enemy of the chosen creature type. |
 | **Enemy: most clustered (5 m)** | The enemy with the most other enemies within 5 m — for Fireball-style spells. |
 | **Condition target** | The unit that made the conditions pass: the enemy matched by an Enemy row, else the ally matched by an Ally row, else Self when only Self rows matched. |
+| **Condition target (ally)** | The ally matched by an Ally row, even when an Enemy row in the same group also matched. Never the companion itself. Without a matched ally the rule is skipped, also for Heal and Toggle. |
 | **Point at self** | A ground point ~1.5 m in front of the companion — for summons and ground-targeted spells. |
 | **Point at condition target** | A ground point ~1.5 m from the condition target, on the side facing the companion. Same enemy > ally > self preference as **Condition target**. |
 
