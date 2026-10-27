@@ -167,6 +167,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 - A rule fires when its conditions pass, its target can be resolved and its action is possible right now. If any of those fail, the rule is skipped *for this tick* and the next rule is tried.
 - Each tick a companion may issue at most **one command per action slot** (standard, move, swift, free). So a cast from a higher rule and a swift action from a lower rule can both fire in one tick; two rules that need the same slot: the upper one wins.
 - While a standard-action command (cast, attack, item) is still running, lower rules wait; only rules *above* it may pre-empt it.
+- An attack the party AI started on its own does not hold a rule back: a rule that fires cancels it first, whatever its slot, and the AI attacks again once the rule's command has finished. An attack you ordered by hand still holds back swift and standard rules (move rules still override it).
 - **DoNothing** is the one hard stop: everything below it is ignored while its conditions hold.
 - In combat the lists are re-evaluated every ~3 s (configurable), out of combat every ~2 s — but out of combat only for rules carrying `Combat → IsInCombat → No`.
 - **Cooldown (rounds)**: after the rule fires, it stays quiet for that many 6-second rounds. `0` = may fire every tick.
