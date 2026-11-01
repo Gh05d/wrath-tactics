@@ -277,6 +277,7 @@ namespace WrathTactics.UI {
         // full). Shown only when it can matter: the tab's unit has the reservoir — on global
         // rules and presets any party member — or a value is already set, so it can be cleared.
         void SetupReservoirRow(Transform parent) {
+            reservoirRowShown = false;
             if (rule.Action.Type != ActionType.CastSpell) return;
             bool relevant = rule.Action.Reservoir != ReservoirBoost.None;
             if (!relevant) {
@@ -287,6 +288,7 @@ namespace WrathTactics.UI {
             }
             if (!relevant) return;
 
+            reservoirRowShown = true;
             var row = Widgets.Row(parent, "ReservoirRow", Theme.RowHeight);
             var (arrowLbl, _) = UIHelpers.Create("ArrowLbl", row.transform);
             Widgets.InRow(arrowLbl, 0f, 0.10f);

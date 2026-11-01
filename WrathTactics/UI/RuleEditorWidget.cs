@@ -21,6 +21,9 @@ namespace WrathTactics.UI {
         string unitId;
         bool editsPreset;   // PresetPanel's inline editor: PersistEdit saves the preset file
         bool hideHeader;  // when true, skip the list-entry header (used by the preset editor)
+        // Set by SetupReservoirRow on every rebuild: whether that optional row was built, so
+        // UpdateHeight counts it (a missed row made the card too short and clipped Cooldown).
+        bool reservoirRowShown;
 
         GameObject enabledDot;
         LayoutElement layoutElement;
@@ -210,12 +213,13 @@ namespace WrathTactics.UI {
             bool chainCapable = rule.Action.Type == ActionType.CastSpell
                              || rule.Action.Type == ActionType.CastAbility;
             int fallbackCount = chainCapable ? (rule.Action.FallbackAbilityIds?.Count ?? 0) : 0;
+            int reservoirRows = reservoirRowShown ? 1 : 0;
 
             // Rows rendered by RebuildBody, in order (keep in sync with it):
             // header | IF label | cond rows | per-group add row (or AddFirstCond) | (groups-1) OR dividers
-            // | flourish | action row | fallback rows | [+Fallback row] | target row | cooldown row
+            // | flourish | action row | [reservoir row] | fallback rows | [+Fallback row] | target row | cooldown row
             int rows = (hideHeader ? 0 : 1) + 1 + condCount + Mathf.Max(groupCount, 1) + Mathf.Max(0, groupCount - 1)
-                + 1 + 1 + fallbackCount + (chainCapable ? 1 : 0) + 1 + 1;
+                + 1 + 1 + reservoirRows + fallbackCount + (chainCapable ? 1 : 0) + 1 + 1;
             float height = headerH
                 + Theme.SectionLabelHeight
                 + condCount * Theme.RowHeight
@@ -223,6 +227,7 @@ namespace WrathTactics.UI {
                 + Mathf.Max(0, groupCount - 1) * Theme.DividerHeight
                 + Theme.DividerHeight                       // flourish
                 + Theme.RowHeight                           // action
+                + reservoirRows * Theme.RowHeight           // Arcane Reservoir
                 + fallbackCount * Theme.RowHeight
                 + (chainCapable ? Theme.InlineRowHeight : 0f)
                 + Theme.RowHeight                           // target

@@ -7,6 +7,7 @@ Operative rules for `UI/` (TacticsPanel, RuleEditorWidget, ConditionRowWidget, P
 - **Unity Rebuild pattern**: `Destroy()` on VLG/CSF is deferred — use `DestroyImmediate()` for layout components in `Rebuild()` to avoid duplicate layout calculators for one frame.
 - **Clear-then-rescan: detach before `Destroy()`** — `Destroy()` lands end-of-frame; if the same frame re-iterates the container's children (`RefreshRuleList` → `ApplyFilter`), doomed cards still get counted. Fix: `SetParent(null, false)` before `Destroy`. NOT `SetActive(false)`+Destroy — `ApplyFilter` re-activates matching doomed cards.
 - **Nested ScrollRects**: Inner steals scroll events from outer. Disable `inner.ScrollRect.enabled` unless content overflows; re-enable conditionally in `UpdateHeight()`.
+- **Every optional rule-card row must be counted in `RuleEditorWidget.UpdateHeight`**: the card height is computed from Theme metrics, not measured; an uncounted row makes the card short and `RectMask2D` clips the LAST row (Cooldown) with no scrollbar. 1.33.0's Arcane Reservoir row did this — Cooldown vanished on every new rule (default `CastSpell`) in arcanist parties until 1.35.2. Have the `Setup*Row` method record whether it built the row (`reservoirRowShown`) instead of re-deriving the condition.
 
 ## Widgets & Helpers
 
