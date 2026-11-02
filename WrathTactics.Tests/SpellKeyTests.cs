@@ -81,5 +81,17 @@ namespace WrathTactics.Tests {
         public void MakeKeyCore_bare_guid_when_nothing_set() {
             Assert.Equal(Guid, SpellDropdownProvider.MakeKeyCore(Guid, -1, null, 0, -1));
         }
+
+        // Condition-picker entries carry the bare cast blueprint GUID: the variant when
+        // the key has one (that is the Ability.Blueprint during a variant cast), else the spell.
+        [Theory]
+        [InlineData(Guid, Guid)]
+        [InlineData(Parent + "@L3", Parent)]
+        [InlineData(Parent + "@L3>V" + Guid, Guid)]
+        [InlineData(Parent + "@L3>V" + Guid + "#4", Guid)]
+        [InlineData(Parent + ">V" + Parent + "~A1", Parent)]
+        public void ToFilterGuid_picks_variant_else_blueprint(string key, string expected) {
+            Assert.Equal(expected, SpellDropdownProvider.ToFilterGuid(key));
+        }
     }
 }
