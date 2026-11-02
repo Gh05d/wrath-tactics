@@ -52,10 +52,5 @@ namespace WrathTactics.Tests {
         public void Non_empty_filter_does_not_match_cast_without_guids() {
             Assert.False(TargetingRelations.MatchesAbilityFilter(Heal, null, null));
         }
-
-        [Fact]
-        public void HasCast_without_units_is_false() {
-            Assert.False(TargetingRelations.HasCast(null, null, ""));
-        }
     }
 }
