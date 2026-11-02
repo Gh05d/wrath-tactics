@@ -219,6 +219,7 @@
   "enum.property.EngagedEnemyCount": "Врагов в ближнем бою",
   "enum.property.HasDescriptorEffect": "Подвержен",
   "enum.property.ImmuneToEnergy": "Иммунитет к энергии",
+  "enum.property.HasEnergyResistance": "Сопротивление энергии",
   "enum.property.EnemyHDMinusPartyLevel": "КЗ − МаксГруппы",
 
   "enum.action.CastSpell": "Заклинание",

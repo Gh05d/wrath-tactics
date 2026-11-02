@@ -223,6 +223,37 @@ namespace WrathTactics.Engine {
             return dr != null && dr.IsImmune(energy);
         }
 
+        // Energy resistance > 0 against one of the five castable elementals. Walks
+        // UnitPartDamageReduction.AllSources (Protection/Resist Energy, wizard abjuration,
+        // racial and item resistances all land there as AddDamageResistanceEnergy).
+        // GetCurrentValue, not GetValue: it respects the UsePool counter, so an exhausted
+        // Protection From Energy pool reads 0. Immunity is NOT resistance — see IsImmuneToEnergy.
+        internal static bool HasEnergyResistance(UnitEntityData unit, string energyName) {
+            if (unit == null || string.IsNullOrEmpty(energyName)) return false;
+            if (!System.Enum.TryParse<Kingmaker.Enums.Damage.DamageEnergyType>(energyName, out var energy))
+                return false;
+            var dr = unit.Get<Kingmaker.UnitLogic.Parts.UnitPartDamageReduction>();
+            if (dr == null) return false;
+            var sources = new System.Collections.Generic.List<(Kingmaker.Enums.Damage.DamageEnergyType, int)>();
+            foreach (var rt in dr.AllSources) {
+                if (rt.Settings is Kingmaker.UnitLogic.FactLogic.AddDamageResistanceEnergy e)
+                    sources.Add((e.Type, rt.GetCurrentValue()));
+            }
+            return HighestEnergyResistance(sources, energy) > 0;
+        }
+
+        // Pure core of HasEnergyResistance. Energy resistance does not stack in this engine
+        // path (the best chunk wins), so take the max over matching sources, not the sum.
+        internal static int HighestEnergyResistance(
+                System.Collections.Generic.IEnumerable<(Kingmaker.Enums.Damage.DamageEnergyType type, int value)> sources,
+                Kingmaker.Enums.Damage.DamageEnergyType energy) {
+            int best = 0;
+            foreach (var (type, value) in sources) {
+                if (type == energy && value > best) best = value;
+            }
+            return best;
+        }
+
         // True if any of the six ability scores currently carries temporary Damage — the
         // condition (Lesser) Restoration heals. ModifiableValueAttributeStat.Damage is the
         // engine-tracked ability-damage counter (separate from .Drain, which only full

@@ -200,6 +200,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **HasCondition** | condition | The unit has that game condition (Paralyzed, Stunned, Frightened, Nauseated, Confused, Blinded, Prone, Entangled, Exhausted, Fatigued, Shaken, Sickened, Sleeping, Petrified, Slowed, Staggered, Dazed, Dazzled, Helpless, Cowering, Death's Door). |
 | **Affected by** | Poison / Disease / Bleed | Any active effect of that kind, no matter which spell or monster caused it. |
 | **Immune to energy** | Fire / Cold / Electricity / Acid / Sonic | The unit is fully immune to that energy type. |
+| **Resists energy** | Fire / Cold / Electricity / Acid / Sonic | The unit currently has energy resistance above 0 against that type (Resist Energy, Protection from Energy, race, gear). A used-up Protection from Energy pool does not count, and immunity is not resistance: use **Immune to energy** for that. `!=` means "no resistance". |
 | **CreatureType** | type | Aberration, Animal, Construct, Dragon, Fey, Humanoid, Magical Beast, Monstrous Humanoid, Ooze, Outsider, Plant, Swarm, Undead, Vermin, Incorporeal. Uses the same type facts the game's own spells use; "Humanoid" means "none of the other types". |
 | **Alignment** | Good / Evil / Lawful / Chaotic / Neutral | Alignment axis. "Neutral" = neither Good nor Evil (LN, N, CN). |
 | **HasClass** | class or group | The unit has at least one level in that class, or belongs to the group: Spellcaster (has any spellbook), Arcane, Divine, Martial (a class that is neither arcane nor divine). |

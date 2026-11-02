@@ -50,7 +50,7 @@ namespace WrathTactics.Localization {
             "Poison", "Disease", "Bleed",
         };
 
-        // DamageEnergyType names for ImmuneToEnergy — the five castable elemental energies.
+        // DamageEnergyType names for ImmuneToEnergy / HasEnergyResistance — the five castable elemental energies.
         // Must match the game DamageEnergyType enum exactly (Enum.TryParse).
         public static List<string> KeysForEnergy() => new List<string> {
             "Fire", "Cold", "Electricity", "Acid", "Sonic",

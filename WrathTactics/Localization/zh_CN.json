@@ -219,6 +219,7 @@
   "enum.property.EngagedEnemyCount": "近战交战敌人数",
   "enum.property.HasDescriptorEffect": "受影响",
   "enum.property.ImmuneToEnergy": "免疫能量",
+  "enum.property.HasEnergyResistance": "能量抗性",
   "enum.property.EnemyHDMinusPartyLevel": "生命骰 − 队伍最高",
 
   "enum.action.CastSpell": "施放法术",
