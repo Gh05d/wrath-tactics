@@ -82,6 +82,7 @@ namespace WrathTactics.Engine {
                 case ActionType.Heal: {
                     // Self-heal when no explicit target is resolved — mirrors ExecuteHeal's
                     // `target ?? owner` fallback. Auto-mode reads the unit for affinity check.
+                    // FindBestHealEx drops candidates the engine's CanTarget rejects for this unit.
                     var heal = FindBestHeal(owner, unit ?? owner, action.HealMode, action.HealSources, action.HealEnergy);
                     if (heal == null) return false;
                     abilitySlot = heal.RuntimeActionType;
