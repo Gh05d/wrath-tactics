@@ -308,10 +308,22 @@ namespace WrathTactics.Engine {
                 // behind-running-Move; every other overlap is ours to prevent. Applies to
                 // Standard rules too: a Standard cast issued over a pending Move ability
                 // would be cut down the moment that Move's cooldown expires.
+                UnitCommand foreignAttack = null;
                 if (slot.HasValue && ActionSlots.NeedsCrossSlotCheck(rule.Action.Type)
-                    && HasCrossSlotConflict(unit, slot.Value, out var conflictReason)) {
+                    && HasCrossSlotConflict(unit, slot.Value, out var conflictReason, out foreignAttack)) {
                     Log.Engine.Trace($"{unit.CharacterName} Rule {i} \"{rule.Name}\" ({source}): unit busy — {conflictReason}");
                     continue;
+                }
+
+                // The cross-slot guard let us through because the occupant is the party
+                // AI's auto-attack. End it now, or a pending one starts later on top of our
+                // animation and aborts it. The AI waits while our command is unfinished
+                // (TickBrain skips a unit holding a command it cannot interrupt) and attacks
+                // again afterwards. Same engine call as TickBrain's own cleanup.
+                if (foreignAttack != null) {
+                    Log.Engine.Trace($"  {unit.CharacterName}: {slot.Value} cancels foreign attack in {foreignAttack.Type} (re-issued by the party AI)");
+                    var attack = foreignAttack;
+                    unit.Commands.InterruptAll(c => ReferenceEquals(c, attack));
                 }
 
                 // Diagnostic only: remember which own commands this Standard rule may replace.
@@ -442,8 +454,13 @@ namespace WrathTactics.Engine {
             }
         }
 
-        static bool HasCrossSlotConflict(UnitEntityData unit, UnitCommand.CommandType issuing, out string reason) {
+        // `foreignAttack` is set on a clean pass when the guard let us through only because the
+        // occupant is the party AI's auto-attack in a slot other than Move: the caller
+        // must interrupt it before issuing. Move needs no help, Run(Move) removes the paired
+        // Standard command itself. A player-ordered attack (no AiAction) still blocks.
+        static bool HasCrossSlotConflict(UnitEntityData unit, UnitCommand.CommandType issuing, out string reason, out UnitCommand foreignAttack) {
             reason = null;
+            foreignAttack = null;
             // Our own command parked in Commands.Queue: the engine will run it when the slot
             // frees, but ANY Run() we do now clears that queue first (m_Queue.Clear() in
             // UnitCommands.Run) — including a Move rule "overlapping" it. Wait.
@@ -473,6 +490,14 @@ namespace WrathTactics.Engine {
                 bool approaching = !cmd.IsStarted && !cmd.IsUnitCloseEnough();
                 bool own = PlayerCommandGuard.IsOurs(unit, cmd);
                 bool isCast = cmd is UnitUseAbility;
+                // Every command the party AI issues carries an AiAction (AiBrainController.
+                // SelectAction sets it before Commands.Run, IL-verified); a click never does.
+                // So an attack without one is the player's order: leave it alone, as before.
+                // (Move keeps overriding it, unchanged.)
+                if (cmd is UnitAttack && !own && cmd.AiAction == null && issuing != UnitCommand.CommandType.Move) {
+                    reason = $"foreign attack in {occupied} ordered by the player";
+                    return true;
+                }
                 var verdict = ActionSlots.CheckConflict(issuing, occupied, cmd.IsStarted, approaching, own, isCast, issuingOnCooldown, standardRemaining);
                 string what = (own ? "own " : "foreign ") + (cmd is UnitUseAbility ua ? (ua.Ability?.Name ?? "ability") : "attack");
                 switch (verdict) {
@@ -491,6 +516,8 @@ namespace WrathTactics.Engine {
                     default:
                         if (issuing == UnitCommand.CommandType.Move && occupied == UnitCommand.CommandType.Standard)
                             Log.Engine.Trace($"  {unit.CharacterName}: Move will cancel {what} in Standard (engine command, re-issued by the party AI)");
+                        else if (!own && !isCast)
+                            foreignAttack = cmd;
                         else
                             Log.Engine.Trace($"  {unit.CharacterName}: {issuing} may overlap pending {what} in {occupied} — engine holds Standard for {standardRemaining:F1}s");
                         break;

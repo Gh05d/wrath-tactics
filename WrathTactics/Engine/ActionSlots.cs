@@ -195,6 +195,15 @@ namespace WrathTactics.Engine {
                 return SlotConflict.None;
             }
 
+            // An engine-issued attack, in any state, is fair game for every issuing slot, not
+            // just Move. Same predicate as the Move branch above. The party AI starts
+            // the next attack right after each one, so a Swift/Free rule would otherwise find
+            // no gap at all.
+            // The caller must END that attack before issuing: a pending one would start later
+            // on top of our Swift animation and abort it (Fact 2). Foreign casts and our own
+            // attacks fall through to the checks below.
+            if (!occupantOwn && !occupantIsCast) return SlotConflict.None;
+
             // Fact 2: a started, unfinished animated command owns the AnimationManager.
             // (Also covers Standard-over-Move: Run(Standard) removes the Move command, and
             // an own Move ability in flight must be allowed to finish.)
