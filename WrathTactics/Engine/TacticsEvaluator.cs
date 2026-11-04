@@ -315,7 +315,7 @@ namespace WrathTactics.Engine {
                     continue;
                 }
 
-                // WTW-28: the cross-slot guard let us through because the occupant is the party
+                // The cross-slot guard let us through because the occupant is the party
                 // AI's auto-attack. End it now, or a pending one starts later on top of our
                 // animation and aborts it. The AI waits while our command is unfinished
                 // (TickBrain skips a unit holding a command it cannot interrupt) and attacks
@@ -455,7 +455,7 @@ namespace WrathTactics.Engine {
         }
 
         // `foreignAttack` is set on a clean pass when the guard let us through only because the
-        // occupant is the party AI's auto-attack in a slot other than Move (WTW-28): the caller
+        // occupant is the party AI's auto-attack in a slot other than Move: the caller
         // must interrupt it before issuing. Move needs no help, Run(Move) removes the paired
         // Standard command itself. A player-ordered attack (no AiAction) still blocks.
         static bool HasCrossSlotConflict(UnitEntityData unit, UnitCommand.CommandType issuing, out string reason, out UnitCommand foreignAttack) {

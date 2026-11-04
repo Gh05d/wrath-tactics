@@ -196,9 +196,9 @@ namespace WrathTactics.Engine {
             }
 
             // An engine-issued attack, in any state, is fair game for every issuing slot, not
-            // just Move (WTW-28). Same predicate as the Move branch above. The party AI starts
+            // just Move. Same predicate as the Move branch above. The party AI starts
             // the next attack right after each one, so a Swift/Free rule would otherwise find
-            // no gap at all (Seelah: Smite Evil waited 71x for a foreign attack in one night).
+            // no gap at all.
             // The caller must END that attack before issuing: a pending one would start later
             // on top of our Swift animation and abort it (Fact 2). Foreign casts and our own
             // attacks fall through to the checks below.
