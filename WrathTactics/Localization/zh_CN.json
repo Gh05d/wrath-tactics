@@ -159,6 +159,8 @@
   "condition.with": "且",
   "condition.slotLevel": "环位",
   "condition.slotMinCount": "最少数量",
+  "condition.resourceGuid": "资源GUID",
+  "condition.resourceAmount": "数量",
   "bool.yes": "是",
   "bool.no": "否",
 

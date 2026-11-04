@@ -57,7 +57,7 @@ Every term in the rule editor, in UI order. All checks are [b]snapshots[/b]: a c
 [*][b]Negative levels[/b] (Yes/No): The unit has negative levels (energy drain), temporary or permanent.
 [*][b]SpellSlotsAtLevel[/b] (spell level (+ optional count)): The unit still has at least one unused spell slot of exactly that level (any spellbook). Fill in the [i]Min. count[/i] field to compare the number of free slots with the operator instead, e.g. >= 2 keeps the last slot in reserve.
 [*][b]SpellSlotsAboveLevel[/b] (spell level (+ optional count)): At least one unused slot of that level [i]or higher[/i]; with [i]Min. count[/i], the number of such slots is compared with the operator.
-[*][b]Resource[/b] (resource): The unit has at least one use left of that class resource (Ki, Lay on Hands, Arcane Reservoir, …).
+[*][b]Resource[/b] (resource GUID (+ optional amount)): The unit has at least one use left of that class resource (Ki, Lay on Hands, Arcane Reservoir, …). Fill in the [i]Amount[/i] field to compare the remaining uses with the operator instead, e.g. >= 2. An empty or unusable amount keeps "at least one use left". A GUID the game does not know never matches. Self only.
 [*][b]WithinRange[/b] (bracket): Distance between Self and the checked unit — see Range brackets. Self → WithinRange is meaningless (always 0 m).
 [*][b]DC − Save[/b] (number): Save DC of the spell this rule will cast minus the target's matching save — see DC − Save. Enemy subjects only.
 [*][b]Hit margin (AB − AC)[/b] (number): An ally's attack bonus minus the enemy's AC — see Hit Margin. Enemy subjects only.

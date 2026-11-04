@@ -159,6 +159,8 @@
   "condition.with": "с",
   "condition.slotLevel": "Круг",
   "condition.slotMinCount": "мин. кол-во",
+  "condition.resourceGuid": "GUID ресурса",
+  "condition.resourceAmount": "Кол-во",
   "bool.yes": "Да",
   "bool.no": "Нет",
 

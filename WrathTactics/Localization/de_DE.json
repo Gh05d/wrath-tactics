@@ -159,6 +159,8 @@
   "condition.with": "mit",
   "condition.slotLevel": "Grad",
   "condition.slotMinCount": "min. Anzahl",
+  "condition.resourceGuid": "Ressourcen-GUID",
+  "condition.resourceAmount": "Menge",
   "bool.yes": "Ja",
   "bool.no": "Nein",
 

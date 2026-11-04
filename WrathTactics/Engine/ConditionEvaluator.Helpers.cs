@@ -373,13 +373,29 @@ namespace WrathTactics.Engine {
             return total;
         }
 
-        static bool HasResource(UnitEntityData unit, string resourceGuid) {
-            if (string.IsNullOrEmpty(resourceGuid)) return false;
-            foreach (var resource in unit.Resources.PersistantResources) {
-                if (resource.Blueprint.AssetGuid.ToString() == resourceGuid && resource.Amount > 0)
-                    return true;
-            }
-            return false;
+        // Resource: Value = BlueprintAbilityResource GUID, Value2 = optional amount compared
+        // with the Operator. Unknown/unresolvable GUID => false (never treated as 0).
+        static bool EvaluateResource(Condition condition, UnitEntityData unit) {
+            if (string.IsNullOrEmpty(condition.Value)) return false;
+            var blueprint = Kingmaker.Blueprints.ResourcesLibrary
+                .TryGetBlueprint<Kingmaker.Blueprints.BlueprintAbilityResource>(condition.Value);
+            if (blueprint == null) return false;
+            int remaining = unit.Resources.GetResourceAmount(blueprint);
+            bool match = MatchesResourceAmount(remaining, condition);
+            // The rule's own log line only says "conditions not met"; log the amount it saw.
+            string need = string.IsNullOrEmpty(condition.Value2) ? "> 0" : $"{condition.Operator} {condition.Value2}";
+            Log.Engine.Trace($"Resource: {unit.CharacterName} {blueprint.name} remaining={remaining}, need {need} -> {match}");
+            return match;
+        }
+
+        // Pure decision (no game types). Usable Value2 (finite, >= 0) => CompareFloat(remaining, Operator, amount).
+        // Empty/garbage Value2 (every legacy rule) => legacy "remaining > 0", Operator deliberately ignored.
+        internal static bool MatchesResourceAmount(int remaining, Condition c) {
+            if (float.TryParse(c.Value2, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out float amount)
+                && amount >= 0f && !float.IsInfinity(amount))
+                return CompareFloat(remaining, c.Operator, amount);
+            return remaining > 0;
         }
 
         // IsBeingCastOnByAlly: does at least one party member (never a dead / out-of-game one)
