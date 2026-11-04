@@ -213,6 +213,7 @@
   "enum.property.IsSummon": "Ist Beschwörung",
   "enum.property.IsPet": "Ist Tiergefährte",
   "enum.property.WieldsRangedWeapon": "Führt Fernkampfwaffe",
+  "enum.property.IsDowned": "Gefallen",
   "enum.property.IsFlanked": "Wird flankiert",
   "enum.property.AbilityDamage": "Attributsschaden",
   "enum.property.NegativeLevels": "Negative Stufen",

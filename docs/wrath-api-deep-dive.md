@@ -600,6 +600,8 @@ On Normal difficulty, `LifeState==Dead` fires whenever a companion's HP drops pa
 
 **Use `State.IsFinallyDead` for rez-only semantics**; `State.IsDead` is too permissive (also true for downed-but-auto-recovering allies).
 
+**`ConditionProperty.IsDowned` is the in-combat counterpart**: `LifeState == Dead && !IsFinallyDead` (`ConditionEvaluator.IsDownedState`), i.e. the red-portrait companion that stands up after combat. `Unconscious` (Death's Door) is deliberately not counted; including it is a one-line change in that helper. Pets get no special handling.
+
 `HPLeft <= 0` ALSO matches `Unconscious` (Death's Door) — not what you want either.
 
 ### `EngagedUnits` collection type

@@ -46,7 +46,8 @@ Every term in the rule editor, in UI order. All checks are [b]snapshots[/b]: a c
 [*][b]CreatureType[/b] (type): Aberration, Animal, Construct, Dragon, Fey, Humanoid, Magical Beast, Monstrous Humanoid, Ooze, Outsider, Plant, Swarm, Undead, Vermin, Incorporeal. Uses the same type facts the game's own spells use; "Humanoid" means "none of the other types".
 [*][b]Alignment[/b] (Good / Evil / Lawful / Chaotic / Neutral): Alignment axis. "Neutral" = neither Good nor Evil (LN, N, CN).
 [*][b]HasClass[/b] (class or group): The unit has at least one level in that class, or belongs to the group: Spellcaster (has any spellbook), Arcane, Divine, Martial (a class that is neither arcane nor divine).
-[*][b]IsDead[/b] (Yes/No): Truly dead — needs Raise Dead / Breath of Life. A companion who is down but will get up after the fight does [b]not[/b] count.
+[*][b]IsDead[/b] (Yes/No): Truly dead — needs Raise Dead / Breath of Life. A companion who is down but will get up after the fight does [b]not[/b] count; use [b]Downed[/b] for that.
+[*][b]Downed[/b] (Yes/No): Down in combat but not finally dead: the portrait is red and the companion gets up after the fight. Unconscious units (Death's Door) do not count. Ally subjects only.
 [*][b]Is summon[/b] (Yes/No): A summoned monster (Summon Monster, Animate Dead, …). Pets and companions are not summons.
 [*][b]Is pet[/b] (Yes/No): Animal companion, Aivu, skeletal champion, eidolon, clone or similar.
 [*][b]Wields ranged weapon[/b] (Yes/No): The unit's current weapon is a bow, crossbow, firearm, sling or thrown weapon. Re-checked every tick, so a weapon swap changes it.
