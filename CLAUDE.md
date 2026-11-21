@@ -130,7 +130,7 @@ IL evidence, version history, and incident reports: `docs/wrath-api-deep-dive.md
 ## Top Gotchas (always apply)
 
 - **Never `owner.Commands.Run` directly in `CommandExecutor`** — route through `RunVerified` (engine can silently discard commands; details `gotchas-engine.md`).
-- **Use `Player.PartyAndPets`, never `Player.Party`** (excludes pets; one documented exception — `gotchas-conditions.md`). Regression check: `grep 'Player.Party'` before merge.
+- **Use `Player.PartyAndPets`, never `Player.Party`** (excludes pets; one documented exception — `gotchas-conditions.md`). Regression check: `grep 'Player.Party'` before merge. **`PartyAndPets` holds no summons** — ally buckets with `IsSummon` widen via `GetAllyPool` (`gotchas-conditions.md`).
 - **`IsFinallyDead`, not `IsDead`** — and the two `IsDead` sites in `ConditionEvaluator` must stay in sync (`gotchas-conditions.md`).
 - **Widgets MUST invoke `onChanged?.Invoke()`, never `ConfigManager.Save()` directly** — direct save silently discards preset edits (`gotchas-persistence.md`).
 - **Enums are APPEND-ONLY** — preset/config JSON persists numeric indices (`gotchas-persistence.md`).
