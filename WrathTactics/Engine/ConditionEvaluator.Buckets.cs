@@ -85,7 +85,7 @@ namespace WrathTactics.Engine {
         // so the logic is simpler: a matching Ally (for the non-Count path) and/or a
         // satisfied Count threshold.
         static bool EvaluateAllyBucket(List<Condition> conds, UnitEntityData owner) {
-            var allies = GetAllPartyMembers(owner).Where(a => a != owner).ToList();
+            var allies = GetAllyPool(owner, conds).Where(a => a != owner).ToList();
             var nonCountConds = conds.Where(c =>
                 c.Subject != ConditionSubject.AllyCount
                 && c.Subject != ConditionSubject.AllyByName).ToList();
@@ -131,7 +131,7 @@ namespace WrathTactics.Engine {
                 var perAlly = new List<string>();
                 // AllyCount historically includes self; keep that behavior (use GetAllPartyMembers
                 // without filtering owner) for Count, to match the previous EvaluateAllyCount.
-                foreach (var ally in GetAllPartyMembers(owner)) {
+                foreach (var ally in GetAllyPool(owner, conds)) {
                     bool allPass = true;
                     string failReason = null;
                     foreach (var c in nonCountConds) {

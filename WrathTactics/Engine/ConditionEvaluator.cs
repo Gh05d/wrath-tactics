@@ -284,6 +284,32 @@ namespace WrathTactics.Engine {
             return Game.Instance.Player.PartyAndPets.Where(u => u.IsInGame);
         }
 
+        // Summoned monsters never land in PartyAndPets: Player.AddCharacterToLists only
+        // takes party characters and pets (UnitEntityData.Master comes from UnitPartPet,
+        // which a summon lacks). An Ally-scope IsSummon condition therefore saw zero
+        // summons and "AllyCount IsSummon < 2" was always true (summon spam).
+        // Living summons whose summoner is in the active party.
+        static IEnumerable<UnitEntityData> GetPartySummons() {
+            var party = Game.Instance.Player.PartyAndPets;
+            return Game.Instance.State.Units.Where(u => {
+                if (!u.IsInGame || u.HPLeft <= 0) return false;
+                if (u.Descriptor?.State?.IsFinallyDead ?? true) return false;
+                var summoner = u.Get<Kingmaker.UnitLogic.Parts.UnitPartSummonedMonster>()?.Summoner;
+                return summoner != null && party.Contains(summoner);
+            });
+        }
+
+        // Only a bucket that asks about summons widens the ally pool — otherwise
+        // counts like "AllyCount HpPercent < 60 >= 3" would start counting summons.
+        internal static bool BucketAsksForSummons(IEnumerable<Condition> conds) {
+            return conds.Any(c => c.Property == ConditionProperty.IsSummon);
+        }
+
+        static IEnumerable<UnitEntityData> GetAllyPool(UnitEntityData owner, List<Condition> conds) {
+            var party = GetAllPartyMembers(owner);
+            return BucketAsksForSummons(conds) ? party.Concat(GetPartySummons()) : party;
+        }
+
         static IEnumerable<UnitEntityData> GetVisibleEnemies(UnitEntityData owner) {
             // Only consider enemies actively in combat with the party.
             // Without IsInCombat, companions would run off to attack enemies

@@ -708,6 +708,8 @@ That asymmetry is the right semantic for player-facing "limit my summon spam" ru
 
 `ConditionProperty.IsSummon` (since 1.7.2) wraps this check and follows the standard `IsDead` Yes/No pattern — mirrored in both `EvaluateUnitProperty` (bucket-path hot evaluator) AND `MatchesPropertyThreshold` (count-subject path used by `AllyCount` / `EnemyCount`); keep both in sync if extending semantics.
 
+**Pool caveat (fixed after 1.36.0):** summons are not in `Player.PartyAndPets` — `AddCharacterToLists` resolves `unit.Master` (from `UnitPartPet`, absent on summons, so master = self) and requires an active `UnitPartCompanion` or `IsPet`. Until the fix, `AllyCount IsSummon = Yes < 2` always counted 0 → always true → summon spam. `EvaluateAllyBucket` now uses `GetAllyPool`, which appends `GetPartySummons()` (living `State.Units` whose `UnitPartSummonedMonster.Summoner` is in `PartyAndPets`) only when the bucket contains an `IsSummon` row.
+
 ### `GetHD` vs `GetEffectiveHD`
 
 Two parallel helpers in `Engine/UnitExtensions.cs`:

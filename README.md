@@ -205,7 +205,7 @@ Every term in the rule editor, in UI order. All checks are **snapshots**: a cond
 | **Alignment** | Good / Evil / Lawful / Chaotic / Neutral | Alignment axis. "Neutral" = neither Good nor Evil (LN, N, CN). |
 | **HasClass** | class or group | The unit has at least one level in that class, or belongs to the group: Spellcaster (has any spellbook), Arcane, Divine, Martial (a class that is neither arcane nor divine). |
 | **IsDead** | Yes/No | Truly dead — needs Raise Dead / Breath of Life. A companion who is down but will get up after the fight does **not** count. |
-| **Is summon** | Yes/No | A summoned monster (Summon Monster, Animate Dead, …). Pets and companions are not summons. |
+| **Is summon** | Yes/No | A summoned monster (Summon Monster, Animate Dead, …) of your party. Pets and companions are not summons. `AllyCount  Is summon = Yes  < 2` means "fewer than two of our summons are out". |
 | **Is pet** | Yes/No | Animal companion, Aivu, skeletal champion, eidolon, clone or similar. |
 | **Wields ranged weapon** | Yes/No | The unit's current weapon is a bow, crossbow, firearm, sling or thrown weapon. Re-checked every tick, so a weapon swap changes it. |
 | **Is flanked** | Yes/No | The game's own flanking state: at least two enemies are engaging the unit in melee (and it has no "cannot be flanked" feature). This is about attackers, not about being surrounded geometrically. |
